@@ -8,6 +8,10 @@ A high-fidelity, open-source mechanical ventilation and anesthesia machine simul
 
 Open Vent Sim is a web-based simulation platform that provides realistic, dynamically generated ventilation waveforms responding accurately to changes in both ventilator settings and patient physiology. Developed by clinicians for clinicians, this tool addresses the need for accessible, cost-effective ventilator training without requiring physical equipment.
 
+<p align="center">
+  <img src="./docs/screenshots/Startup_Screen.png" width="600" alt="Startup Screen">
+</p>
+
 ### Three Operating Modes
 
 - **🏥 Anesthesia Machine**: Complete anesthesia workstation with gas delivery, vaporizers, and manual/mechanical ventilation
@@ -50,6 +54,11 @@ Visit `http://localhost:3000` to see the application running.
 ## 💡 Features Detail
 
 ### Anesthesia Machine Mode
+
+<p align="center">
+  <img src="./docs/screenshots/Anesthesia_Machine.png" width="600" alt="Anesthesia Machine">
+</p>
+
 - **Ventilation**: Manual (Bag-Mask) and Mechanical modes
 - **Anesthetic Agents**: Sevoflurane, Desflurane, Isoflurane, Halothane
 - **Gas Management**: FGF control, APL valve, agent vaporizers
@@ -57,6 +66,11 @@ Visit `http://localhost:3000` to see the application running.
 - **Safety Features**: O₂ flush, Power-On Self-Test (POST)
 
 ### ICU Ventilator Mode
+
+<p align="center">
+  <img src="./docs/screenshots/Ventilation_Invasive.png" width="600" alt="Invasive Ventilation"> <img src="./docs/screenshots/Ventilation_Non-Invasive.png" width="600" alt="Non-Invasive Ventilation">
+</p>
+
 - **Ventilation Modes**: 
   - Volume Control (VCV)
   - Pressure Control (PCV)
@@ -68,6 +82,11 @@ Visit `http://localhost:3000` to see the application running.
 - **Advanced Monitoring**: Compliance, resistance, leak percentage (NIV)
 
 ### High Flow Oxygenator Mode
+
+<p align="center">
+  <img src="./docs/screenshots/High-Flow Oxygenator.png" width="600" alt="High-Flow Oxygenator">
+</p>
+
 - **Parameters**: Flow rate (up to 60 L/min), FiO₂, temperature
 - **Integrated Humidification**: Water level and temperature monitoring
 - **Visual Animation**: Real-time flow representation
@@ -84,7 +103,12 @@ Visit `http://localhost:3000` to see the application running.
 
 ### Educational Features
 - **🔴 Session Recording**: Log all events for debriefing
-- **⚙️ Instructor Settings**: 
+- **⚙️ Instructor Settings**:
+
+<p align="center">
+  <img src="./docs/screenshots/Settings.png" width="600" alt="Settings">
+</p>
+
   - Pre-configure patient profiles
   - Set default parameters
   - Create specific scenarios
@@ -203,11 +227,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🎯 Roadmap
 
-- [ ] Multi-language support (Italian, Spanish, French, German)
+- [ ] Multi-language support (Spanish, French, German)
 - [ ] Advanced scenario library with clinical cases
 - [ ] Student performance analytics
 - [ ] Collaborative multi-user sessions
-- [ ] VR/AR integration exploration
 - [ ] Mobile app development
-- [ ] Integration with LMS platforms
 
