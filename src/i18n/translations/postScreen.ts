@@ -1,0 +1,38 @@
+
+export const en = {
+  anesthesiaMachinePowerOnTitle: "Anesthesia Machine Startup",
+  ventilatorPowerOnTitle: "Ventilator Startup",
+  highFlowOxygenatorPowerOnTitle: "High Flow Oxygenator Startup",
+  post_startupButton: "Start System",
+  post_lastSelfTestLabel: "Last Self-Test:",
+  post_notPerformed: "Not Performed",
+  post_performSelfTestButton: "Perform Self-Test",
+  disinfectionCycleButtonLabel: "Start Disinfection Cycle",
+  disinfectionCycleInProgressTitle: "Disinfection Cycle",
+  disinfection_cycle_running: "Disinfecting...",
+  disinfectionStatus_clean: "Clean",
+  disinfectionStatus_dirty: "Dirty",
+  disinfectionStatus_not_safe: "Not Safe (Disinfect!)",
+  highFlowInterfaceSelectionTitle: "Select Interface Type",
+  highFlowInterfaceAdultButton: "Adult",
+  highFlowInterfacePediatricButton: "Junior",
+};
+
+export const it = {
+  anesthesiaMachinePowerOnTitle: "Avvio Macchina Anestesia",
+  ventilatorPowerOnTitle: "Avvio Ventilatore",
+  highFlowOxygenatorPowerOnTitle: "Avvio Ossigenatore Alti Flussi",
+  post_startupButton: "Avvia Sistema",
+  post_lastSelfTestLabel: "Ultimo Self-Test:",
+  post_notPerformed: "Non Eseguito",
+  post_performSelfTestButton: "Esegui Self-Test",
+  disinfectionCycleButtonLabel: "Avvia Ciclo Disinfezione",
+  disinfectionCycleInProgressTitle: "Ciclo Disinfezione",
+  disinfection_cycle_running: "Disinfezione...",
+  disinfectionStatus_clean: "Pulito",
+  disinfectionStatus_dirty: "Sporco",
+  disinfectionStatus_not_safe: "Non Sicuro (Disinfettare!)",
+  highFlowInterfaceSelectionTitle: "Seleziona Tipo Interfaccia",
+  highFlowInterfaceAdultButton: "Adulto",
+  highFlowInterfacePediatricButton: "Junior",
+};
