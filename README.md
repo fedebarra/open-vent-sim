@@ -157,11 +157,6 @@ gcloud run deploy --image gcr.io/PROJECT-ID/open-vent-sim --platform managed
 2. Deploy the `dist` folder to any static hosting service
 3. Configure your web server to serve `index.html` for all routes
 
-## 📖 Documentation
-
-- **[User Manual](docs/USER_MANUAL.md)** - Complete guide for all features
-- **[Quick Start Guide](docs/QUICK_START.md)** - Get started in 5 minutes
-
 ## 🎓 For Educators
 
 ### Creating Scenarios
