@@ -11,7 +11,7 @@ Open Vent Sim is a web-based simulation platform that provides realistic, dynami
 <p align="center">
   <img src="./docs/screenshots/Startup_Screen.png" width="600" alt="Startup Screen">
 </p>
-
+ 
 ### Three Operating Modes
 
 - **🏥 Anesthesia Machine**: Complete anesthesia workstation with gas delivery, vaporizers, and manual/mechanical ventilation
