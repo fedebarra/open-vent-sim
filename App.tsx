@@ -765,8 +765,12 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!isSimulatorOn || (!isVentilationActive && !isWarmingUpHF) || !operatingMode || activeManeuver || (operatingMode === 'anesthesia' && !isMechanicalVentilation) || currentPostScreenKey || isSelfTestRunning || isDisinfecting) {
-      setActiveAlarms({});
-      setHasActiveAlarmsState(false);
+      if (Object.keys(activeAlarms).length > 0) {
+        setActiveAlarms({});
+      }
+      if (hasActiveAlarmsState) {
+        setHasActiveAlarmsState(false);
+      }
       return;
     }
 
@@ -823,10 +827,23 @@ const App: React.FC = () => {
         }
     });
     
-    setActiveAlarms(newActiveAlarms);
-    setHasActiveAlarmsState(Object.values(newActiveAlarms).some(isActive => isActive));
+    const hasAlarmChanged = () => {
+      const keysPrev = Object.keys(activeAlarms);
+      const keysNew = Object.keys(newActiveAlarms);
+      if (keysPrev.length !== keysNew.length) return true;
+      return keysPrev.some(k => activeAlarms[k as AlarmParameterKey] !== newActiveAlarms[k as AlarmParameterKey]);
+    };
 
-  }, [parameters, alarmSettings, isSimulatorOn, isVentilationActive, isWarmingUpHF, operatingMode, icuSubMode, activeManeuver, isMechanicalVentilation, currentPostScreenKey, isSelfTestRunning, isDisinfecting, activeAlarms, currentMode, logSessionEvent, t]);
+    if (hasAlarmChanged()) {
+      setActiveAlarms(newActiveAlarms);
+    }
+
+    const newHasActiveAlarms = Object.values(newActiveAlarms).some(isActive => isActive);
+    if (hasActiveAlarmsState !== newHasActiveAlarms) {
+      setHasActiveAlarmsState(newHasActiveAlarms);
+    }
+
+  }, [parameters, alarmSettings, isSimulatorOn, isVentilationActive, isWarmingUpHF, operatingMode, icuSubMode, activeManeuver, isMechanicalVentilation, currentPostScreenKey, isSelfTestRunning, isDisinfecting, activeAlarms, currentMode, logSessionEvent, t, hasActiveAlarmsState]);
 
   const resetSnoozeState = useCallback(() => {
     setIsAlarmSnoozed(false);
