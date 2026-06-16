@@ -2,7 +2,7 @@
 
 A high-fidelity, open-source mechanical ventilation and anesthesia machine simulator for medical education, created using Natural Language-Driven Development (NLDD).
 
-🔗 **Live Demo**: [Try Open Vent Sim](https://open-vent-sim-960129675752.us-west1.run.app/)
+🔗 **Live Demo**: [Try Open Vent Sim](https://open-vent-sim-463957736408.europe-west1.run.app)
 
 ## 🎯 Overview
 
@@ -213,7 +213,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **🐛 Bug Reports**: [GitHub Issues](https://github.com/fedebarra/open-vent-sim/issues)
 - **💬 Discussions**: [GitHub Discussions](https://github.com/fedebarra/open-vent-sim/discussions)
 - **📧 Email**: federico.barra@med.uniupo.it
-- **🔗 Live Demo**: [https://open-vent-sim-960129675752.us-west1.run.app/](https://open-vent-sim-960129675752.us-west1.run.app/)
+- **🔗 Live Demo**: [https://open-vent-sim-463957736408.europe-west1.run.app](https://open-vent-sim-463957736408.europe-west1.run.app)
 
 ## ⚠️ Disclaimer
 
@@ -225,7 +225,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ![GitHub issues](https://img.shields.io/github/issues/fedebarra/open-vent-sim)
 ![GitHub pull requests](https://img.shields.io/github/issues-pr/fedebarra/open-vent-sim)
 ![GitHub](https://img.shields.io/github/license/fedebarra/open-vent-sim)
-![Website](https://img.shields.io/website?url=https%3A%2F%2Fopen-vent-sim-960129675752.us-west1.run.app%2F)
+![Website](https://img.shields.io/website?url=https%3A%2F%2Fopen-vent-sim-463957736408.europe-west1.run.app)
 
 ## 🎯 Roadmap
 
