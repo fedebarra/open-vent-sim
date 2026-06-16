@@ -1804,6 +1804,21 @@ const App: React.FC = () => {
                  finalValue = clampedNum;
             }
 
+            // Ensure we clamp finalValue within min/max to prevent rounding out of bounds (such as O2 21% rounded to 20%)
+            if (operatingMode === 'icu' && icuSubMode === 'high-flow' && paramKey === 'fgf') {
+                 const currentInterface = parameters.highFlowInterfaceType;
+                 const minFGF = currentInterface === 'adult' ? HIGH_FLOW_ADULT_FGF_MIN : HIGH_FLOW_PEDIATRIC_FGF_MIN;
+                 const maxFGF = currentInterface === 'adult' ? HIGH_FLOW_ADULT_FGF_MAX : HIGH_FLOW_PEDIATRIC_FGF_MAX_CONSTANT; 
+                 finalValue = Math.max(minFGF, Math.min(maxFGF, Number(finalValue)));
+            } else if (operatingMode === 'icu' && icuSubMode === 'high-flow' && paramKey === 'temperature') {
+                 const currentInterface = parameters.highFlowInterfaceType;
+                 const maxTemp = currentInterface === 'junior' ? HIGH_FLOW_TEMP_MAX_JUNIOR : HIGH_FLOW_TEMP_MAX_ADULT; 
+                 finalValue = Math.max(HIGH_FLOW_TEMP_MIN, Math.min(maxTemp, Number(finalValue))); 
+            } else {
+                if (paramDef.min !== undefined) finalValue = Math.max(paramDef.min, Number(finalValue));
+                if (paramDef.max !== undefined) finalValue = Math.min(paramDef.max, Number(finalValue));
+            }
+
             // Ensure specific values for HF temperature
             if (operatingMode === 'icu' && icuSubMode === 'high-flow' && paramKey === 'temperature') {
                 const allowedTemps = parameters.highFlowInterfaceType === 'junior' ? [31,34] : [31,34,37];
