@@ -152,6 +152,10 @@ export const GraphsPanel: React.FC<GraphsPanelProps> = ({
   const activeManeuverRef = useRef(activeManeuver);
   const currentModeRef = useRef(currentMode);
 
+  const wasVentilationActiveRef = useRef<boolean>(false);
+  const lastWidthRef = useRef<number>(0);
+  const lastHeightRef = useRef<number>(0);
+
   useEffect(() => {
     parametersRef.current = parameters;
     ventilatorDataRef.current = ventilatorData;
@@ -430,49 +434,33 @@ export const GraphsPanel: React.FC<GraphsPanelProps> = ({
     };
 
     const resizeObserver = new ResizeObserver(() => {
-      let sizeChanged = false;
-      canvases.forEach(canvas => {
-        if (canvas && canvas.parentElement) {
-          const newWidth = canvas.parentElement.offsetWidth;
-          const newHeight = canvas.parentElement.offsetHeight;
-          if (canvas.width !== newWidth || canvas.height !== newHeight) {
+      const parent = pressureCanvasRef.current?.parentElement;
+      if (!parent) return;
+      const newWidth = parent.offsetWidth;
+      const newHeight = parent.offsetHeight;
+      if (newWidth !== lastWidthRef.current || newHeight !== lastHeightRef.current) {
+        lastWidthRef.current = newWidth;
+        lastHeightRef.current = newHeight;
+        canvases.forEach(canvas => {
+          if (canvas) {
             canvas.width = newWidth;
             canvas.height = newHeight;
-            sizeChanged = true;
           }
-        }
-      });
-      if (sizeChanged) {
+        });
         redrawAllBackgrounds();
         resetDrawingState();
       }
     });
-
-    // Initial check and setup to avoid unnecessarily wiping canvas on fast first-draw
-    let initialSized = false;
-    canvases.forEach(canvas => {
-      if (canvas && canvas.parentElement) {
-        const newWidth = canvas.parentElement.offsetWidth;
-        const newHeight = canvas.parentElement.offsetHeight;
-        if (canvas.width !== newWidth || canvas.height !== newHeight) {
-          canvas.width = newWidth;
-          canvas.height = newHeight;
-          initialSized = true;
-        }
-      }
-    });
-    if (initialSized) {
-      redrawAllBackgrounds();
-    }
-
     resizeObserver.observe(parentElement);
 
-    return () => {
-        resizeObserver.disconnect();
-    };
-  }, [redrawAllBackgrounds, resetSweepMinMax]);
+    // Only reset the drawing state and redraw backgrounds when ventilation starts
+    const becameActive = isVentilationActive && !wasVentilationActiveRef.current;
+    if (becameActive) {
+        resetDrawingState();
+        redrawAllBackgrounds();
+    }
+    wasVentilationActiveRef.current = isVentilationActive;
 
-  useEffect(() => {
     if (isVentilationActive && !areWaveformsFrozen && !animationFrameId.current) {
         animationFrameId.current = requestAnimationFrame(animate);
     } else if ((!isVentilationActive || areWaveformsFrozen) && animationFrameId.current) {
@@ -481,12 +469,13 @@ export const GraphsPanel: React.FC<GraphsPanelProps> = ({
     }
 
     return () => {
+        resizeObserver.disconnect();
         if (animationFrameId.current) {
             cancelAnimationFrame(animationFrameId.current);
             animationFrameId.current = null;
         }
     };
-  }, [isVentilationActive, areWaveformsFrozen, animate]);
+  }, [isVentilationActive, areWaveformsFrozen, animate, redrawAllBackgrounds, resetSweepMinMax]);
 
   const { peep, pressureTarget, volume, compliance, psLevel } = parameters;
   useEffect(() => {

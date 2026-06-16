@@ -808,7 +808,12 @@ const App: React.FC = () => {
                  isViolated = true;
             }
           }
-          if (alarm.high !== null && valueToMonitor > alarm.high) isViolated = true;
+          if (alarm.high !== null && valueToMonitor > alarm.high) {
+            // Disable high FiO2 alarm check when FiO2 level is exactly 100% to avoid nuisance alarms
+            if (!(key === 'fio2' && valueToMonitor === 100)) {
+              isViolated = true;
+            }
+          }
           if (isViolated) newActiveAlarms[key] = true;
         }
       }
