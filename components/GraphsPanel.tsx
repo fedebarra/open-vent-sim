@@ -430,20 +430,50 @@ export const GraphsPanel: React.FC<GraphsPanelProps> = ({
     };
 
     const resizeObserver = new ResizeObserver(() => {
+      let sizeChanged = false;
       canvases.forEach(canvas => {
         if (canvas && canvas.parentElement) {
-          canvas.width = canvas.parentElement.offsetWidth;
-          canvas.height = canvas.parentElement.offsetHeight;
+          const newWidth = canvas.parentElement.offsetWidth;
+          const newHeight = canvas.parentElement.offsetHeight;
+          if (canvas.width !== newWidth || canvas.height !== newHeight) {
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+            sizeChanged = true;
+          }
         }
       });
-      redrawAllBackgrounds();
-      resetDrawingState();
+      if (sizeChanged) {
+        redrawAllBackgrounds();
+        resetDrawingState();
+      }
     });
+
+    // Initial check and setup to avoid unnecessarily wiping canvas on fast first-draw
+    let initialSized = false;
+    canvases.forEach(canvas => {
+      if (canvas && canvas.parentElement) {
+        const newWidth = canvas.parentElement.offsetWidth;
+        const newHeight = canvas.parentElement.offsetHeight;
+        if (canvas.width !== newWidth || canvas.height !== newHeight) {
+          canvas.width = newWidth;
+          canvas.height = newHeight;
+          initialSized = true;
+        }
+      }
+    });
+    if (initialSized) {
+      redrawAllBackgrounds();
+    }
+
     resizeObserver.observe(parentElement);
 
+    return () => {
+        resizeObserver.disconnect();
+    };
+  }, [redrawAllBackgrounds, resetSweepMinMax]);
+
+  useEffect(() => {
     if (isVentilationActive && !areWaveformsFrozen && !animationFrameId.current) {
-        resetDrawingState();
-        redrawAllBackgrounds();
         animationFrameId.current = requestAnimationFrame(animate);
     } else if ((!isVentilationActive || areWaveformsFrozen) && animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
@@ -451,13 +481,12 @@ export const GraphsPanel: React.FC<GraphsPanelProps> = ({
     }
 
     return () => {
-        resizeObserver.disconnect();
         if (animationFrameId.current) {
             cancelAnimationFrame(animationFrameId.current);
             animationFrameId.current = null;
         }
     };
-  }, [isVentilationActive, areWaveformsFrozen, animate, redrawAllBackgrounds, resetSweepMinMax]);
+  }, [isVentilationActive, areWaveformsFrozen, animate]);
 
   const { peep, pressureTarget, volume, compliance, psLevel } = parameters;
   useEffect(() => {
