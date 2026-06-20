@@ -27,6 +27,9 @@ interface GraphsPanelProps {
   currentSweepSpeedValue: SweepSpeedValue;
   scanlinePixelRate: number;
   onChangeSweepSpeed: () => void;
+  isModernTheme?: boolean;
+  onOpenModeDrawer?: () => void;
+  onToggleVentilation?: () => void;
 }
 
 const SweepSpeedSelectorButton: React.FC<{
@@ -115,7 +118,8 @@ export const GraphsPanel: React.FC<GraphsPanelProps> = ({
     operatingMode, icuSubMode,
     currentMode, currentTheme, parameters, ventilatorData,
     areWaveformsFrozen, activeManeuver, onToggleFreezeWaveforms,
-    currentSweepSpeedValue, scanlinePixelRate, onChangeSweepSpeed
+    currentSweepSpeedValue, scanlinePixelRate, onChangeSweepSpeed,
+    isModernTheme, onOpenModeDrawer, onToggleVentilation
 }) => {
   const { t } = useLanguage();
   const themeColors = THEME_CONFIG[currentTheme];
@@ -200,40 +204,43 @@ export const GraphsPanel: React.FC<GraphsPanelProps> = ({
 
   const drawStaticBackground = useCallback((ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, type: WaveformType, scale: ReturnType<typeof getNiceScaleForRange>) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const paddingLeft = 35, paddingRight = 10;
+    const paddingLeft = isModernTheme ? 0 : 35, paddingRight = isModernTheme ? 0 : 10;
     const graphWidth = canvas.width - paddingLeft - paddingRight;
     const graphHeight = canvas.height;
-    ctx.strokeStyle = '#4A5568';
-    ctx.lineWidth = 0.5;
-    const verticalLines = Math.max(5, Math.floor(graphWidth / 50));
-    for (let i = 0; i <= verticalLines; i++) {
-        const x = paddingLeft + (i / verticalLines) * graphWidth;
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, graphHeight); ctx.stroke();
+    
+    if (!isModernTheme) {
+      ctx.strokeStyle = '#4A5568';
+      ctx.lineWidth = 0.5;
+      const verticalLines = Math.max(5, Math.floor(graphWidth / 50));
+      for (let i = 0; i <= verticalLines; i++) {
+          const x = paddingLeft + (i / verticalLines) * graphWidth;
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, graphHeight); ctx.stroke();
+      }
+      if (scale.step > 0) {
+          for (let val = scale.minY; val <= scale.maxY; val += scale.step) {
+              const y = mapYValue(val, scale, graphHeight);
+              ctx.beginPath(); ctx.moveTo(paddingLeft, y); ctx.lineTo(canvas.width - paddingRight, y); ctx.stroke();
+          }
+      }
+      ctx.fillStyle = '#A0AEC0';
+      ctx.font = '10px Arial';
+      ctx.textAlign = 'right';
+      if (scale.step > 0) {
+          for (let val = scale.minY; val <= scale.maxY; val += scale.step) {
+              const yPos = mapYValue(val, scale, graphHeight);
+              if (yPos >= 5 && yPos <= graphHeight - 5) ctx.fillText(String(val), paddingLeft - 5, yPos + 3);
+          }
+      }
+      ctx.save();
+      ctx.fillStyle = (WAVEFORM_CONFIGS as any)[type].color;
+      ctx.font = 'bold 12px Arial';
+      ctx.textAlign = 'center';
+      ctx.translate(15, graphHeight / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText(`${t[(WAVEFORM_CONFIGS as any)[type].titleKey]} (${scale.unit})`, 0, 0);
+      ctx.restore();
     }
-    if (scale.step > 0) {
-        for (let val = scale.minY; val <= scale.maxY; val += scale.step) {
-            const y = mapYValue(val, scale, graphHeight);
-            ctx.beginPath(); ctx.moveTo(paddingLeft, y); ctx.lineTo(canvas.width - paddingRight, y); ctx.stroke();
-        }
-    }
-    ctx.fillStyle = '#A0AEC0';
-    ctx.font = '10px Arial';
-    ctx.textAlign = 'right';
-    if (scale.step > 0) {
-        for (let val = scale.minY; val <= scale.maxY; val += scale.step) {
-            const yPos = mapYValue(val, scale, graphHeight);
-            if (yPos >= 5 && yPos <= graphHeight - 5) ctx.fillText(String(val), paddingLeft - 5, yPos + 3);
-        }
-    }
-    ctx.save();
-    ctx.fillStyle = (WAVEFORM_CONFIGS as any)[type].color;
-    ctx.font = 'bold 12px Arial';
-    ctx.textAlign = 'center';
-    ctx.translate(15, graphHeight / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillText(`${t[(WAVEFORM_CONFIGS as any)[type].titleKey]} (${scale.unit})`, 0, 0);
-    ctx.restore();
-  }, [mapYValue, t]);
+  }, [mapYValue, t, isModernTheme]);
 
   const redrawAllBackgrounds = useCallback(() => {
     const types: WaveformType[] = ['pressure', 'flow', 'volume'];
@@ -276,8 +283,8 @@ export const GraphsPanel: React.FC<GraphsPanelProps> = ({
         animationFrameId.current = requestAnimationFrame(animate);
         return;
     }
-    const paddingLeft = 35;
-    const graphWidth = canvases.pressure!.width - paddingLeft - 10;
+    const paddingLeft = isModernTheme ? 0 : 35;
+    const graphWidth = canvases.pressure!.width - paddingLeft - (isModernTheme ? 0 : 10);
     if (graphWidth <= 0) {
         animationFrameId.current = requestAnimationFrame(animate);
         return;
@@ -302,27 +309,29 @@ export const GraphsPanel: React.FC<GraphsPanelProps> = ({
                 const clearX = paddingLeft + ((currentPixel + 1) % graphWidth);
                 ctx.clearRect(clearX, 0, 2, canvas.height);
 
-                ctx.save();
-                ctx.beginPath();
-                ctx.rect(clearX, 0, 2, canvas.height);
-                ctx.clip();
-                const scale = graphScalesRef.current[type];
-                ctx.strokeStyle = '#4A5568';
-                ctx.lineWidth = 0.5;
-                const verticalLines = Math.max(5, Math.floor(graphWidth / 50));
-                for (let j = 0; j <= verticalLines; j++) {
-                    const x = paddingLeft + (j / verticalLines) * graphWidth;
-                    if (x >= clearX && x < clearX + 2) {
-                        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+                if (!isModernTheme) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(clearX, 0, 2, canvas.height);
+                    ctx.clip();
+                    const scale = graphScalesRef.current[type];
+                    ctx.strokeStyle = '#4A5568';
+                    ctx.lineWidth = 0.5;
+                    const verticalLines = Math.max(5, Math.floor(graphWidth / 50));
+                    for (let j = 0; j <= verticalLines; j++) {
+                        const x = paddingLeft + (j / verticalLines) * graphWidth;
+                        if (x >= clearX && x < clearX + 2) {
+                            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+                        }
                     }
-                }
-                if (scale.step > 0) {
-                    for (let val = scale.minY; val <= scale.maxY; val += scale.step) {
-                        const y = mapYValue(val, scale, canvas.height);
-                        ctx.beginPath(); ctx.moveTo(clearX, y); ctx.lineTo(clearX + 2, y); ctx.stroke();
+                    if (scale.step > 0) {
+                        for (let val = scale.minY; val <= scale.maxY; val += scale.step) {
+                            const y = mapYValue(val, scale, canvas.height);
+                            ctx.beginPath(); ctx.moveTo(clearX, y); ctx.lineTo(clearX + 2, y); ctx.stroke();
+                        }
                     }
+                    ctx.restore();
                 }
-                ctx.restore();
             });
         }
 
@@ -513,7 +522,7 @@ export const GraphsPanel: React.FC<GraphsPanelProps> = ({
     );
   }
 
-  if (currentMode === VentilationMode.CPAP && operatingMode !== 'anesthesia') {
+  if (currentMode === VentilationMode.CPAP && !isModernTheme && operatingMode !== 'anesthesia') {
      return (
       <div className="bg-gray-900 p-4 flex flex-col justify-center items-center overflow-hidden h-full">
         <div className={`text-lg font-bold mb-4 text-white border-b-2 border-gray-700 pb-1 self-stretch text-center`}>
@@ -526,7 +535,7 @@ export const GraphsPanel: React.FC<GraphsPanelProps> = ({
     );
   }
 
-  if (!isVentilationActive &&
+  if (!isVentilationActive && !isModernTheme &&
       ( (operatingMode === 'anesthesia' && isMechanicalVentilation) ||
         (operatingMode === 'icu' && (icuSubMode === 'invasive' || icuSubMode === 'non-invasive') && currentMode !== VentilationMode.CPAP)
       )
@@ -542,6 +551,70 @@ export const GraphsPanel: React.FC<GraphsPanelProps> = ({
      </div>
    );
  }
+
+  if (isModernTheme) {
+    return (
+      <div className="flex-1 flex flex-col gap-2 py-3 lg:pr-4 lg:pl-[54px] min-h-0 bg-[#0a0f1a] relative">
+        {!isVentilationActive && (
+          <div className="absolute inset-x-0 bottom-0 top-[54px] lg:left-[54px] lg:right-4 z-20 flex flex-col items-center justify-center bg-[#0a0f1a]/85 backdrop-blur-[4px] transition-all duration-300">
+            <div className="p-7 max-w-sm rounded-2xl bg-[#0e1521]/95 border border-white/5 shadow-2xl flex flex-col items-center text-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 text-xl font-bold animate-pulse">
+                ⚠️
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-100">{t.ventilationStandbyStatus?.toUpperCase() || 'VENTILAZIONE IN STANDBY'}</h3>
+                <p className="text-xs text-[#6f7c90] mt-1.5 leading-relaxed">{t.ventilationStandbyMsg || 'In standby le erogazioni si interrompono ma i parametri impostati vengono mantenuti.'}</p>
+              </div>
+              <button onClick={onToggleVentilation || onOpenModeDrawer} className="mt-1 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 active:scale-95 transition-all text-[#0a0f1a] text-xs font-bold rounded-xl shadow-lg shadow-amber-500/15 cursor-pointer">
+                {t.startVentilationButton || 'AVVIA VENTILAZIONE'}
+              </button>
+            </div>
+          </div>
+        )}
+        <div className="flex-none flex items-center justify-between gap-3 px-1">
+          {onOpenModeDrawer && (
+            <button onClick={onOpenModeDrawer} className="flex items-center gap-2 px-4 py-2 bg-[#121a28] border-none rounded-xl cursor-pointer">
+              <span className="text-[11px] tracking-widest text-[#6f7c90] font-semibold">{t.modeLabel || 'MODALITÀ'}</span>
+              <span className="text-[15px] font-bold" style={{ color: themeColors.accent }}>{currentMode}</span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8a97ad" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
+            </button>
+          )}
+          <div className="flex items-center gap-3">
+             <button onClick={onChangeSweepSpeed} className="px-3 py-1.5 text-[12.5px] font-medium text-[#aeb8c8] bg-white/5 border-none rounded-lg cursor-pointer font-mono whitespace-nowrap">
+                {t.sweepSpeedButtonPrefix || 'Velocità'} · {currentSweepSpeedValue} mm/s
+             </button>
+             <button onClick={onToggleFreezeWaveforms} disabled={activeManeuver !== null} className={`px-4 py-1.5 text-[12.5px] font-semibold text-[#aeb8c8] bg-white/5 border-none rounded-lg cursor-pointer transition-colors ${areWaveformsFrozen ? 'bg-white/20' : ''}`}>
+                {areWaveformsFrozen ? (t.unfreezeWaveformsButton || 'Sblocca') : (t.freezeWaveformsButton || 'Blocca')}
+             </button>
+          </div>
+        </div>
+
+        {/* PRESSURE */}
+        <div className="flex-1 relative bg-[#0b1018] rounded-xl overflow-hidden min-h-0" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px)', backgroundSize: '46px 34px' }}>
+          <div className="absolute top-[9px] left-[13px] z-10 text-[12.5px] font-semibold tracking-wide text-[#f2a23c]">
+             {t.graph_pressure_title || 'Pressione'}&nbsp;<span className="text-[#6f7c90] font-medium">cmH₂O</span>
+          </div>
+          <canvas ref={pressureCanvasRef} className="absolute inset-0 w-full h-full block" />
+        </div>
+
+        {/* FLOW */}
+        <div className="flex-1 relative bg-[#0b1018] rounded-xl overflow-hidden min-h-0" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px)', backgroundSize: '46px 34px' }}>
+          <div className="absolute top-[9px] left-[13px] z-10 text-[12.5px] font-semibold tracking-wide text-[#46c97e]">
+             {t.graph_flow_title || 'Flusso'}&nbsp;<span className="text-[#6f7c90] font-medium">L/min</span>
+          </div>
+          <canvas ref={flowCanvasRef} className="absolute inset-0 w-full h-full block" />
+        </div>
+
+        {/* VOLUME */}
+        <div className="flex-1 relative bg-[#0b1018] rounded-xl overflow-hidden min-h-0" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px)', backgroundSize: '46px 34px' }}>
+          <div className="absolute top-[9px] left-[13px] z-10 text-[12.5px] font-semibold tracking-wide text-[#34b6ee]">
+             {t.graph_volume_title || 'Volume'}&nbsp;<span className="text-[#6f7c90] font-medium">ml</span>
+          </div>
+          <canvas ref={volumeCanvasRef} className="absolute inset-0 w-full h-full block" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-900 p-2 flex flex-col overflow-hidden h-full">

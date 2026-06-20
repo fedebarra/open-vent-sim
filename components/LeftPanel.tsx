@@ -36,6 +36,7 @@ interface LeftPanelProps {
   onStartInspiratoryHold: () => void;
   onStartExpiratoryHold: () => void;
   onToggleHumidifierPower: () => void; // For general ICU humidifier
+  onToggleAlarmSettingsModal?: () => void;
 }
 
 const PanelTitle: React.FC<{ children: React.ReactNode, theme: ThemeName, className?: string }> = ({ children, theme, className }) => {
@@ -564,6 +565,19 @@ export const LeftPanel: React.FC<LeftPanelProps> = (props) => {
                     {humidifierSettings.isOn && renderParameter('humidifierTemperature')}
                 </div>
             </div>
+        )}
+
+        {props.onToggleAlarmSettingsModal && (
+          <div className="mt-5 border-t border-gray-800 pt-4">
+            <button
+              onClick={props.onToggleAlarmSettingsModal}
+              className={`w-full py-2.5 rounded-lg text-sm font-bold shadow-md transition-all duration-200 ease-in-out border border-amber-500/30 flex items-center justify-center gap-2
+                          bg-amber-600/10 hover:bg-amber-600/20 text-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500`}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              {(t.alarmSettingsDrawerLabel || "Alarm Settings").toUpperCase()}
+            </button>
+          </div>
         )}
       </div>
     </div>

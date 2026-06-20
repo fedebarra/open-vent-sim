@@ -12,7 +12,9 @@ import { SimulatorSettingsModal } from './components/SimulatorSettingsModal';
 import { AnesthesiaOffRequiredModal } from './components/AnesthesiaOffRequiredModal';
 import { ManualModal } from './components/ManualModal'; // New
 import { LivePatientSettingsModal } from './components/LivePatientSettingsModal'; // New
-import { VentilationMode, AnestheticGasType, ParameterKey, OperatingMode, ICUSubMode, PatientSettings, PatientPhysiologySettings, AlarmSettings, HumidifierSettings, AlarmParameterKey, ManeuverResultsPackage, ManeuverDisplayParameter, AgentLevels, PatientDataModalState, ThemeName, PostScreenKey, LastSelfTestResults, SelfTestItem, SimulatorSettings, AnesthesiaOffRequiredModalState, ManualModalState, ModalState, AllParameters, ActiveManeuver, SimulatorSettingsModalState, LastDisinfectionStatus, HighFlowInterfaceType, SweepSpeedValue, SweepSpeedOption, VentilatorData } from './types';
+import { ModernVentilatorInterface } from './components/ModernVentilatorInterface';
+import { AlarmLogsModal } from './components/AlarmLogsModal';
+import { VentilationMode, AnestheticGasType, ParameterKey, OperatingMode, ICUSubMode, PatientSettings, PatientPhysiologySettings, AlarmSettings, HumidifierSettings, AlarmParameterKey, ManeuverResultsPackage, ManeuverDisplayParameter, AgentLevels, PatientDataModalState, ThemeName, PostScreenKey, LastSelfTestResults, SelfTestItem, SimulatorSettings, AnesthesiaOffRequiredModalState, ManualModalState, ModalState, AllParameters, ActiveManeuver, SimulatorSettingsModalState, LastDisinfectionStatus, HighFlowInterfaceType, SweepSpeedValue, SweepSpeedOption, VentilatorData, AlarmEvent } from './types';
 import { INITIAL_PARAMETERS, INITIAL_PATIENT_SETTINGS, INITIAL_ALARM_SETTINGS, PARAMETER_DEFINITIONS, THEME_CONFIG, INITIAL_HUMIDIFIER_SETTINGS, MANEUVER_HOLD_DURATION_MS, MANEUVER_UNIT_CMH2O, MANEUVER_UNIT_ML_CMH2O, MANEUVER_UNIT_CMH2O_L_S, MANEUVER_UNIT_CMH2O_L, MANEUVER_UNIT_ML, GAS_CONFIG, AGENT_CONSUMPTION_REFERENCE_FGF_L_MIN, AGENT_CONSUMPTION_DURATION_SECONDS_AT_REF_FGF, SODA_LIME_MAX_LIFETIME_HOURS_HIGH_FGF, SODA_LIME_MIN_LIFETIME_HOURS_LOW_FGF, SODA_LIME_FGF_HIGH_THRESHOLD_L_MIN, SODA_LIME_FGF_LOW_THRESHOLD_L_MIN, ET_AGENT_TIME_CONSTANT_FACTOR, ET_AGENT_MIN_FGF_EFFECT, INITIAL_AGENT_LEVELS, O2_FLUSH_DURATION_MS, SNOOZE_DURATION_MS, DEFAULT_SELF_TEST_ITEMS, ANESTHESIA_POST_SELF_TEST_ITEMS, VENTILATOR_POST_SELF_TEST_ITEMS, SELF_TEST_ITEM_DURATION_MS, POST_SCREEN_CONFIG, INITIAL_SIMULATOR_SETTINGS, ANESTHETIC_GAS_ORDER, HIGH_FLOW_WATER_CONSUMPTION_FACTOR_PER_L_FGF_PER_INTERVAL, HIGH_FLOW_WATER_LOW_THRESHOLD_PERCENT, AMBIENT_TEMPERATURE, HIGH_FLOW_ADULT_FGF_MIN, HIGH_FLOW_PEDIATRIC_FGF_MIN, HIGH_FLOW_TEMP_DEFAULT_ADULT, HIGH_FLOW_TEMP_DEFAULT_JUNIOR, HIGH_FLOW_TEMP_MAX_JUNIOR, HIGH_FLOW_ADULT_FGF_MAX, HIGH_FLOW_PEDIATRIC_FGF_MAX, SWEEP_SPEED_OPTIONS, SWEEP_SPEED_TO_PIXEL_RATE_MAP, HIGH_FLOW_TEMP_MAX_ADULT, HIGH_FLOW_TEMP_MIN, HIGH_FLOW_PEDIATRIC_FGF_MAX as HIGH_FLOW_PEDIATRIC_FGF_MAX_CONSTANT, ALARMABLE_PARAMETERS_CONFIG } from './constants'; // Aliased import for clarity
 import { useLanguage } from './src/contexts/LanguageContext';
 import { TranslationKeys } from './src/i18n/locales';
@@ -149,11 +151,14 @@ const App: React.FC = () => {
   const [humidifierSettings, setHumidifierSettings] = useState<HumidifierSettings>(() => ({
     isOn: simulatorSettings.general.humidifierDefaultOn,
     temperature: simulatorSettings.general.humidifierDefaultTemp,
+    level: 3,
   }));
 
   const [patientDataModalInfo, setPatientDataModalInfo] = useState<PatientDataModalState>({ isOpen: false, pendingOperatingMode: null, pendingIcuSubModeForSetup: null, pendingHighFlowInterfaceForSetup: null });
 
   const [isAlarmSettingsModalOpen, setIsAlarmSettingsModalOpen] = useState<boolean>(false);
+  const [isAlarmLogsModalOpen, setIsAlarmLogsModalOpen] = useState<boolean>(false);
+  const [alarmEvents, setAlarmEvents] = useState<AlarmEvent[]>([]);
   const [activeAlarms, setActiveAlarms] = useState<Partial<Record<AlarmParameterKey, boolean>>>({});
   const [hasActiveAlarmsState, setHasActiveAlarmsState] = useState<boolean>(false);
   const [isAlarmSnoozed, setIsAlarmSnoozed] = useState<boolean>(false);
@@ -168,6 +173,8 @@ const App: React.FC = () => {
   const [heldVolumeInspired, setHeldVolumeInspired] = useState<number>(0);
 
   const [maneuverResultsPackage, setManeuverResultsPackage] = useState<ManeuverResultsPackage | null>(null);
+  const [heldInspManeuverParams, setHeldInspManeuverParams] = useState<ManeuverDisplayParameter[] | null>(null);
+  const [heldExpManeuverParams, setHeldExpManeuverParams] = useState<ManeuverDisplayParameter[] | null>(null);
   const [capturedPpeakForResistance, setCapturedPpeakForResistance] = useState<number | null>(null);
   const [capturedAvgInspFlowLPS, setCapturedAvgInspFlowLPS] = useState<number | null>(null);
 
@@ -247,6 +254,8 @@ const App: React.FC = () => {
 
   const handleClearManeuverResults = useCallback(() => {
     setManeuverResultsPackage(null);
+    setHeldInspManeuverParams(null);
+    setHeldExpManeuverParams(null);
   }, []);
 
 
@@ -526,10 +535,10 @@ const App: React.FC = () => {
         if (activeManeuver && maneuverStartTime) {
           if (Date.now() - maneuverStartTime > MANEUVER_HOLD_DURATION_MS) {
             const resultsParams: ManeuverDisplayParameter[] = [];
-            let resultsTitleKey: 'maneuverResults_inspHold_title' | 'maneuverResults_expHold_title' = 'maneuverResults_inspHold_title';
+            let currentInspHoldParams = heldInspManeuverParams;
+            let currentExpHoldParams = heldExpManeuverParams;
 
             if (activeManeuver === 'insp_hold') {
-              resultsTitleKey = 'maneuverResults_inspHold_title';
               const ppeak_val = capturedPpeakForResistance !== null ? capturedPpeakForResistance : Number(newMonitoredParams.pPlateau);
               const pplat_val = Number(newMonitoredParams.pPlateau);
               const peep_val = Number(newMonitoredParams.peep);
@@ -560,16 +569,15 @@ const App: React.FC = () => {
               } else {
                 resultsParams.push({ labelKey: 'maneuver_param_resistance_label', result: { value: t.valueNotAvailable, unitKey: MANEUVER_UNIT_CMH2O_L_S }});
               }
+
+              setHeldInspManeuverParams(resultsParams);
+              currentInspHoldParams = resultsParams;
             } else if (activeManeuver === 'exp_hold') {
-              resultsTitleKey = 'maneuverResults_expHold_title';
               const peeptot_val = Number(newMonitoredParams.peep);
               resultsParams.push({ labelKey: 'maneuver_param_peeptot_label', result: { value: peeptot_val.toFixed(1), unitKey: MANEUVER_UNIT_CMH2O }});
-              resultsParams.push({ labelKey: 'maneuver_param_ppeak_label', result: { value: t.valueNotAvailable, unitKey: MANEUVER_UNIT_CMH2O }});
-              resultsParams.push({ labelKey: 'maneuver_param_pplat_label', result: { value: t.valueNotAvailable, unitKey: MANEUVER_UNIT_CMH2O }});
-              resultsParams.push({ labelKey: 'maneuver_param_pdrive_label', result: { value: t.valueNotAvailable, unitKey: MANEUVER_UNIT_CMH2O }});
-              resultsParams.push({ labelKey: 'maneuver_param_crs_label', result: { value: t.valueNotAvailable, unitKey: MANEUVER_UNIT_ML_CMH2O }});
-              resultsParams.push({ labelKey: 'maneuver_param_elastance_label', result: { value: t.valueNotAvailable, unitKey: MANEUVER_UNIT_CMH2O_L }});
-              resultsParams.push({ labelKey: 'maneuver_param_resistance_label', result: { value: t.valueNotAvailable, unitKey: MANEUVER_UNIT_CMH2O_L_S }});
+              
+              setHeldExpManeuverParams(resultsParams);
+              currentExpHoldParams = resultsParams;
             }
 
             const logDetails: Record<string, string> = {};
@@ -587,7 +595,31 @@ const App: React.FC = () => {
                 logSessionEvent('record_log_exp_hold_results', logDetails);
             }
 
-            setManeuverResultsPackage({ titleKey: resultsTitleKey, parameters: resultsParams });
+            if (currentInspHoldParams && currentExpHoldParams) {
+              const peepsetItem = currentInspHoldParams.find(p => p.labelKey === 'maneuver_param_peep_label');
+              const peeptotItem = currentExpHoldParams.find(p => p.labelKey === 'maneuver_param_peeptot_label');
+              const combinedList = [...currentInspHoldParams, ...currentExpHoldParams];
+
+              if (peepsetItem && peeptotItem) {
+                const peepset_val = parseFloat(peepsetItem.result.value);
+                const peeptot_val = parseFloat(peeptotItem.result.value);
+                if (!isNaN(peepset_val) && !isNaN(peeptot_val)) {
+                  const autopeep_val = Math.max(0, peeptot_val - peepset_val);
+                  combinedList.push({
+                    labelKey: 'maneuver_param_autopeep_label',
+                    result: { value: autopeep_val.toFixed(1), unitKey: MANEUVER_UNIT_CMH2O }
+                  });
+                }
+              }
+
+              setManeuverResultsPackage({
+                titleKey: 'maneuverResults_joint_title',
+                parameters: combinedList
+              });
+            } else {
+              setManeuverResultsPackage(null);
+            }
+
             setActiveManeuver(null);
             setManeuverStartTime(null);
             setCapturedPpeakForResistance(null);
@@ -829,6 +861,78 @@ const App: React.FC = () => {
             const alarmConfig = ALARMABLE_PARAMETERS_CONFIG[alarmKey];
             const alarmLabel = alarmConfig ? t[alarmConfig.labelKey] : alarmKey;
             logSessionEvent('record_log_alarm_fired', alarmLabel);
+
+            // Check if it's high or low
+            let isHigh: boolean | null = null;
+            const alarmSetting = alarmSettings[alarmKey];
+            if (alarmSetting && alarmSetting.isOn) {
+              let valueToMonitor: number | undefined = undefined;
+              if (alarmKey === 'pPeak') valueToMonitor = Number(currentParamsSnapshot.pPeak);
+              else if (alarmKey === 'volumeMinute') valueToMonitor = Number(currentParamsSnapshot.volumeMinute);
+              else if (alarmKey === 'etco2') valueToMonitor = Number(currentParamsSnapshot.etco2);
+              else if (alarmKey === 'inspiratoryCo2') valueToMonitor = Number(currentParamsSnapshot.inspiratoryCo2);
+              else if (alarmKey === 'fio2') valueToMonitor = Number(currentParamsSnapshot.fio2);
+              else if (alarmKey === 'peep') valueToMonitor = Number(currentParamsSnapshot.peep);
+              else if (alarmKey === 'frequency') valueToMonitor = Number(currentParamsSnapshot.frequency);
+              else if (alarmKey === 'measuredFrequency') valueToMonitor = Number(currentParamsSnapshot.measuredFrequency);
+              else if (alarmKey === 'leakPercentage') valueToMonitor = Number(currentParamsSnapshot.leakPercentage);
+              else if (alarmKey === 'deliveredFlow' && operatingMode === 'icu' && icuSubMode === 'high-flow') {
+                valueToMonitor = Number(currentParamsSnapshot.fgf);
+              }
+              
+              if (valueToMonitor !== undefined) {
+                if (alarmSetting.high !== null && valueToMonitor > alarmSetting.high) {
+                  isHigh = true;
+                } else if (alarmSetting.low !== null && valueToMonitor < alarmSetting.low) {
+                  isHigh = false;
+                }
+              }
+            }
+
+            const timeStr = new Date().toLocaleTimeString(navigator.language === 'it-IT' ? 'it-IT' : 'en-US', { hour12: false });
+            const newEv: AlarmEvent = {
+              id: Math.random().toString(36).substring(2, 9),
+              timestamp: timeStr,
+              type: alarmKey,
+              alarmLabel: alarmLabel,
+              isHigh: isHigh,
+              active: true
+            };
+            setAlarmEvents(prev => [newEv, ...prev].slice(0, 50));
+        }
+    });
+
+    // Log resolved alarms
+    previouslyActiveKeys.forEach(key => {
+        if (!newActiveAlarms[key as AlarmParameterKey]) {
+            const alarmKey = key as AlarmParameterKey;
+            const alarmConfig = ALARMABLE_PARAMETERS_CONFIG[alarmKey];
+            const alarmLabel = alarmConfig ? t[alarmConfig.labelKey] : alarmKey;
+            const timeStr = new Date().toLocaleTimeString(navigator.language === 'it-IT' ? 'it-IT' : 'en-US', { hour12: false });
+
+            setAlarmEvents(prev => {
+              const index = prev.findIndex(ev => ev.type === alarmKey && ev.active);
+              if (index !== -1) {
+                const updated = [...prev];
+                updated[index] = {
+                  ...updated[index],
+                  active: false,
+                  resolvedAt: timeStr
+                };
+                return updated;
+              } else {
+                const fallbackEv: AlarmEvent = {
+                  id: Math.random().toString(36).substring(2, 9),
+                  timestamp: timeStr,
+                  type: alarmKey,
+                  alarmLabel: alarmLabel,
+                  isHigh: null,
+                  active: false,
+                  resolvedAt: timeStr
+                };
+                return [fallbackEv, ...prev].slice(0, 50);
+              }
+            });
         }
     });
     
@@ -1765,7 +1869,7 @@ const App: React.FC = () => {
     setModalState(prev => ({ ...prev, isOpen: false, paramKey: null }));
   }, []);
 
-  const handleConfirmParameterChange = useCallback((newValue: string) => {
+  const handleConfirmParameterChange = useCallback((newValue: string, shouldClose = true) => {
     if (modalState.paramKey) {
       const paramDef = PARAMETER_DEFINITIONS[modalState.paramKey];
       let finalValue: string | number = newValue;
@@ -1861,7 +1965,9 @@ const App: React.FC = () => {
         setHumidifierSettings(prev => ({ ...prev, temperature: newTemp }));
       }
     }
-    handleCloseParameterModal();
+    if (shouldClose) {
+      handleCloseParameterModal();
+    }
   }, [modalState, handleCloseParameterModal, t, logSessionEvent, operatingMode, icuSubMode, parameters.highFlowInterfaceType, updateSimulationState, currentMode, simulatorSettings.patientProfile.spontaneousRate]);
 
   const handleToggleRegularPatientSettingsModal = useCallback(() =>
@@ -1877,6 +1983,7 @@ const App: React.FC = () => {
 
 
   const handleToggleAlarmSettingsModal = useCallback(() => setIsAlarmSettingsModalOpen(prev => !prev), []);
+  const handleToggleAlarmLogsModal = useCallback(() => setIsAlarmLogsModalOpen(prev => !prev), []);
   const handleConfirmAlarmSettings = useCallback((settings: AlarmSettings) => {
     setAlarmSettings(settings);
     logSessionEvent('record_log_alarm_settings_changed', settings);
@@ -1890,6 +1997,11 @@ const App: React.FC = () => {
         logSessionEvent(newIsOn ? 'record_log_humidifier_on' : 'record_log_humidifier_off');
         return { ...prev, isOn: newIsOn };
     });
+  }, [logSessionEvent]);
+
+  const handleSetHumidifierLevel = useCallback((level: number) => {
+    setHumidifierSettings(prev => ({ ...prev, level }));
+    logSessionEvent('record_log_humidifier_level_changed' as any, level);
   }, [logSessionEvent]);
 
 
@@ -2226,6 +2338,125 @@ const App: React.FC = () => {
   }
 
   const isHighFlowMode = operatingMode === 'icu' && icuSubMode === 'high-flow';
+  const isModernVentilator = operatingMode === 'icu' && (icuSubMode === 'invasive' || icuSubMode === 'non-invasive');
+
+  if (isModernVentilator) {
+    return (
+      <>
+        <ModernVentilatorInterface
+          currentTime={currentTime}
+          currentMode={currentMode}
+          operatingMode={operatingMode}
+          icuSubMode={icuSubMode}
+          currentTheme={effectiveTheme}
+          isSimulatorOn={isSimulatorOn}
+          isVentilationActive={isVentilationActive}
+          isWarmingUpHF={isWarmingUpHF}
+          isRecordingActive={isSessionActiveRecording}
+          isModeSelectorOpen={isModeSelectorOpen}
+          isAnesthesiaActive={isAnesthesiaActive}
+          selectedAnestheticGases={selectedAnestheticGases}
+          agentLevels={agentLevels}
+          parameters={parameters}
+          ventilatorData={ventilatorData}
+          patientSettings={patientSettings}
+          alarmSettings={alarmSettings}
+          activeAlarms={activeAlarms}
+          hasActiveAlarms={hasActiveAlarmsState}
+          isAlarmSnoozed={isAlarmSnoozed}
+          snoozeCountdownDisplay={snoozeCountdownDisplay}
+          onToggleAlarmSnooze={handleToggleAlarmSnooze}
+          humidifierSettings={humidifierSettings}
+          isModeChanging={isModeChanging}
+          areWaveformsFrozen={areWaveformsFrozen}
+          activeManeuver={activeManeuver}
+          maneuverResultsPackage={maneuverResultsPackage}
+          onClearManeuverResults={handleClearManeuverResults}
+          hasInspHold={heldInspManeuverParams !== null}
+          hasExpHold={heldExpManeuverParams !== null}
+          isO2FlushActive={isO2FlushActive}
+          o2FlushTimerEnd={o2FlushTimerEnd} 
+          isMechanicalVentilation={isMechanicalVentilation}
+          currentSweepSpeedValue={currentSweepSpeedValue}
+          scanlinePixelRate={effectiveScanlinePixelRate}
+          onChangeSweepSpeed={handleChangeSweepSpeed}
+          onPowerOff={handlePowerOff}
+          onToggleVentilation={handleToggleVentilation}
+          onToggleAnesthesia={handleToggleAnesthesia}
+          onSelectAnestheticGas={handleSelectAnestheticGas}
+          onRefillSelectedAgents={handleRefillSelectedAgents} 
+          onReplaceSodaLime={handleReplaceSodaLime}    
+          isRefillingAgents={isRefillingAgents}         
+          isReplacingSodaLime={isReplacingSodaLime}     
+          onToggleModeSelector={handleToggleModeSelector}
+          onSelectVentilationMode={handleSelectVentilationMode}
+          onOpenParameterModal={handleOpenParameterModal}
+          onTogglePatientSettingsModal={handleToggleRegularPatientSettingsModal}
+          onToggleAlarmSettingsModal={handleToggleAlarmSettingsModal}
+          onToggleAlarmLogsModal={handleToggleAlarmLogsModal}
+          onToggleHumidifierPower={handleToggleHumidifierPower} 
+          onToggleFreezeWaveforms={toggleFreezeWaveforms}
+          onStartInspiratoryHold={startInspiratoryHold}
+          onStartExpiratoryHold={startExpiratoryHold}
+          onO2Flush={handleO2Flush}
+          onSetMechanicalVentilationMode={handleSetMechanicalVentilationMode}
+          onBackToICUSubModeSelection={handleBackToICUSubModeSelection}
+          onOpenManualModal={handleOpenManualModal}
+          onOpenLivePatientSettingsModal={handleOpenLivePatientSettingsModal}
+          onSetHumidifierLevel={handleSetHumidifierLevel}
+        />
+        {modalState.isOpen && modalState.paramKey && (
+           <ParameterModal
+              isOpen={modalState.isOpen}
+              title={t[PARAMETER_DEFINITIONS[modalState.paramKey].labelKey]}
+              initialValue={modalState.currentValue}
+              unit={t[PARAMETER_DEFINITIONS[modalState.paramKey].unitKey]}
+              paramKey={modalState.paramKey}
+              currentTheme={effectiveTheme}
+              operatingMode={operatingMode} 
+              icuSubMode={icuSubMode}         
+              highFlowInterfaceType={parameters.highFlowInterfaceType} 
+              onConfirm={handleConfirmParameterChange}
+              onClose={handleCloseParameterModal}
+          />
+        )}
+        <AlarmSettingsModal
+          isOpen={isAlarmSettingsModalOpen}
+          currentSettings={alarmSettings}
+          operatingMode={operatingMode}
+          icuSubMode={icuSubMode}
+          highFlowInterfaceType={parameters.highFlowInterfaceType} 
+          currentTheme={effectiveTheme}
+          onConfirm={handleConfirmAlarmSettings}
+          onClose={handleToggleAlarmSettingsModal}
+        />
+        <AlarmLogsModal
+          isOpen={isAlarmLogsModalOpen}
+          onClose={handleToggleAlarmLogsModal}
+          activeAlarms={activeAlarms}
+          isAlarmSnoozed={isAlarmSnoozed}
+          snoozeCountdownDisplay={snoozeCountdownDisplay}
+          onToggleAlarmSnooze={handleToggleAlarmSnooze}
+          alarmEvents={alarmEvents}
+          currentTheme={effectiveTheme}
+        />
+        <AnesthesiaOffRequiredModal
+          isOpen={anesthesiaOffRequiredModalOpen}
+          onClose={() => setAnesthesiaOffRequiredModalOpen(false)}
+          currentTheme={effectiveTheme}
+        />
+        {isLivePatientSettingsModalOpen && (
+          <LivePatientSettingsModal
+              isOpen={isLivePatientSettingsModalOpen}
+              currentPhysiology={simulatorSettings.patientProfile}
+              currentTheme={effectiveTheme}
+              onConfirm={handleConfirmLivePatientSettings}
+              onClose={handleCloseLivePatientSettingsModal}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <>
@@ -2257,7 +2488,9 @@ const App: React.FC = () => {
         areWaveformsFrozen={areWaveformsFrozen}
         activeManeuver={activeManeuver}
         maneuverResultsPackage={maneuverResultsPackage}
-        onClearManeuverResults={handleClearManeuverResults} // New prop
+        onClearManeuverResults={handleClearManeuverResults}
+        hasInspHold={heldInspManeuverParams !== null}
+        hasExpHold={heldExpManeuverParams !== null}
         isO2FlushActive={isO2FlushActive}
         o2FlushTimerEnd={o2FlushTimerEnd} 
         isMechanicalVentilation={isMechanicalVentilation}
@@ -2277,6 +2510,7 @@ const App: React.FC = () => {
         onOpenParameterModal={handleOpenParameterModal}
         onTogglePatientSettingsModal={handleToggleRegularPatientSettingsModal}
         onToggleAlarmSettingsModal={handleToggleAlarmSettingsModal}
+        onToggleAlarmLogsModal={handleToggleAlarmLogsModal}
         onToggleHumidifierPower={handleToggleHumidifierPower} 
         onToggleFreezeWaveforms={toggleFreezeWaveforms}
         onStartInspiratoryHold={startInspiratoryHold}
@@ -2311,6 +2545,16 @@ const App: React.FC = () => {
         currentTheme={effectiveTheme}
         onConfirm={handleConfirmAlarmSettings}
         onClose={handleToggleAlarmSettingsModal}
+      />
+      <AlarmLogsModal
+        isOpen={isAlarmLogsModalOpen}
+        onClose={handleToggleAlarmLogsModal}
+        activeAlarms={activeAlarms}
+        isAlarmSnoozed={isAlarmSnoozed}
+        snoozeCountdownDisplay={snoozeCountdownDisplay}
+        onToggleAlarmSnooze={handleToggleAlarmSnooze}
+        alarmEvents={alarmEvents}
+        currentTheme={effectiveTheme}
       />
       <AnesthesiaOffRequiredModal
         isOpen={anesthesiaOffRequiredModalOpen}

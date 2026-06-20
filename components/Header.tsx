@@ -28,6 +28,7 @@ interface HeaderProps {
   humidifierSettings: HumidifierSettings;
   onTogglePatientSettingsModal: () => void;
   onToggleAlarmSettingsModal: () => void;
+  onToggleAlarmLogsModal: () => void;
   onBackToICUSubModeSelection: () => void; 
 }
 
@@ -74,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({
     hasActiveAlarms, isAlarmSnoozed, snoozeCountdownDisplay, onToggleAlarmSnooze,
     onOpenManualModal, onOpenLivePatientSettingsModal, onPowerOff,
     operatingMode, icuSubMode, currentTheme, highFlowInterfaceType, humidifierSettings,
-    onTogglePatientSettingsModal, onToggleAlarmSettingsModal, 
+    onTogglePatientSettingsModal, onToggleAlarmSettingsModal, onToggleAlarmLogsModal,
     onBackToICUSubModeSelection
 }) => {
   const { t } = useLanguage();
@@ -244,7 +245,14 @@ export const Header: React.FC<HeaderProps> = ({
             {t.patientIcon}
             </HeaderIconButton>
         )}
-        <HeaderIconButton onClick={onToggleAlarmSettingsModal} title={t.alarmSettingsTitle} operatingMode={operatingMode}>
+        <HeaderIconButton 
+          onClick={onToggleAlarmLogsModal} 
+          title={t.alarmLogsDrawerLabel || "Alarm Logs"} 
+          operatingMode={operatingMode}
+          isActive={hasActiveAlarms && !isAlarmSnoozed}
+          activeColorClass="bg-red-500 border-red-600"
+          className={hasActiveAlarms && !isAlarmSnoozed ? "animate-pulse" : ""}
+        >
           {t.alarmsIcon}
         </HeaderIconButton>
         <div className={`text-sm ${themeColors.textOnPrimary} tabular-nums`}>

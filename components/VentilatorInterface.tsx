@@ -37,6 +37,8 @@ interface VentilatorInterfaceProps {
   activeManeuver: ActiveManeuver | null;
   maneuverResultsPackage: ManeuverResultsPackage | null;
   onClearManeuverResults: () => void; // New
+  hasInspHold?: boolean;
+  hasExpHold?: boolean;
   isO2FlushActive: boolean;
   o2FlushTimerEnd: number | null; 
   isMechanicalVentilation: boolean;
@@ -56,6 +58,7 @@ interface VentilatorInterfaceProps {
   onOpenParameterModal: (paramKey: ParameterKey, label: string, currentValue: string | number, unit: string) => void;
   onTogglePatientSettingsModal: () => void;
   onToggleAlarmSettingsModal: () => void;
+  onToggleAlarmLogsModal: () => void;
   onToggleHumidifierPower: () => void; 
   onToggleFreezeWaveforms: () => void;
   onStartInspiratoryHold: () => void;
@@ -97,6 +100,7 @@ export const VentilatorInterface: React.FC<VentilatorInterfaceProps> = (props) =
         humidifierSettings={props.humidifierSettings}
         onTogglePatientSettingsModal={props.onTogglePatientSettingsModal}
         onToggleAlarmSettingsModal={props.onToggleAlarmSettingsModal}
+        onToggleAlarmLogsModal={props.onToggleAlarmLogsModal}
         onBackToICUSubModeSelection={props.onBackToICUSubModeSelection}
       />
 
@@ -127,6 +131,7 @@ export const VentilatorInterface: React.FC<VentilatorInterfaceProps> = (props) =
           onStartInspiratoryHold={props.onStartInspiratoryHold}
           onStartExpiratoryHold={props.onStartExpiratoryHold}
           onToggleHumidifierPower={props.onToggleHumidifierPower} 
+          onToggleAlarmSettingsModal={props.onToggleAlarmSettingsModal}
         />
         <GraphsPanel
             isSimulatorOn={props.isSimulatorOn}
@@ -146,6 +151,7 @@ export const VentilatorInterface: React.FC<VentilatorInterfaceProps> = (props) =
             currentSweepSpeedValue={props.currentSweepSpeedValue}
             scanlinePixelRate={props.scanlinePixelRate}
             onChangeSweepSpeed={props.onChangeSweepSpeed}
+            onToggleVentilation={props.onToggleVentilation}
         />
         <RightPanel
           parameters={props.parameters}

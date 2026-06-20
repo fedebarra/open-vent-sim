@@ -51,6 +51,7 @@ export type AlarmSettings = Record<AlarmParameterKey, AlarmLimits>;
 export interface HumidifierSettings {
   isOn: boolean;
   temperature: number; // e.g., in Celsius
+  level?: number;
 }
 
 export interface GasConfig {
@@ -257,7 +258,7 @@ export interface ManeuverDisplayParameter {
 }
 
 export interface ManeuverResultsPackage {
-  titleKey: 'maneuverResults_inspHold_title' | 'maneuverResults_expHold_title';
+  titleKey: 'maneuverResults_inspHold_title' | 'maneuverResults_expHold_title' | 'maneuverResults_joint_title';
   parameters: ManeuverDisplayParameter[];
 }
 
@@ -365,3 +366,14 @@ export interface SweepSpeedOption {
   value: SweepSpeedValue;
   pixelRate: number; // Corresponding SCANLINE_SPEED_PX_PER_FRAME
 }
+
+export interface AlarmEvent {
+  id: string;
+  timestamp: string;      // Formatted local time e.g., "13:35:10"
+  type: AlarmParameterKey;
+  alarmLabel: string;     // Localized label of the alarm parameter
+  isHigh: boolean | null; // true if high limit violated, false if low, null if toggle-only
+  active: boolean;        // Is this alarm still active?
+  resolvedAt?: string;    // Resolved timestamp if inactive
+}
+

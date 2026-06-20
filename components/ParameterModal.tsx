@@ -1,8 +1,7 @@
-
-import React, { useState, useEffect, useCallback } from 'react';
-import { PARAMETER_DEFINITIONS, THEME_CONFIG, HIGH_FLOW_ADULT_FGF_MIN, HIGH_FLOW_ADULT_FGF_MAX, HIGH_FLOW_PEDIATRIC_FGF_MIN, HIGH_FLOW_PEDIATRIC_FGF_MAX, HIGH_FLOW_FGF_STEP_LOW, HIGH_FLOW_FGF_STEP_HIGH, HIGH_FLOW_FGF_ADULT_TRANSITION_POINT, HIGH_FLOW_TEMP_MIN, HIGH_FLOW_TEMP_MAX_ADULT, HIGH_FLOW_TEMP_MAX_JUNIOR, HIGH_FLOW_TEMP_STEP, HIGH_FLOW_TEMP_VALUES_ADULT, HIGH_FLOW_TEMP_VALUES_JUNIOR } from '../constants';
+import React, { useState, useEffect } from 'react';
+import { PARAMETER_DEFINITIONS, THEME_CONFIG, HIGH_FLOW_TEMP_VALUES_ADULT, HIGH_FLOW_TEMP_VALUES_JUNIOR } from '../constants';
 import { ParameterKey, ThemeName, OperatingMode, ICUSubMode, HighFlowInterfaceType } from '../types';
-import { useLanguage } from '../src/contexts/LanguageContext'; // Corrected path
+import { useLanguage } from '../src/contexts/LanguageContext';
 
 interface ParameterModalProps {
   isOpen: boolean;
@@ -14,30 +13,9 @@ interface ParameterModalProps {
   operatingMode: OperatingMode | null;
   icuSubMode: ICUSubMode | null;
   highFlowInterfaceType: HighFlowInterfaceType | null;
-  onConfirm: (newValue: string) => void;
+  onConfirm: (newValue: string, shouldClose?: boolean) => void;
   onClose: () => void;
 }
-
-const StepperButton: React.FC<{
-    icon: string;
-    onClick: () => void;
-    themeColors: typeof THEME_CONFIG[ThemeName];
-    disabled?: boolean;
-}> = ({ icon, onClick, themeColors, disabled }) => (
-    <button
-        onClick={onClick}
-        disabled={disabled}
-        className={`w-16 h-16 rounded-lg text-3xl
-                    bg-${themeColors.primaryDark}/50 text-white
-                    hover:bg-${themeColors.primaryDark}/80 active:bg-${themeColors.primaryLight}/60
-                    disabled:opacity-40 disabled:cursor-not-allowed
-                    transition-colors duration-200 ease-in-out border border-${themeColors.primaryDark}/70
-                    flex items-center justify-center`}
-    >
-        {icon}
-    </button>
-);
-
 
 export const ParameterModal: React.FC<ParameterModalProps> = ({
     isOpen, title, initialValue, unit, paramKey, currentTheme,
@@ -55,7 +33,7 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
         const parts = initialValue.split(':');
         const ePartNum = parseFloat(parts[1]);
         setEditableEPart(isNaN(ePartNum) ? 2.0 : parseFloat(ePartNum.toFixed(1)));
-        setCurrentValueInModal(initialValue); // Keep original string for ratio too
+        setCurrentValueInModal(initialValue);
       } else {
         setCurrentValueInModal(initialValue);
       }
@@ -67,12 +45,17 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
   const paramDef = PARAMETER_DEFINITIONS[paramKey];
   const isRatioInput = paramKey === 'ratio';
 
-  const handleConfirmValue = () => {
-    if (isRatioInput) {
-        onConfirm(`1:${editableEPart.toFixed(1)}`);
+  const handleConfirmValue = (valueToSet?: string) => {
+    if (valueToSet) {
+      onConfirm(valueToSet, true);
     } else {
-        onConfirm(currentValueInModal);
+      if (isRatioInput) {
+        onConfirm(`1:${editableEPart.toFixed(1)}`, true);
+      } else {
+        onConfirm(currentValueInModal, true);
+      }
     }
+    onClose();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -83,11 +66,14 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
     }
   };
   
-  const adjustEPart = (increment: boolean) => { // For I:E Ratio
+  const adjustEPart = (increment: boolean) => {
     setEditableEPart(prevE => {
       let newE = prevE + (increment ? 0.1 : -0.1);
       newE = Math.max(0.5, Math.min(4.0, newE)); 
-      return parseFloat(newE.toFixed(1));
+      const finalE = parseFloat(newE.toFixed(1));
+      // Real-time optimistic update of state without closing the modal
+      onConfirm(`1:${finalE}`, false);
+      return finalE;
     });
   };
 
@@ -115,7 +101,6 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
     if (paramDef.min !== undefined) numValue = Math.max(paramDef.min, numValue);
     if (paramDef.max !== undefined) numValue = Math.min(paramDef.max, numValue);
 
-    // Specific handling for HF temperature to snap to allowed values
     if (paramKey === 'temperature' && operatingMode === 'icu' && icuSubMode === 'high-flow') {
         const allowedTemps = highFlowInterfaceType === 'junior' ? HIGH_FLOW_TEMP_VALUES_JUNIOR : HIGH_FLOW_TEMP_VALUES_ADULT;
         numValue = allowedTemps.reduce((prev, curr) => 
@@ -124,104 +109,186 @@ export const ParameterModal: React.FC<ParameterModalProps> = ({
     }
     
     const precision = getStepPrecision(currentStep);
-    setCurrentValueInModal(numValue.toFixed(precision));
+    const updatedStrVal = numValue.toFixed(precision);
+    setCurrentValueInModal(updatedStrVal);
+    
+    // Real-time optimistic update of state without closing the modal
+    onConfirm(updatedStrVal, false);
   };
 
-
-  if (isRatioInput) {
-    return (
-      <div
-        className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 transition-opacity duration-300"
-        onClick={onClose}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="ratioModalTitle"
-      >
-        <div
-          className={`bg-gray-800 p-6 border-2 ${themeColors.border} rounded-lg shadow-xl w-full max-w-sm text-center`}
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={handleKeyDown}
-          tabIndex={-1}
-        >
-          <h3 id="ratioModalTitle" className={`text-xl font-semibold text-${themeColors.accent} mb-5`}>{t.modalEditTitlePrefix}{title}</h3>
-
-          <div className="flex items-center justify-center space-x-3 my-6">
-            <StepperButton icon="-" onClick={() => adjustEPart(false)} themeColors={themeColors} disabled={editableEPart <= 0.5} />
-            <div className={`text-4xl font-bold text-white tabular-nums px-4 py-2 bg-gray-900 rounded-md border border-${themeColors.primaryDark}/50 min-w-[120px]`}>
-              1 : {editableEPart.toFixed(1)}
-            </div>
-            <StepperButton icon="+" onClick={() => adjustEPart(true)} themeColors={themeColors} disabled={editableEPart >= 4.0} />
-          </div>
-
-          <div className="flex gap-4 justify-center mt-8">
-            <button
-              onClick={handleConfirmValue}
-              className="px-5 py-3 bg-green-600 text-white rounded-md font-semibold hover:bg-green-500 transition-colors w-1/2 text-lg"
-            >
-              {t.modalConfirm}
-            </button>
-            <button
-              onClick={onClose}
-              className="px-5 py-3 bg-gray-600 text-white rounded-md font-semibold hover:bg-gray-500 transition-colors w-1/2 text-lg"
-            >
-              {t.modalCancel}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Numeric Stepper UI for non-ratio parameters
   return (
     <div
-        className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/70 transition-opacity duration-300"
-        onClick={onClose}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="numericModalTitle"
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/55 backdrop-blur-[1px] transition-opacity duration-200"
+      onClick={() => handleConfirmValue()}
+      role="dialog"
+      aria-modal="true"
     >
       <div
-        className={`bg-gray-800 p-6 border-2 ${themeColors.border} rounded-lg shadow-xl w-full max-w-xs text-center`}
+        style={{
+          background: '#0e1522',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '20px',
+          padding: '24px 28px',
+          width: '290px',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '16px',
+          position: 'relative'
+        }}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
         tabIndex={-1}
       >
-        <h3 id="numericModalTitle" className={`text-xl font-semibold text-${themeColors.accent} mb-5`}>{t.modalEditTitlePrefix}{title}</h3>
-        
-        <div className="flex items-center justify-center space-x-3 my-6">
-            <StepperButton 
-                icon="-" 
-                onClick={() => handleNumericStep(false)} 
-                themeColors={themeColors} 
-                disabled={paramDef && paramDef.min !== undefined && parseFloat(currentValueInModal) <= paramDef.min}
-            />
-            <div className={`text-4xl font-bold text-white tabular-nums px-4 py-2 bg-gray-900 rounded-md border border-${themeColors.primaryDark}/50 min-w-[120px] flex-grow text-center`}>
-              {currentValueInModal}
-              {unit && <span className="ml-1 text-2xl text-gray-400 align-middle">{unit}</span>}
-            </div>
-            <StepperButton 
-                icon="+" 
-                onClick={() => handleNumericStep(true)} 
-                themeColors={themeColors} 
-                disabled={paramDef && paramDef.max !== undefined && parseFloat(currentValueInModal) >= paramDef.max}
-            />
-        </div>
+        {/* Param title in light grey centered */}
+        <span style={{ fontSize: '14.5px', color: '#8a97ad', fontWeight: 500, letterSpacing: '0.5px' }}>
+          {title}
+        </span>
 
-        <div className="flex gap-4 justify-center mt-8">
-          <button
-            onClick={handleConfirmValue}
-            className="px-5 py-3 bg-green-600 text-white rounded-md font-semibold hover:bg-green-500 transition-colors w-1/2 text-lg"
-          >
-            {t.modalConfirm}
-          </button>
-          <button
-            onClick={onClose}
-            className="px-5 py-3 bg-gray-600 text-white rounded-md font-semibold hover:bg-gray-500 transition-colors w-1/2 text-lg"
-          >
-            {t.modalCancel}
-          </button>
-        </div>
+        {isRatioInput ? (
+          /* Ratio controls row */
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '14px', margin: '6px 0' }}>
+            <button
+              onClick={() => adjustEPart(false)}
+              disabled={editableEPart <= 0.5}
+              style={{
+                width: '54px',
+                height: '54px',
+                borderRadius: '50%',
+                background: '#1d2636',
+                border: 'none',
+                color: '#ffffff',
+                fontSize: '22px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                opacity: editableEPart <= 0.5 ? 0.35 : 1,
+                transition: 'opacity 0.2s, background 0.2s',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+              <span style={{ fontSize: '38px', fontWeight: '700', color: '#ffffff', fontFamily: 'monospace', lineHeight: 1 }}>
+                1:{editableEPart.toFixed(1)}
+              </span>
+              <span style={{ fontSize: '11px', color: '#6f7c90', marginTop: '6px', fontWeight: 600, letterSpacing: '0.8px' }}>I:E</span>
+            </div>
+            <button
+              onClick={() => adjustEPart(true)}
+              disabled={editableEPart >= 4.0}
+              style={{
+                width: '54px',
+                height: '54px',
+                borderRadius: '50%',
+                background: '#2580e8',
+                border: 'none',
+                color: '#ffffff',
+                fontSize: '22px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                opacity: editableEPart >= 4.0 ? 0.35 : 1,
+                transition: 'opacity 0.2s, background 0.2s',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+          </div>
+        ) : (
+          /* Numeric controls row */
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '14px', margin: '6px 0' }}>
+            <button
+              onClick={() => handleNumericStep(false)}
+              disabled={paramDef && paramDef.min !== undefined && parseFloat(currentValueInModal) <= paramDef.min}
+              style={{
+                width: '54px',
+                height: '54px',
+                borderRadius: '50%',
+                background: '#1d2636',
+                border: 'none',
+                color: '#ffffff',
+                fontSize: '22px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                opacity: (paramDef && paramDef.min !== undefined && parseFloat(currentValueInModal) <= paramDef.min) ? 0.35 : 1,
+                transition: 'opacity 0.2s, background 0.2s',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+              }}
+              className="hover:bg-[#252f44]"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+              <span style={{ fontSize: '38px', fontWeight: '700', color: '#ffffff', fontFamily: 'monospace', lineHeight: 1 }}>
+                {paramKey === 'peep' && Number(currentValueInModal) > 0 ? `+${currentValueInModal}` : currentValueInModal}
+              </span>
+              {unit && <span style={{ fontSize: '11px', color: '#6f7c90', marginTop: '6px', fontWeight: 600, letterSpacing: '0.8px' }}>{unit}</span>}
+            </div>
+            <button
+              onClick={() => handleNumericStep(true)}
+              disabled={paramDef && paramDef.max !== undefined && parseFloat(currentValueInModal) >= paramDef.max}
+              style={{
+                width: '54px',
+                height: '54px',
+                borderRadius: '50%',
+                background: '#2580e8',
+                border: 'none',
+                color: '#ffffff',
+                fontSize: '22px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                opacity: (paramDef && paramDef.max !== undefined && parseFloat(currentValueInModal) >= paramDef.max) ? 0.35 : 1,
+                transition: 'opacity 0.2s, background 0.2s',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+              }}
+              className="hover:bg-[#2689fd]"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {/* Small check button to close and confirm */}
+        <button
+          onClick={() => handleConfirmValue()}
+          style={{
+            alignSelf: 'stretch',
+            padding: '12px 0',
+            background: 'linear-gradient(180deg,#2580e8,#1a69c4)',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '12px',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'background 0.2s',
+            textAlign: 'center',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+            marginTop: '4px'
+          }}
+        >
+          {t.modalConfirm || 'OK'}
+        </button>
       </div>
     </div>
   );

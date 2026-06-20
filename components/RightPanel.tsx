@@ -112,8 +112,11 @@ const ManeuverResultItem: React.FC<{ parameter: ManeuverDisplayParameter, themeC
   const { t } = useLanguage();
   return (
     <div className="flex justify-between items-center text-xs p-1.5 bg-gray-700/50 rounded">
-      <span className={`text-gray-300`}>{t[parameter.labelKey]}</span>
-      <span className={`font-semibold text-white`}>{parameter.result.value} {t[parameter.result.unitKey]}</span>
+      <span className="text-gray-300">{t[parameter.labelKey]}</span>
+      <div className="flex items-baseline gap-2">
+        <span className="font-mono font-semibold text-white text-right w-[45px]">{parameter.result.value}</span>
+        <span className="text-[10px] text-gray-400 text-left w-[75px]">{t[parameter.result.unitKey]}</span>
+      </div>
     </div>
   );
 };

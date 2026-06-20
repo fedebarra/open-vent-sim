@@ -1,5 +1,5 @@
 export const en = {
-  alarmSettingsTitle: "Alarm Settings",
+  alarmSettingsTitle: "ALARM SETTINGS",
   alarmLimitLowLabel: "Low Limit",
   alarmLimitHighLabel: "High Limit",
   allAlarmsToggleLabel: "All Alarms",
@@ -22,7 +22,7 @@ export const en = {
 };
 
 export const it = {
-  alarmSettingsTitle: "Impostazioni Allarmi",
+  alarmSettingsTitle: "IMPOSTAZIONI ALLARMI",
   alarmLimitLowLabel: "Limite Inferiore",
   alarmLimitHighLabel: "Limite Superiore",
   allAlarmsToggleLabel: "Tutti gli Allarmi",
