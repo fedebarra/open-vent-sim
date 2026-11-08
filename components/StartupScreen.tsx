@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { OperatingMode, ICUSubMode } from '../types';
 import { useLanguage } from '../src/contexts/LanguageContext'; // Corrected path
 import { Footer } from './Footer'; // Import the common Footer
+import { AnesthesiaMachineIcon, IcuVentilatorIcon, HighFlowIcon, BookIcon, GearIcon, ExpandIcon, CollapseIcon, TourIcon } from './icons';
 
 interface StartupScreenProps {
   onSelectMode: (mode: OperatingMode, subMode?: ICUSubMode) => void;
@@ -10,20 +11,26 @@ interface StartupScreenProps {
   onOpenManualModal: () => void;
   onToggleRecording: () => void;
   isRecordingEnabled: boolean;
+  /** Optional: starts the guided familiarization tour. */
+  onStartTour?: () => void;
+  tourLabel?: string;
 }
 
 interface ModeButtonProps {
   label: string;
   onClick: () => void;
   colorScheme: 'teal' | 'blue' | 'grey';
+  icon: React.ReactNode;
+  testId?: string;
 }
 
-const ModeButton: React.FC<ModeButtonProps> = ({label, onClick, colorScheme}) => {
-  const baseClasses = `w-full md:w-80 h-20 md:h-24 rounded-lg text-xl md:text-2xl
-                       font-semibold
-                       flex items-center justify-center shadow-lg shadow-black/50
+const ModeButton: React.FC<ModeButtonProps> = ({label, onClick, colorScheme, icon, testId}) => {
+  const baseClasses = `w-full sm:w-56 lg:w-64 h-24 sm:h-52 lg:h-60 rounded-2xl text-xl lg:text-2xl
+                       font-semibold leading-tight
+                       flex sm:flex-col items-center justify-start sm:justify-center gap-4 sm:gap-5 px-6 sm:px-4
+                       shadow-lg shadow-black/50
                        transition-all duration-300 ease-in-out
-                       hover:scale-105 active:scale-95 my-3`;
+                       hover:scale-105 active:scale-95`;
 
   const tealScheme = `bg-gradient-to-br from-teal-600 to-teal-700 border-2 border-teal-800 text-white
                      hover:shadow-xl hover:shadow-teal-500/50 hover:from-teal-500 hover:to-teal-600`;
@@ -44,8 +51,10 @@ const ModeButton: React.FC<ModeButtonProps> = ({label, onClick, colorScheme}) =>
       onClick={onClick}
       className={`${baseClasses} ${selectedScheme}`}
       title={label}
+      data-testid={testId}
     >
-      <span>{label}</span>
+      <span className="shrink-0 opacity-95 [&>svg]:w-12 [&>svg]:h-12 sm:[&>svg]:w-20 sm:[&>svg]:h-20 lg:[&>svg]:w-24 lg:[&>svg]:h-24">{icon}</span>
+      <span className="text-left sm:text-center">{label}</span>
     </button>
   );
 };
@@ -104,7 +113,7 @@ const RecordSessionButton: React.FC<RecordSessionButtonProps> =
 );
 
 
-export const StartupScreen: React.FC<StartupScreenProps> = ({ onSelectMode, onOpenSimulatorSettings, onOpenManualModal, onToggleRecording, isRecordingEnabled }) => {
+export const StartupScreen: React.FC<StartupScreenProps> = ({ onSelectMode, onOpenSimulatorSettings, onOpenManualModal, onToggleRecording, isRecordingEnabled, onStartTour, tourLabel }) => {
   const { t, language, setLanguage } = useLanguage();
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
@@ -149,25 +158,20 @@ export const StartupScreen: React.FC<StartupScreenProps> = ({ onSelectMode, onOp
 
         <div className="w-1/2 md:w-1/3 mx-auto border-b border-gray-600 my-8"></div>
 
-        <div className="flex flex-col items-center">
-            <p className="text-lg md:text-xl text-gray-400 mb-4">{t.selectOperatingModeTitle}</p>
-            <ModeButton
-            label={t.anesthesiaModeName}
-            onClick={() => onSelectMode('anesthesia')}
-            colorScheme="teal"
-            />
-            <ModeButton
-            label={t.intensiveCareModeName}
-            onClick={() => onSelectMode('icu')}
-            colorScheme="blue"
-            />
-            <ModeButton
-            label={t.highFlowOxygenatorButton}
-            onClick={() => onSelectMode('icu', 'high-flow')}
-            colorScheme="grey"
-            />
+        <div className="flex flex-col items-center w-full">
+            <p className="text-lg md:text-xl text-gray-400 mb-5">{t.selectOperatingModeTitle}</p>
+            <div className="flex flex-col sm:flex-row items-stretch justify-center gap-4 lg:gap-6 w-full sm:w-auto">
+              <ModeButton testId="mode-anesthesia" label={t.anesthesiaModeName} onClick={() => onSelectMode('anesthesia')} colorScheme="teal" icon={<AnesthesiaMachineIcon strokeWidth={1.3} />} />
+              <ModeButton testId="mode-icu" label={t.intensiveCareModeName} onClick={() => onSelectMode('icu')} colorScheme="blue" icon={<IcuVentilatorIcon strokeWidth={1.3} />} />
+              <ModeButton testId="mode-highflow" label={t.highFlowOxygenatorButton} onClick={() => onSelectMode('icu', 'high-flow')} colorScheme="grey" icon={<HighFlowIcon strokeWidth={1.3} />} />
+            </div>
 
-            <div className="mt-8 mb-4 w-full md:w-auto">
+            <div className="mt-8 mb-4 w-full md:w-auto flex flex-col md:flex-row gap-3 items-center">
+                 {onStartTour && (
+                   <button data-testid="start-tour" onClick={onStartTour} className="w-full md:w-72 h-14 rounded-lg text-base font-semibold bg-gray-700 hover:bg-gray-600 text-gray-100 border-2 border-amber-400 shadow-md active:scale-95 transition-all flex items-center justify-center gap-2">
+                     <TourIcon size={20} /> {tourLabel}
+                   </button>
+                 )}
                  <RecordSessionButton
                     onClick={onToggleRecording}
                     title={isRecordingEnabled ? t.recordButtonTooltip_active : t.recordButtonTooltip_start}
@@ -183,16 +187,16 @@ export const StartupScreen: React.FC<StartupScreenProps> = ({ onSelectMode, onOp
         {/* Utility Icons Group */}
         <div className="flex space-x-3">
             <UtilityIconButton onClick={onOpenManualModal} title={t.manualButtonTooltip}>
-                📖
+                <BookIcon size={22} />
             </UtilityIconButton>
             <UtilityIconButton onClick={onOpenSimulatorSettings} title={t.settingsButtonTooltip}>
-                ⚙️
+                <GearIcon size={22} />
             </UtilityIconButton>
             <UtilityIconButton 
                 onClick={handleToggleFullscreen} 
                 title={isFullscreen ? t.exitFullscreenTooltip : t.enterFullscreenTooltip}
             >
-                {isFullscreen ? t.fullscreenIconExit : t.fullscreenIconEnter}
+                {isFullscreen ? <CollapseIcon size={22} /> : <ExpandIcon size={22} />}
             </UtilityIconButton>
         </div>
         {/* Language Buttons Group */}

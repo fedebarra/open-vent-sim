@@ -1,0 +1,1209 @@
+/*
+ * Ventilator screens — rules extracted from the Scenario Creator stylesheet
+ * (only .simvent and the .simmon sweep lanes). Fonts: system stack, nothing bundled.
+ */
+:root {
+  --font-device: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+@keyframes simvent-pulsa{
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes simvent-progresso{
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes simvent-autotest-gira{
+  to { transform: rotate(360deg); }
+}
+
+@keyframes simvent-velo-entra{
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes simvent-velo-esce{
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes simvent-cassetto-entra{
+  from { transform: translateX(calc(-100% - 40px)); }
+  to { transform: translateX(0); }
+}
+
+@keyframes simvent-cassetto-esce{
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-100% - 40px)); }
+}
+
+.simmon,
+.simvent,
+.ecg12,
+.stampa__foglio {
+  font-family: var(--font-device);
+}
+.simmon__waves {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+.simmon__lane {
+  position: relative;
+  flex-basis: 0;
+  min-height: 0;
+  border-bottom: 1px solid #12181d;
+}
+.simmon__lane:last-child {
+  border-bottom: 0;
+}
+.simmon__lane canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.simmon__lane-label {
+  position: absolute;
+  top: 0.15rem;
+  left: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  pointer-events: none;
+}
+.simmon__lane-label em {
+  font-style: normal;
+  font-weight: 400;
+  opacity: 0.55;
+  margin-left: 0.45rem;
+}
+.simmon--numeri-sinistra .simmon__waves {
+  order: 2;
+}
+.simmon__lane--destra .simmon__lane-label {
+  left: auto;
+  right: 0.6rem;
+  text-align: right;
+}
+.simmon__lane--destra .simmon__lane-label em {
+  
+  margin-left: 0.45rem;
+  margin-right: 0;
+}
+.simvent {
+  --simvent-accento: #36c2c8;
+  --simvent-accento-fioco: rgba(54, 194, 200, 0.14);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: #0a0f1a;
+  color: #e9eef6;
+}
+.simvent--niv {
+  --simvent-accento: #f59e0b;
+  --simvent-accento-fioco: rgba(245, 158, 11, 0.14);
+}
+.simvent--alto-flusso {
+  --simvent-accento: #94a3b8;
+  --simvent-accento-fioco: rgba(148, 163, 184, 0.14);
+}
+.simvent__testata {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  min-height: calc(54px + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) max(1.125rem, env(safe-area-inset-right)) 0
+    max(1.125rem, env(safe-area-inset-left));
+  background: #0e1420;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.simvent__titolo {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: 0.012em;
+}
+.simvent__vuoto {
+  flex: 1;
+}
+.simvent__tondo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: #cdd6e4;
+  cursor: pointer;
+}
+.simvent__tondo:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.simvent__pillola {
+  display: flex;
+  align-items: center;
+  gap: 0.5625rem;
+  padding: 0.4375rem 0.9375rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.06);
+  color: #aeb8c8;
+}
+.simvent__pillola i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 9px currentColor;
+}
+.simvent__pillola--attiva {
+  background: rgba(70, 201, 126, 0.12);
+  color: #7fe0a6;
+}
+.simvent__pillola--agente {
+  background: var(--simvent-accento-fioco);
+  color: #cdd6e4;
+}
+.simvent__allarme {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4375rem 0.9375rem;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  animation: simvent-pulsa 1s steps(2, end) infinite;
+}
+.simvent__allarme--zitto {
+  animation: none;
+  background: rgba(239, 68, 68, 0.1);
+  color: #f0a3a3;
+}
+.simvent__allarme em {
+  font-style: normal;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  opacity: 0.75;
+}
+@media (prefers-reduced-motion: reduce) {
+  .simvent__allarme {
+    animation: none;
+  }
+}
+.simvent__corpo {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+.simvent__maniglie {
+  position: absolute;
+  left: env(safe-area-inset-left);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+.simvent__maniglia {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.875rem 0.625rem;
+  border: 0;
+  border-left: 3px solid transparent;
+  border-radius: 0 12px 12px 0;
+  background: #141d2c;
+  color: #aeb8c8;
+  box-shadow: 3px 0 14px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+.simvent__maniglia span {
+  writing-mode: vertical-rl;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.simvent__maniglia--accesa {
+  background: var(--simvent-accento-fioco);
+  border-left-color: var(--simvent-accento);
+  color: var(--simvent-accento);
+}
+.simvent__onde {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  min-width: 0;
+  min-height: 0;
+  padding: 0.875rem 1rem 0.5rem 4rem;
+}
+.simvent__modo {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex: 0 0 auto;
+}
+.simvent__modo-sigla {
+  padding: 0.4375rem 1rem;
+  border: 1px solid var(--simvent-accento);
+  border-radius: 10px;
+  background: var(--simvent-accento-fioco);
+  color: var(--simvent-accento);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.simvent__modo-nome {
+  font-size: 0.75rem;
+  color: #6f7c90;
+}
+.simvent__onde .simmon__waves {
+  flex: 1;
+  gap: 0.625rem;
+}
+.simvent__onde .simmon__lane {
+  border-bottom: 0;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  background: #0b111c;
+  padding: 1.75rem 0.875rem 0.5rem;
+}
+.simvent__onde .simmon__lane-label {
+  top: 0.5rem;
+  left: 0.875rem;
+  font-size: 0.75rem;
+}
+.simmon__lane-value {
+  position: absolute;
+  top: 0.42rem;
+  right: 0.875rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+.simvent__spento {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  background: #0b111c;
+  color: #55627a;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.simvent__monitoraggio {
+  flex: 0 0 344px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: #0b111c;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+.simvent__monitoraggio h2 {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0.8125rem 1.125rem 0.375rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #cdd6e4;
+}
+.simvent__gruppi {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 1.125rem 1rem;
+}
+.simvent__gruppi h3 {
+  margin: 0.8125rem 0 0.4375rem;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: #6f7c90;
+}
+.simvent__tessere {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.simvent__tessera {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+  padding: 0.5625rem 0.6875rem;
+  border-radius: 11px;
+  background: #121a28;
+}
+.simvent__tessera--disegno {
+  align-items: center;
+}
+.simvent__tessera--disegno svg {
+  height: 4.5rem;
+  width: auto;
+}
+.simvent__etichetta {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #8a97ad;
+}
+.simvent__valore {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.simvent__valore b {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1;
+  color: #f2a23c;
+}
+.simvent__valore em {
+  font-style: normal;
+  font-size: 0.625rem;
+  color: #6f7c90;
+}
+.simvent__valore--grande b {
+  font-size: 1.5625rem;
+  color: #e9eef6;
+}
+.simvent__barra {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 0.625rem;
+  
+  padding: 0.75rem max(1rem, env(safe-area-inset-right))
+    max(0.875rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  background: #0e1420;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+.simvent__manopola {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  
+  transition: flex-grow 0.18s ease;
+}
+.simvent__manopola-corpo {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+  width: 100%;
+  padding: 0.6875rem 0.8125rem;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  background: #121a28;
+  text-align: left;
+  cursor: pointer;
+}
+.simvent__manopola-corpo:disabled {
+  cursor: default;
+}
+.simvent__manopola--aperta .simvent__manopola-corpo {
+  border-color: var(--simvent-accento);
+}
+.simvent__passi {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.5rem;
+  pointer-events: none;
+}
+.simvent__manopola--aperta {
+  
+  flex-grow: 3;
+}
+.simvent__manopola--aperta .simvent__manopola-corpo {
+  
+  padding-right: 9.75rem;
+}
+.simvent__passi button {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #e9eef6;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.simvent__passi button:hover {
+  background: var(--simvent-accento-fioco);
+  color: var(--simvent-accento);
+}
+.simvent__passi .simvent__passi-conferma {
+  background: var(--simvent-accento-fioco);
+  color: var(--simvent-accento);
+  font-size: 1.1rem;
+}
+.simvent__progresso {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.simvent__progresso i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: 4px;
+  background: var(--simvent-accento);
+  transform-origin: left;
+  transform: scaleX(0);
+  animation-name: simvent-progresso;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+.simvent__nota {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: #93a1b5;
+}
+.simvent__nota--allarme {
+  color: #f3c623;
+  font-weight: 600;
+}
+.simvent__autotest-ultimo {
+  margin: 0 0 0.625rem;
+  font-size: 0.85rem;
+  color: #93a1b5;
+}
+.simvent__autotest-passi {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+}
+.simvent__autotest-passi li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #93a1b5;
+}
+.simvent__autotest-passi li i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  flex: 0 0 auto;
+}
+.simvent__autotest-passi li[data-stato='fatto'] {
+  color: #cdd6e4;
+}
+.simvent__autotest-passi li[data-stato='fatto'] i {
+  border-color: var(--simvent-accento);
+  background: var(--simvent-accento-fioco);
+  position: relative;
+}
+.simvent__autotest-passi li[data-stato='fatto'] i::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0;
+  width: 4px;
+  height: 8px;
+  border-right: 2px solid var(--simvent-accento);
+  border-bottom: 2px solid var(--simvent-accento);
+  transform: rotate(40deg);
+}
+.simvent__autotest-passi li[data-stato='in-corso'] {
+  color: #e9eef6;
+}
+.simvent__autotest-passi li[data-stato='in-corso'] i {
+  border-color: var(--simvent-accento);
+  border-top-color: transparent;
+  animation: simvent-autotest-gira 0.8s linear infinite;
+}
+.simvent__grosso--tenue {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cdd6e4;
+}
+.simvent__grosso--tenue:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+@media (prefers-reduced-motion: reduce) {
+  .simvent__autotest-passi li[data-stato='in-corso'] i {
+    animation-duration: 2s;
+  }
+}
+.simvent__velo {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  border: 0;
+  padding: 0;
+  background: rgba(4, 8, 14, 0.62);
+  cursor: pointer;
+  animation: simvent-velo-entra 0.22s ease-out;
+}
+.simvent__velo--via {
+  animation: simvent-velo-esce 0.2s ease-in forwards;
+  pointer-events: none;
+}
+.simvent__cassetto {
+  position: absolute;
+  top: 0;
+  left: env(safe-area-inset-left);
+  bottom: 0;
+  z-index: 9;
+  width: min(404px, 92%);
+  display: flex;
+  flex-direction: column;
+  background: #0e1521;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 14px 0 34px rgba(0, 0, 0, 0.45);
+  
+  animation: simvent-cassetto-entra 0.22s ease-out;
+}
+.simvent__cassetto--via {
+  animation: simvent-cassetto-esce 0.2s ease-in forwards;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .simvent__cassetto,
+  .simvent__cassetto--via,
+  .simvent__velo,
+  .simvent__velo--via {
+    animation-duration: 0.01s;
+  }
+}
+.simvent__cassetto > header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(1rem + env(safe-area-inset-top)) 1.125rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.simvent__cassetto > header button {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: #cdd6e4;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.simvent__cassetto-corpo {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.125rem;
+}
+.simvent__cassetto-corpo section h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: #6f7c90;
+}
+.simvent__riga-stato {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: 12px;
+  background: #121a28;
+}
+.simvent__riga-stato i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #45536b;
+}
+.simvent__riga-stato i.acceso {
+  background: #46c97e;
+  box-shadow: 0 0 10px #46c97e;
+}
+.simvent__riga-stato div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  flex: 1;
+}
+.simvent__riga-stato small {
+  font-size: 0.66rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: #6f7c90;
+}
+.simvent__scelte {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.simvent__scelte--colonna {
+  flex-direction: column;
+}
+.simvent__scelte button {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+  flex: 1;
+  min-width: 4.5rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 11px;
+  background: #121a28;
+  color: #cdd6e4;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.simvent__scelte button span {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: #8a97ad;
+}
+.simvent__scelte button.scelto {
+  border-color: var(--simvent-accento);
+  background: var(--simvent-accento-fioco);
+  color: var(--simvent-accento);
+}
+.simvent__scelte button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.simvent__grosso {
+  margin-top: auto;
+  padding: 1rem;
+  border: 0;
+  border-radius: 12px;
+  background: var(--simvent-accento);
+  color: #05121a;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.simvent__consumabile {
+  display: flex;
+  align-items: stretch;
+  gap: 1rem;
+  padding: 0.875rem 1rem;
+  border-radius: 12px;
+  background: #121a28;
+}
+.simvent__consumabile > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  flex: 1;
+  min-width: 0;
+}
+.simvent__consumabile-riga {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #8a97ad;
+}
+.simvent__consumabile-riga b {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #e9eef6;
+}
+.simvent__umi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.simvent__riga-comando {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.82rem;
+  color: #9aa8bd;
+}
+.simvent__riga-comando b {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.05rem;
+  color: #e9eef6;
+}
+.simvent__tacche {
+  display: flex;
+  gap: 0.3rem;
+}
+.simvent__tacca {
+  width: 2.1rem;
+  height: 2.1rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: transparent;
+  color: #cdd6e4;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.simvent__tacca--on {
+  border-color: #36c2c8;
+  background: rgba(54, 194, 200, 0.18);
+  color: #e9eef6;
+}
+.simvent__tacca:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.simvent__tasto {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: transparent;
+  color: #cdd6e4;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.simvent__tasto--on {
+  border-color: #36c2c8;
+  background: rgba(54, 194, 200, 0.18);
+  color: #e9eef6;
+}
+.simvent__acqua--bassa {
+  color: #f59e0b;
+}
+.simvent__in-corso {
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #36c2c8;
+}
+.simvent__disinfezione--sporco {
+  color: #f59e0b;
+}
+.simvent__disinfezione--non-sicuro {
+  color: #ef4444;
+}
+.simvent__azione:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.simvent__azione {
+  margin-top: auto;
+  padding: 0.5625rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9px;
+  background: transparent;
+  color: #cdd6e4;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.simvent__azione:hover {
+  border-color: var(--simvent-accento);
+  color: var(--simvent-accento);
+}
+.simvent__interruttore {
+  flex: 0 0 auto;
+  width: 46px;
+  height: 26px;
+  padding: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: #2a3346;
+  cursor: pointer;
+}
+.simvent__interruttore span {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #8a97ad;
+  transition: transform 0.12s ease-out;
+}
+.simvent__interruttore.acceso {
+  background: var(--simvent-accento-fioco);
+}
+.simvent__interruttore.acceso span {
+  background: var(--simvent-accento);
+  transform: translateX(20px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .simvent__interruttore span {
+    transition: none;
+  }
+}
+.simvent__esito {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.simvent__esito > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+  padding: 0.5625rem 0.6875rem;
+  border-radius: 11px;
+  background: #121a28;
+  font-size: 0.6875rem;
+  color: #8a97ad;
+}
+.simvent__esito b {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.05rem;
+  color: #e9eef6;
+}
+.simvent__limiti {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.simvent__limite {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: #121a28;
+}
+.simvent__limite .simvent__etichetta {
+  flex: 1;
+  min-width: 0;
+}
+.simvent__limite--suona {
+  border-color: rgba(239, 68, 68, 0.65);
+}
+.simvent__limite-coppia {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.simvent__limite-coppia b {
+  min-width: 2.4rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9rem;
+  text-align: center;
+}
+.simvent__limite-coppia button {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #e9eef6;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.simvent__limite-vuoto {
+  min-width: 3.9rem;
+  text-align: center;
+  color: #55627a;
+}
+.simvent__altoflusso {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+}
+.simvent__grandi {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.625rem;
+}
+.simvent__grandi > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  background: #0b111c;
+}
+.simvent__grandi span {
+  font-size: 0.75rem;
+  color: #8a97ad;
+}
+.simvent__grandi b {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 3rem;
+  font-weight: 600;
+  line-height: 1;
+  color: #e9eef6;
+}
+.simvent__grandi em {
+  font-style: normal;
+  font-size: 0.72rem;
+  color: #6f7c90;
+}
+.simvent[data-operabile='no'] .simvent__passi,
+.simvent[data-operabile='no'] .simvent__maniglie {
+  display: none;
+}
+@media (max-width: 900px) {
+  .simvent__corpo {
+    flex-direction: column;
+  }
+  .simvent__monitoraggio {
+    flex: 0 0 auto;
+    max-height: 38%;
+    padding-left: calc(4rem + env(safe-area-inset-left));
+    border-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .simvent__tessere {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .simvent__barra {
+    overflow-x: auto;
+  }
+  .simvent__manopola {
+    flex: 0 0 7.5rem;
+  }
+}
+.simvent__telaio {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+.simvent__telaio--riquadro {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+.simvent__miniatura {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+}
+.simvent__nome {
+  position: absolute;
+  top: 0.35rem;
+  right: 4.25rem;
+  z-index: 10;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(10, 15, 26, 0.72);
+  color: #8a97ad;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+}
+.simvent--attesa {
+  align-items: center;
+  justify-content: center;
+}
+.simvent__standby {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 26rem;
+  padding: 2rem;
+  text-align: center;
+}
+.simvent__standby strong {
+  font-size: 1.05rem;
+  letter-spacing: 0.03em;
+}
+.simvent__standby p {
+  margin: 0;
+  color: #8a97ad;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.simvent__quadro {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.simvent__quadro .simmon__waves {
+  flex: 1;
+}
+.simvent__quadro--fermo .simmon__lane {
+  border-color: var(--simvent-accento);
+}
+.simvent__velocita {
+  display: flex;
+  gap: 0.25rem;
+}
+.simvent__velocita button {
+  padding: 0.375rem 0.625rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: transparent;
+  color: #8a97ad;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.simvent__velocita button.scelto {
+  border-color: var(--simvent-accento);
+  background: var(--simvent-accento-fioco);
+  color: var(--simvent-accento);
+}
+.simvent__congela {
+  padding: 0.375rem 0.875rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: transparent;
+  color: #cdd6e4;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.simvent__congela--attivo {
+  border-color: var(--simvent-accento);
+  background: var(--simvent-accento-fioco);
+  color: var(--simvent-accento);
+}
+.simvent__cursore {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 1px dashed var(--simvent-accento);
+  pointer-events: none;
+}
+.simvent--sotto-safari .simvent__testata,
+.simvent--sotto-safari .simvent__cassetto > header {
+  padding-left: 4.6rem;
+}
+.simvent--sotto-safari .simvent__testata {
+  padding-top: max(env(safe-area-inset-top), 1.5rem);
+  min-height: calc(54px + max(env(safe-area-inset-top), 1.5rem));
+}
+.simmon__lane--tocca {
+  cursor: pointer;
+}
+.simmon__lane-label--tocca {
+  border: 0;
+  background: transparent;
+  padding: 0.15rem 0.4rem;
+  margin: -0.15rem -0.4rem;
+  cursor: pointer;
+  pointer-events: auto;
+  font: inherit;
+  letter-spacing: inherit;
+}
+.simmon__lane-label--tocca:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+}
+.simmon__regia-assente,
+.simvent__regia-assente {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  background: rgba(251, 191, 36, 0.14);
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  color: #fbbf24;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.simvent__regia-assente {
+  margin-left: 0.625rem;
+}
+.simmon__curve .simmon__waves {
+  flex: 1;
+}
+.simmon__lane-griglia {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dotted currentColor;
+  opacity: 0.32;
+  pointer-events: none;
+}
+.simmon__lane-griglia em {
+  position: absolute;
+  left: 0.5rem;
+  top: -0.65rem;
+  font-style: normal;
+  font-size: 0.6rem;
+  font-weight: 600;
+  opacity: 1;
+}
+.simmon__lane-cal {
+  position: absolute;
+  left: 0.6rem;
+  width: 3px;
+  border-left: 2px solid currentColor;
+  opacity: 0.8;
+  pointer-events: none;
+}
+.simmon__lane-cal em {
+  position: absolute;
+  left: 0.5rem;
+  bottom: -0.2rem;
+  font-style: normal;
+  font-size: 0.58rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.lp__curve > .simmon__waves,
+.lp__curve > * {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+@media (orientation: portrait) {
+  .simmon--intellisim-x3 .simmon__waves {
+    grid-area: curve;
+    min-height: 0;
+  }
+}
