@@ -29,6 +29,7 @@ jobs:
   build:
     needs: test
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
@@ -38,10 +39,18 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npm run build
-      - name: Build installers
-        run: npx electron-builder ${{ matrix.os == 'macos-latest' && '--mac' || '--win' }} --publish never
+      # The two Mac disk images are built one after the other: in parallel
+      # they fight over the same mounted volume and hdiutil fails.
+      - name: Build installers (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          npx electron-builder --mac --arm64 --publish never
+          npx electron-builder --mac --x64 --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Build installers (Windows)
+        if: matrix.os == 'windows-latest'
+        run: npx electron-builder --win --publish never
         shell: bash
       - uses: actions/upload-artifact@v4
         with:
