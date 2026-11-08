@@ -102,7 +102,7 @@ Se chiede il **PIN**, scrivono le 4 cifre che vedi in regia:
 
 <p align="center"><img src="docs/screenshots/03-join-pin.png" width="560" alt="Schermata del PIN"></p>
 
-In basso a sinistra compare un pallino: **verde «Collegato alla regia»** vuol dire che è tutto a posto.
+In alto a destra compare un pallino: **verde** vuol dire collegato alla regia (toccalo per leggere lo stato; un puntino rosso sopra indica che la sessione è registrata).
 
 ### Lo studente accende la macchina
 
@@ -186,7 +186,7 @@ Il registro resta salvato anche se chiudi e riapri la regia.
 | Lo studente **non trova la regia** o il QR non si apre | Controlla che sia sulla **stessa Wi-Fi** (non la rete «ospiti»). Su Windows, la prima volta bisogna aver cliccato **Consenti accesso** (vedi §3); se l'hai negato: *Pannello di controllo → Windows Defender Firewall → Consenti app* → spunta Open Vent Sim. |
 | Funziona su un PC ma non sui telefoni | La rete Wi-Fi isola i dispositivi («client isolation»), cosa comune negli ospedali. Usa un router tuo o l'**hotspot del telefono**: collega tutti lì, compreso il computer della regia. |
 | «PIN sbagliato» | Il PIN cambia a ogni avvio della regia: copia quello che vedi adesso, in alto a destra. |
-| Il pallino in basso diventa **arancione** («Rete persa – ricollego…») | Non toccare niente: si ricollega da solo appena la rete torna, e il ventilatore continua a funzionare. |
+| Il pallino in alto a destra diventa **arancione** e compare «Rete persa – ricollego…» | Non toccare niente: si ricollega da solo appena la rete torna, e il ventilatore continua a funzionare. |
 | «Aperto in un'altra finestra» | Lo stesso ventilatore è aperto in due schede: chiudine una. |
 | L'indirizzo è cambiato dalla volta scorsa | È normale: dipende dal router. Usa sempre quello che la regia mostra **oggi**. |
 | La porta 8787 è occupata | La regia usa da sola la successiva (8788, 8789…): l'indirizzo giusto è sempre quello sullo schermo. |
@@ -199,6 +199,7 @@ Il registro resta salvato anche se chiudi e riapri la regia.
 
 - Il piè di pagina mostra la versione vera dell'app (prima diceva sempre 2.0.0).
 - Tolti dalla schermata iniziale i pulsanti che non facevano niente (registrazione, impostazioni, manuale): la registrazione si avvia dalla regia.
+- Lo stato del collegamento è un pallino in alto a destra, e non copre più il piè di pagina né la barra dei parametri.
 
 ### 3.1.2 — 8 novembre 2026
 

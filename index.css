@@ -1,3 +1,6 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Linked to the instructor: leave room for the status dot at the top right. */
+.ovs-linked .simvent__testata { padding-right: 2.75rem; }
