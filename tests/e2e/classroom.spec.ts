@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
 import { launchServer, startIcuVentilation, expectNum, num } from './helpers';
+import { readFileSync } from 'fs';
+
+const VERSION = JSON.parse(readFileSync('package.json', 'utf8')).version;
 
 let srv: any;
 test.beforeAll(async () => { srv = await launchServer('1234'); });
@@ -126,6 +129,9 @@ test('stand-alone use: no badge, device runs', async ({ page }) => {
   await page.getByText('Usa senza regia').click();
   await expect(page.getByTestId('mode-icu')).toBeVisible();
   await expect(page.getByTestId('remote-badge')).toHaveCount(0);
+  // the footer shows the real version, and no start-screen button is a dead end
+  await expect(page.locator('footer')).toContainText(`Open Vent Sim v${VERSION}`);
+  await expect(page.getByRole('button', { name: /Registra Sessione|Record Session/ })).toHaveCount(0);
   await page.getByTestId('mode-icu').click();
   await page.getByTestId('icu-invasive').click();
   await expect(page.getByTestId('exercise-settings')).toBeVisible();

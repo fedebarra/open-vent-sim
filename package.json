@@ -1,6 +1,6 @@
 {
   "name": "open-vent-sim",
-  "version": "3.1.2",
+  "version": "3.1.3",
   "type": "module",
   "scripts": {
     "dev": "vite",

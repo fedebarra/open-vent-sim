@@ -2,7 +2,7 @@
 
 **A free, open-source simulator of ICU ventilator, anaesthesia machine and high-flow oxygen — with an instructor console that runs on your classroom's own network.**
 
-🇮🇹 [Versione italiana](README.it.md) · 📅 Version 3.1.2 — released 8 November 2026 · MIT licence
+🇮🇹 [Versione italiana](README.it.md) · 📅 Version 3.1.3 — released 8 November 2026 · MIT licence
 
 <p align="center"><img src="docs/screenshots/10-regia-live-en.png" width="820" alt="The instructor console showing a learner's ventilator live"></p>
 
@@ -52,9 +52,9 @@ Go to **[Releases](https://github.com/fedebarra/open-vent-sim/releases/latest)**
 
 | Your computer | File |
 |---|---|
-| Windows | `OpenVentSim-3.1.2-win-x64.exe` (installer) — or `OpenVentSim-3.1.2-portable.exe` (no install, just run it) |
-| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.1.2-mac-arm64.dmg` |
-| Mac with Intel processor | `OpenVentSim-3.1.2-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.1.3-win-x64.exe` (installer) — or `OpenVentSim-3.1.3-portable.exe` (no install, just run it) |
+| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.1.3-mac-arm64.dmg` |
+| Mac with Intel processor | `OpenVentSim-3.1.3-mac-x64.dmg` |
 
 > If the `.dmg` won't open, download the `.zip` with the same name: double-click to extract, then drag **Open Vent Sim** into Applications.
 
@@ -194,6 +194,11 @@ The log survives closing and reopening the console.
 | I want the old (2.x) interface | In the browser, add `?legacy=1` to the address (stand-alone only). |
 
 ## 9. What's new
+
+### 3.1.3 — 8 November 2026
+
+- The footer shows the real app version (it always said 2.0.0).
+- Removed start-screen buttons that did nothing (recording, settings, manual): recording is started from the instructor console.
 
 ### 3.1.2 — 8 November 2026
 

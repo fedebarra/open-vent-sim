@@ -357,9 +357,9 @@ export const DeviceApp: React.FC<DeviceAppProps> = ({
   return (
     <StartupScreen
       onSelectMode={(m, sub) => scegli(m, sub)}
-      onOpenSimulatorSettings={onOpenSimulatorSettings ?? (() => {})}
-      onOpenManualModal={onOpenManualModal ?? (() => {})}
-      onToggleRecording={onToggleRecording ?? (() => {})}
+      onOpenSimulatorSettings={onOpenSimulatorSettings}
+      onOpenManualModal={onOpenManualModal}
+      onToggleRecording={onToggleRecording}
       isRecordingEnabled={isRecordingEnabled}
       onStartTour={() => { setTourActive(true); onStartTour?.() }}
       tourLabel={tourLabel ?? s.tour}
