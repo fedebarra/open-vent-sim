@@ -37,14 +37,23 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
-      - run: npm ci
+      # GitHub release downloads (the Electron binary) are sometimes flaky: retry.
+      - name: Install dependencies
+        shell: bash
+        run: |
+          for i in 1 2 3 4 5; do npm ci && exit 0; echo "npm ci failed, retry $i"; sleep $((i * 20)); done; exit 1
       - run: npm run build
       # The two Mac disk images are built one after the other: in parallel
       # they fight over the same mounted volume and hdiutil fails.
       - name: Build installers (macOS)
         if: matrix.os == 'macos-latest'
         run: |
+          # XProtect keeps freshly created disk images busy on hosted runners
+          # (actions/runner-images#7522): stop it before hdiutil runs.
+          sudo pkill -9 XProtect >/dev/null 2>&1 || true
+          while pgrep XProtect >/dev/null; do sleep 3; done
           npx electron-builder --mac --arm64 --publish never
+          sudo pkill -9 XProtect >/dev/null 2>&1 || true
           npx electron-builder --mac --x64 --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
@@ -57,6 +66,7 @@ jobs:
           name: installers-${{ matrix.os }}
           path: |
             release/*.dmg
+            release/*.zip
             release/*.exe
           if-no-files-found: error
       - name: Attach to release
@@ -65,4 +75,5 @@ jobs:
         with:
           files: |
             release/*.dmg
+            release/*.zip
             release/*.exe
