@@ -316,7 +316,7 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
                 {tab === 'patient' && ist && <PatientTab key={selected!} s={s} tr={tr} ist={ist} onApply={paziente} ramps={ramps.filter((r) => targets().includes(r.vent))} onStopRamps={() => setRamps([])} />}
                 {tab === 'async' && ist && <AsyncTab key={selected!} s={s} tr={tr} ist={ist} onApply={paziente} />}
                 {tab === 'lung' && ist && <LungTab key={selected!} s={s} ist={ist} onApply={paziente} onRecruit={() => azione({ tipo: 'manovra', manovra: 'reclutamento' }, s.recruitmentStart)} />}
-                {tab === 'machine' && ist && <MachineTab s={s} tr={tr} ist={ist} azione={azione} />}
+                {tab === 'machine' && ist && <MachineTab s={s} tr={tr} ist={ist} azione={azione} opzioni={(on) => { targets().forEach((id) => sendRaw(id, { type: 'opzioni', pressioniDidattiche: on })); setFlash(`${s.applied}: ${s.teachingTraces} ${on ? 'ON' : 'OFF'}`); }} />}
               </>}
               {tab === 'events' && <EventsTab s={s} steps={steps} setSteps={setSteps} seq={seq} setSeq={setSeq} fire={fireEvent} />}
             </div>
@@ -592,7 +592,7 @@ const LungTab: React.FC<{ s: RemoteStrings; ist: VentIstantanea; onApply: (p: Pa
 const Info: React.FC<{ k: string; v: string }> = ({ k, v }) => <div className="bg-slate-800 rounded px-2 py-1"><div className="text-slate-400">{k}</div><div className="font-mono text-base">{v}</div></div>;
 
 // -------------------------------------------------------------- Machine tab
-const MachineTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; azione: (a: AzioneVentilatore, label: string) => void }> = ({ s, tr, ist, azione }) => {
+const MachineTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; azione: (a: AzioneVentilatore, label: string) => void; opzioni: (on: boolean) => void }> = ({ s, tr, ist, azione, opzioni }) => {
   const [values, setValues] = useState<Record<string, string>>({});
   const keys = impostazioniVisibili({ ambiente: ist.ambiente, modalita: ist.modalita, respiro: ist.respiro, impostazioni: ist.impostazioni }) as ChiaveImpostazione[];
   return (
@@ -631,6 +631,9 @@ const MachineTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; azio
       <div className="flex flex-wrap gap-2">
         <button data-testid="vent-toggle" onClick={() => azione({ tipo: 'standby', ventilando: !ist.ventilando }, ist.ventilando ? s.ventOff : s.ventOn)} className={`px-4 py-2 rounded-lg font-semibold ${ist.ventilando ? 'bg-red-700' : 'bg-green-700'}`}>{ist.ventilando ? s.ventOff : s.ventOn}</button>
         <button onClick={() => azione({ tipo: 'silenzia' }, s.silence)} className="px-4 py-2 rounded-lg bg-slate-700">{s.silence}</button>
+        <label className="flex items-center gap-2 text-slate-300 px-2">
+          <input type="checkbox" data-testid="opt-didattica" onChange={(e) => opzioni(e.target.checked)} className="accent-sky-500" /> {s.teachingTraces}
+        </label>
         {ist.ambiente === 'invasiva' || ist.ambiente === 'anestesia' ? <>
           <button disabled={!ist.ventilando || !!ist.manovra} onClick={() => azione({ tipo: 'manovra', manovra: 'pausa-inspiratoria' }, s.inspHold)} className="px-4 py-2 rounded-lg bg-slate-700 disabled:opacity-40">{s.inspHold}</button>
           <button disabled={!ist.ventilando || !!ist.manovra} onClick={() => azione({ tipo: 'manovra', manovra: 'pausa-espiratoria' }, s.expHold)} className="px-4 py-2 rounded-lg bg-slate-700 disabled:opacity-40">{s.expHold}</button>

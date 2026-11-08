@@ -39,6 +39,7 @@ await regia.getByTestId('rec-start').click();
 await regia.getByTestId('tab-patient').click(); await regia.waitForTimeout(2500); await shot(regia, '10-regia-live');
 await regia.getByTestId('tab-async').click(); await regia.getByTestId('async-preset-decurarizzazione').click(); await regia.waitForTimeout(6000); await shot(regia, '11-regia-async');
 await vent.waitForTimeout(1500); await shot(vent, '12-learner-asynchrony');
+await regia.getByTestId('tab-machine').click(); await regia.getByTestId('opt-didattica').check(); await regia.getByTestId('tab-async').click();
 await vent.getByTestId('vista-loop').click(); await vent.waitForTimeout(6000); await vent.getByTestId('loop-riferimento').click(); await shot(vent, '21-loops');
 await vent.getByTestId('vista-curve').click(); await vent.getByTestId('vista-palv').click(); await vent.waitForTimeout(12000); await shot(vent, '22-palv-pmus');
 await vent.getByTestId('vista-palv').click();

@@ -166,6 +166,11 @@ export interface VentilatoreProps {
   onEsci?: () => void
   /** Classi in più sulla radice: oggi la riserva d'angolo per la X di Safari. */
   riserva?: string
+  /**
+   * OVS 3.1: le tracce didattiche Palv e Pmus. Spente di serie — su una
+   * macchina vera non ci sono — e il tasto compare solo se chi conduce le abilita.
+   */
+  pressioniDidattiche?: boolean
 }
 
 export function Ventilatore({
@@ -189,6 +194,7 @@ export function Ventilatore({
   onAzione,
   onEsci,
   riserva = '',
+  pressioniDidattiche = false,
 }: VentilatoreProps) {
   const t = useT()
   const [cassetto, setCassetto] = useState<Cassetto | null>(null)
@@ -233,7 +239,8 @@ export function Ventilatore({
   const [velocita, setVelocita] = useState(VELOCITA_PREDEFINITA)
   // OVS 3.1: che cosa mostra il quadro, e se aggiungere Palv e Pmus.
   const [vista, setVista] = useState<'curve' | 'loop'>('curve')
-  const [pressioniExtra, setPressioniExtra] = useState(false)
+  const [pressioniExtraScelte, setPressioniExtra] = useState(false)
+  const pressioniExtra = pressioniDidattiche && pressioniExtraScelte
   const [congelato, setCongelato] = useState<number | null>(null)
   const [cursore, setCursore] = useState<number | null>(null)
 
@@ -643,7 +650,7 @@ export function Ventilatore({
                   <div className="simvent__velocita" role="group">
                     <button type="button" data-testid="vista-curve" className={vista === 'curve' ? 'scelto' : ''} onClick={() => setVista('curve')}>{t('vent.vista.curve')}</button>
                     <button type="button" data-testid="vista-loop" className={vista === 'loop' ? 'scelto' : ''} onClick={() => setVista('loop')}>{t('vent.vista.loop')}</button>
-                    {vista === 'curve' && (
+                    {vista === 'curve' && pressioniDidattiche && (
                       <button type="button" data-testid="vista-palv" className={pressioniExtra ? 'scelto' : ''} aria-pressed={pressioniExtra} onClick={() => setPressioniExtra((x) => !x)}>Palv·Pmus</button>
                     )}
                   </div>

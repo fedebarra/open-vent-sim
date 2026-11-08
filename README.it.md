@@ -130,10 +130,10 @@ Apri l'app e scegli **Da solo**, oppure apri il simulatore nel browser e clicca 
 
 ### Curve, loop e pressioni nascoste
 
-Sopra le curve ci sono tre tasti:
+Sopra le curve ci sono i tasti **Curve / Loop** e, se abilitato, **Palv·Pmus**:
 
 - **Curve / Loop**: «Loop» mostra l'anello **pressione–volume** e **flusso–volume** dell'ultimo atto. In bianco l'atto in corso, più tenui i due precedenti. **Tieni come riferimento** congela l'anello di adesso in grigio: cambi PEEP o volume e confronti.
-- **Palv·Pmus**: aggiunge due tracce. **Palv** è la pressione negli alveoli (Paw meno la parte che serve a vincere la resistenza): fa vedere l'auto-PEEP prima di misurarla. **Pmus** è lo sforzo del paziente: dice *quando* tira rispetto alla macchina, cioè tutta la lettura delle asincronie.
+- **Palv·Pmus** (spento di serie: su un ventilatore vero non c'è). Lo abilita la regia nella scheda *Macchina*, oppure lo studente da solo spuntando «Mostra le tracce didattiche» nella schermata del paziente. Aggiunge due tracce. **Palv** è la pressione negli alveoli (Paw meno la parte che serve a vincere la resistenza): fa vedere l'auto-PEEP prima di misurarla. **Pmus** è lo sforzo del paziente: dice *quando* tira rispetto alla macchina, cioè tutta la lettura delle asincronie.
 
 <p align="center"><img src="docs/screenshots/21-loops.png" width="640" alt="Loop pressione-volume e flusso-volume"></p>
 <p align="center"><img src="docs/screenshots/22-palv-pmus.png" width="640" alt="Tracce Palv e Pmus"></p>
