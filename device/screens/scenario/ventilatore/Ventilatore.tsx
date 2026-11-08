@@ -893,7 +893,7 @@ function Manopola({
       data-fam={`manopola-${chiave}`}
     >
       <button type="button" className="simvent__manopola-corpo" onClick={onApri} disabled={!operabile}>
-        <span className="simvent__etichetta">{t(def.etichetta)}</span>
+        <span className="simvent__etichetta" title={t(def.etichetta)}>{etichettaBreve(t, def.etichetta)}</span>
         <span className="simvent__valore simvent__valore--grande">
           <b>{scriviValore(chiave, valore)}</b>
           <em>{t(def.unita)}</em>
@@ -1616,4 +1616,15 @@ function coloreDellAgente(k: ChiaveMisura, agenti: Agente[] | undefined): CSSPro
         ? agenti?.[1]
         : undefined
   return quale ? { color: AGENTI[quale].colore } : undefined
+}
+
+/**
+ * OVS 3.1: sulla tessera della barra il nome corto, se c'è (`<chiave>.breve`):
+ * «Pausa inspiratoria» andava a capo e allungava tutte le tessere. Il nome
+ * intero resta nel tooltip e nei pannelli.
+ */
+function etichettaBreve(t: Translate, chiave: TranslationKey): string {
+  const breve = `${chiave}.breve` as TranslationKey
+  const testo = t(breve)
+  return testo === breve ? t(chiave) : testo
 }
