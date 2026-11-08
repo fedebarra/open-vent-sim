@@ -7,9 +7,10 @@ import { AnesthesiaMachineIcon, IcuVentilatorIcon, HighFlowIcon, BookIcon, GearI
 
 interface StartupScreenProps {
   onSelectMode: (mode: OperatingMode, subMode?: ICUSubMode) => void;
-  onOpenSimulatorSettings: () => void;
-  onOpenManualModal: () => void;
-  onToggleRecording: () => void;
+  /** Optional: a button whose handler is missing is not shown (no dead buttons). */
+  onOpenSimulatorSettings?: () => void;
+  onOpenManualModal?: () => void;
+  onToggleRecording?: () => void;
   isRecordingEnabled: boolean;
   /** Optional: starts the guided familiarization tour. */
   onStartTour?: () => void;
@@ -172,12 +173,14 @@ export const StartupScreen: React.FC<StartupScreenProps> = ({ onSelectMode, onOp
                      <TourIcon size={20} /> {tourLabel}
                    </button>
                  )}
+                 {onToggleRecording && (
                  <RecordSessionButton
                     onClick={onToggleRecording}
                     title={isRecordingEnabled ? t.recordButtonTooltip_active : t.recordButtonTooltip_start}
                     isRecordingEnabled={isRecordingEnabled}
                     buttonText={recordButtonText}
                 />
+                 )}
             </div>
         </div>
       </div>
@@ -186,12 +189,16 @@ export const StartupScreen: React.FC<StartupScreenProps> = ({ onSelectMode, onOp
       <div className="flex justify-center items-center space-x-6 mb-3 md:mb-4">
         {/* Utility Icons Group */}
         <div className="flex space-x-3">
+            {onOpenManualModal && (
             <UtilityIconButton onClick={onOpenManualModal} title={t.manualButtonTooltip}>
                 <BookIcon size={22} />
             </UtilityIconButton>
+            )}
+            {onOpenSimulatorSettings && (
             <UtilityIconButton onClick={onOpenSimulatorSettings} title={t.settingsButtonTooltip}>
                 <GearIcon size={22} />
             </UtilityIconButton>
+            )}
             <UtilityIconButton 
                 onClick={handleToggleFullscreen} 
                 title={isFullscreen ? t.exitFullscreenTooltip : t.enterFullscreenTooltip}

@@ -68,20 +68,49 @@ export const LinkedDevice: React.FC<{ wsUrl: string; pin: string }> = ({ wsUrl, 
   );
 };
 
-/** Small, unobtrusive pill in the corner so learners know the link is alive. */
+/**
+ * Link status as a single dot in the top-right corner. The machine header gets
+ * a little right padding while linked (index.css, `.ovs-linked`), so the dot
+ * sits next to the fullscreen/silence buttons without covering anything.
+ * Tapping it shows the text; problems open the text by themselves.
+ */
 const ConnectionBadge: React.FC<{ status: LinkStatus; detail?: string; name: string; regiaPresent: boolean; recording: boolean }> = ({ status, detail, name, regiaPresent, recording }) => {
   const { language } = useLanguage();
   const s = rt(language);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    document.body.classList.add('ovs-linked');
+    return () => document.body.classList.remove('ovs-linked');
+  }, []);
   let color = '#f59e0b';
   let text = s.badgeConnecting;
   if (status === 'online') { color = regiaPresent ? '#22c55e' : '#38bdf8'; text = regiaPresent ? s.badgeOnline : s.badgeWaitingRegia; }
   if (status === 'offline') { color = '#f59e0b'; text = detail === 'replaced' ? s.badgeReplaced : s.badgeReconnecting; }
   if (status === 'denied') { color = '#ef4444'; text = detail === 'pin' ? s.badgeBadPin : detail === 'removed' ? s.badgeRemoved : detail === 'full' ? s.badgeFull : s.badgeDenied; }
+  const problem = status === 'offline' || status === 'denied';
+  const full = `${name ? `${ventName(name, language)} · ` : ''}${text}${recording && status === 'online' ? ' · ● REC' : ''}`;
+  useEffect(() => {
+    if (!open || problem) return;
+    const id = setTimeout(() => setOpen(false), 4000);
+    return () => clearTimeout(id);
+  }, [open, problem]);
   return (
-    <div data-testid="remote-badge" style={{ position: 'fixed', left: 8, bottom: 8, zIndex: 9999, display: 'flex', alignItems: 'center', gap: 6, padding: '3px 9px', borderRadius: 999, background: 'rgba(0,0,0,.6)', color: '#e5e7eb', fontSize: 11, fontFamily: 'system-ui, Arial, sans-serif', pointerEvents: 'none' }}>
-      <span style={{ width: 8, height: 8, borderRadius: 8, background: color, boxShadow: `0 0 6px ${color}` }} />
-      <span>{name ? `${ventName(name, language)} · ` : ''}{text}</span>
-      {recording && status === 'online' && <span data-testid="rec-badge" style={{ color: '#f87171', fontWeight: 700 }}>· ● REC</span>}
+    <div style={{ position: 'fixed', top: 'calc(env(safe-area-inset-top) + 19px)', right: 12, zIndex: 9999, display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'system-ui, Arial, sans-serif' }}>
+      {(open || problem) && (
+        <span data-testid="remote-badge-text" style={{ padding: '4px 10px', borderRadius: 999, background: 'rgba(15,23,42,.92)', border: '1px solid rgba(255,255,255,.12)', color: '#e5e7eb', fontSize: 12, whiteSpace: 'nowrap' }}>{full}</span>
+      )}
+      <button
+        type="button"
+        data-testid="remote-badge"
+        aria-label={full}
+        title={full}
+        onClick={() => setOpen((x) => !x)}
+        style={{ position: 'relative', width: 16, height: 16, borderRadius: 16, border: 0, padding: 0, background: color, boxShadow: `0 0 0 3px rgba(15,23,42,.9), 0 0 8px ${color}`, cursor: 'pointer' }}
+      >
+        {recording && status === 'online' && <span data-testid="rec-badge" style={{ position: 'absolute', right: -3, top: -3, width: 7, height: 7, borderRadius: 7, background: '#ef4444', boxShadow: '0 0 0 2px rgba(15,23,42,.9)' }} />}
+        {/* screen-reader / test hook for the full status */}
+        <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{full}</span>
+      </button>
     </div>
   );
 };
