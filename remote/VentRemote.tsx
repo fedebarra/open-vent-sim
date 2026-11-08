@@ -5,7 +5,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createLink, Link, LinkStatus } from './link';
 import type { RemoteCommand, ServerMessage } from './protocol';
-import { rt } from './strings';
+import { rt, ventName } from './strings';
 import { useLanguage } from '../src/contexts/LanguageContext';
 import { DeviceApp } from '../device/DeviceApp';
 import type { DeviceRemoteActions, DeviceRemoteCommand } from '../device/remoteTypes';
@@ -58,6 +58,7 @@ export const LinkedDevice: React.FC<{ wsUrl: string; pin: string }> = ({ wsUrl, 
   return (
     <>
       <DeviceApp
+        linked
         remoteActions={remoteActions}
         onSnapshot={(_ist, info) => send({ t: 'state', state: { ...info, at: Date.now() } })}
         onEvent={(text, source, kind) => send({ t: 'event', event: { at: Date.now(), text, source, kind } }, true)}
@@ -79,7 +80,7 @@ const ConnectionBadge: React.FC<{ status: LinkStatus; detail?: string; name: str
   return (
     <div data-testid="remote-badge" style={{ position: 'fixed', left: 8, bottom: 8, zIndex: 9999, display: 'flex', alignItems: 'center', gap: 6, padding: '3px 9px', borderRadius: 999, background: 'rgba(0,0,0,.6)', color: '#e5e7eb', fontSize: 11, fontFamily: 'system-ui, Arial, sans-serif', pointerEvents: 'none' }}>
       <span style={{ width: 8, height: 8, borderRadius: 8, background: color, boxShadow: `0 0 6px ${color}` }} />
-      <span>{name ? `${name} · ` : ''}{text}</span>
+      <span>{name ? `${ventName(name, language)} · ` : ''}{text}</span>
       {recording && status === 'online' && <span data-testid="rec-badge" style={{ color: '#f87171', fontWeight: 700 }}>· ● REC</span>}
     </div>
   );

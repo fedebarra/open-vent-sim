@@ -243,6 +243,12 @@ const en: RemoteStrings = {
   regParams: 'Parameters', regAllVents: 'All ventilators', regNoSamples: 'No trends recorded.', regActions: 'Actions', regEmpty: 'No action recorded.', regAdjustments: 'adjustments',
 };
 
+/** The server names ventilators "Ventilatore N"; show them in the UI language. */
+export function ventName(name: string, language: string): string {
+  const m = /^Ventilatore (\d+)$/.exec(name);
+  return m && language !== 'it' ? `Ventilator ${m[1]}` : name;
+}
+
 export function rt(language: string): RemoteStrings {
   return language === 'it' ? it : en;
 }

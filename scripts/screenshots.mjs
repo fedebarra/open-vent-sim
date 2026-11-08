@@ -3,18 +3,20 @@ import { chromium } from '@playwright/test';
 import { startServer } from '../server/ovs-server.mjs';
 import fs from 'node:fs';
 
-const OUT = 'docs/screenshots';
+const OUT = process.env.OUT || 'docs/screenshots';
+const SCALE = Number(process.env.SCALE || 1);
 fs.mkdirSync(OUT, { recursive: true });
 const LANG = process.env.LANG_SHOTS || 'it';
 const loc = LANG === 'it' ? 'it-IT' : 'en-GB';
 const sfx = LANG === 'it' ? '' : '-en';
-const srv = await startServer({ port: 0, host: '127.0.0.1', beacon: false, pin: '4821' });
+const srv = await startServer({ port: 0, host: '127.0.0.1', beacon: false, pin: '4821', name: LANG === 'it' ? 'Open Vent Sim – Aula di simulazione' : 'Open Vent Sim – Simulation room' });
 const base = `http://127.0.0.1:${srv.port}`;
 const b = await chromium.launch();
 const shot = async (p, name) => { await p.waitForTimeout(700); await p.screenshot({ path: `${OUT}/${name}${sfx}.png` }); console.log(name); };
 // pretend to be the desktop app on a typical school network, so addresses look real
-const fakeDesktop = (launcher) => `window.ovsDesktop = { isLauncher: ${launcher}, startRegia: async () => '', serverInfo: async () => ({ addresses: ['192.168.1.20'], port: 8787 }), startDiscovery: async () => true, stopDiscovery: async () => true, onDiscovered: (fn) => { setTimeout(() => fn({ name: 'Open Vent Sim – Aula 3', host: '192.168.1.20', port: 8787, seen: Date.now() }), 300); setInterval(() => fn({ name: 'Open Vent Sim – Aula 3', host: '192.168.1.20', port: 8787, seen: Date.now() }), 2000); return () => {}; } };`;
-const ctx = async (w, h, init) => { const c = await b.newContext({ viewport: { width: w, height: h }, locale: loc, deviceScaleFactor: 1 }); if (init) await c.addInitScript(init); await c.addInitScript(`try{localStorage.setItem('ovs-language','${LANG}')}catch(e){}`); return c; };
+const ROOM = LANG === 'it' ? 'Open Vent Sim – Aula di simulazione' : 'Open Vent Sim – Simulation room';
+const fakeDesktop = (launcher) => `window.ovsDesktop = { isLauncher: ${launcher}, startRegia: async () => '', serverInfo: async () => ({ addresses: ['192.168.1.20'], port: 8787 }), startDiscovery: async () => true, stopDiscovery: async () => true, onDiscovered: (fn) => { const f = () => fn({ name: '${ROOM}', host: '192.168.1.20', port: 8787, seen: Date.now() }); setTimeout(f, 300); setInterval(f, 2000); return () => {}; } };`;
+const ctx = async (w, h, init) => { const c = await b.newContext({ viewport: { width: w, height: h }, locale: loc, deviceScaleFactor: SCALE }); if (init) await c.addInitScript(init); await c.addInitScript(`try{localStorage.setItem('ovs-language','${LANG}')}catch(e){}`); return c; };
 const startIcu = async (p) => { await p.getByTestId('mode-icu').click(); await p.getByTestId('icu-invasive').click(); await p.getByTestId('patient-confirm').click(); await p.getByRole('button', { name: /^STANDBY$/i }).click(); await p.getByRole('button', { name: /AVVIA LA VENTILAZIONE|START VENTILATION/i }).click(); };
 
 // 1. desktop launcher + ventilator search
@@ -36,7 +38,7 @@ await vent.getByRole('button', { name: /AVVIA LA VENTILAZIONE|START VENTILATION/
 
 // 4. director live
 await regia.getByTestId('rec-start').click();
-await regia.getByTestId('tab-patient').click(); await regia.waitForTimeout(2500); await shot(regia, '10-regia-live');
+await regia.getByTestId('tab-patient').click(); await regia.waitForTimeout(4200); await shot(regia, '10-regia-live');
 await regia.getByTestId('tab-async').click(); await regia.getByTestId('async-preset-decurarizzazione').click(); await regia.waitForTimeout(6000); await shot(regia, '11-regia-async');
 await vent.waitForTimeout(1500); await shot(vent, '12-learner-asynchrony');
 await regia.getByTestId('tab-machine').click(); await regia.getByTestId('opt-didattica').check(); await regia.getByTestId('tab-async').click();

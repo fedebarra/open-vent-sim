@@ -2,7 +2,7 @@
 
 **Simulatore gratuito e open-source di ventilatore, macchina d'anestesia e alti flussi — con la regia dell'istruttore sulla rete della tua aula.**
 
-🇬🇧 [English version](README.md) · 📅 Versione 3.1.1 — pubblicata l'8 novembre 2026 · Licenza MIT
+🇬🇧 [English version](README.md) · 📅 Versione 3.1.2 — pubblicata l'8 novembre 2026 · Licenza MIT
 
 <p align="center"><img src="docs/screenshots/10-regia-live.png" width="820" alt="La regia vede il ventilatore dello studente in diretta"></p>
 
@@ -52,9 +52,9 @@ Vai alla pagina **[Releases](https://github.com/fedebarra/open-vent-sim/releases
 
 | Il tuo computer | File da scaricare |
 |---|---|
-| Windows | `OpenVentSim-3.1.1-win-x64.exe` (installazione) — oppure `OpenVentSim-3.1.1-portable.exe` (senza installare, si apre e basta) |
-| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.1.1-mac-arm64.dmg` |
-| Mac con processore Intel | `OpenVentSim-3.1.1-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.1.2-win-x64.exe` (installazione) — oppure `OpenVentSim-3.1.2-portable.exe` (senza installare, si apre e basta) |
+| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.1.2-mac-arm64.dmg` |
+| Mac con processore Intel | `OpenVentSim-3.1.2-mac-x64.dmg` |
 
 > Se il `.dmg` non si apre, scarica il `.zip` con lo stesso nome: doppio clic per estrarlo, poi trascina **Open Vent Sim** in Applicazioni.
 
@@ -110,7 +110,7 @@ In basso a sinistra compare un pallino: **verde «Collegato alla regia»** vuol 
 
 <p align="center"><img src="docs/screenshots/04-start.png" width="640" alt="Schermata iniziale"></p>
 
-2. Per la terapia intensiva sceglie **invasiva** o **non invasiva**, poi conferma peso e quadro del paziente.
+2. Per la terapia intensiva sceglie **invasiva** o **non invasiva**, poi conferma **peso ed età**, come su un ventilatore vero. Il quadro clinico (polmone, asincronie, tracce didattiche) non lo sceglie lo studente: lo decidi tu dalla regia.
 
 <p align="center"><img src="docs/screenshots/06-icu-choice.png" width="420" alt="Invasiva o NIV"> <img src="docs/screenshots/07-patient.png" width="420" alt="Dati del paziente"></p>
 
@@ -124,7 +124,7 @@ Da questo momento lo vedi in regia, curve comprese, e ogni sua azione compare ne
 
 ## 5. Usarlo da soli
 
-Apri l'app e scegli **Da solo**, oppure apri il simulatore nel browser e clicca **Usa senza regia**. Sulla schermata iniziale c'è il pulsante **Guida passo passo**, che accompagna lo studente nella prima ventilazione.
+Apri l'app e scegli **Da solo**, oppure apri il simulatore nel browser e clicca **Usa senza regia**. Senza regia, nella schermata del paziente compare il riquadro **Impostazioni dell'esercitazione** (quadro polmonare e tracce didattiche) per preparare il caso da soli. Sulla schermata iniziale c'è il pulsante **Guida passo passo**, che accompagna lo studente nella prima ventilazione.
 
 <p align="center"><img src="docs/screenshots/20-tour.png" width="640" alt="Guida passo passo"></p>
 
@@ -195,6 +195,10 @@ Il registro resta salvato anche se chiudi e riapri la regia.
 
 ## 9. Novità
 
+### 3.1.2 — 8 novembre 2026
+
+- Lo studente collegato alla regia inserisce solo peso ed età: quadro polmonare e tracce didattiche li decide l'istruttore. Da soli restano disponibili, separati come «Impostazioni dell'esercitazione».
+
 ### 3.1.1 — 8 novembre 2026
 
 - Barra dei parametri: i nomi lunghi («Pausa inspiratoria») non vanno più a capo; sulla tessera c'è il nome corto, quello intero nel suggerimento.
@@ -242,6 +246,8 @@ npm run dist:mac       # installer .dmg   (npm run dist:win per Windows)
 ### Ringraziamenti
 
 Sviluppato all'Università del Piemonte Orientale, Novara. Gruppo clinico: F.L. Barra MD, E. Moro MD, L. Carenzo MD, A. Costa MD, G. Rodella RN, R. Vaschetto MD PhD. Facilitatori tecnici: S. Ricci PhD, J. Travenec MSc. Grazie a tutti gli specializzandi di Anestesia che hanno dato il loro contributo.
+
+**Immagini per presentazioni e articoli:** in [`docs/press/`](docs/press) ci sono gli screenshot in alta risoluzione (2880×1800), in italiano e in inglese, liberi da usare con la licenza del progetto.
 
 **Supporto:** [Issues](https://github.com/fedebarra/open-vent-sim/issues) · federico.barra@med.uniupo.it
 

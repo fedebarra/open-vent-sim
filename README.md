@@ -2,7 +2,7 @@
 
 **A free, open-source simulator of ICU ventilator, anaesthesia machine and high-flow oxygen — with an instructor console that runs on your classroom's own network.**
 
-🇮🇹 [Versione italiana](README.it.md) · 📅 Version 3.1.1 — released 8 November 2026 · MIT licence
+🇮🇹 [Versione italiana](README.it.md) · 📅 Version 3.1.2 — released 8 November 2026 · MIT licence
 
 <p align="center"><img src="docs/screenshots/10-regia-live-en.png" width="820" alt="The instructor console showing a learner's ventilator live"></p>
 
@@ -52,9 +52,9 @@ Go to **[Releases](https://github.com/fedebarra/open-vent-sim/releases/latest)**
 
 | Your computer | File |
 |---|---|
-| Windows | `OpenVentSim-3.1.1-win-x64.exe` (installer) — or `OpenVentSim-3.1.1-portable.exe` (no install, just run it) |
-| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.1.1-mac-arm64.dmg` |
-| Mac with Intel processor | `OpenVentSim-3.1.1-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.1.2-win-x64.exe` (installer) — or `OpenVentSim-3.1.2-portable.exe` (no install, just run it) |
+| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.1.2-mac-arm64.dmg` |
+| Mac with Intel processor | `OpenVentSim-3.1.2-mac-x64.dmg` |
 
 > If the `.dmg` won't open, download the `.zip` with the same name: double-click to extract, then drag **Open Vent Sim** into Applications.
 
@@ -110,7 +110,7 @@ A dot appears bottom-left: **green "Connected to instructor"** means all good.
 
 <p align="center"><img src="docs/screenshots/04-start-en.png" width="640" alt="Start screen"></p>
 
-2. For the ICU, choose **invasive** or **non-invasive**, then confirm weight and clinical picture.
+2. For the ICU, choose **invasive** or **non-invasive**, then confirm **weight and age**, as on a real ventilator. The clinical picture (lung, asynchronies, teaching traces) is not the learner's choice: you set it from the console.
 
 <p align="center"><img src="docs/screenshots/06-icu-choice-en.png" width="420" alt="Invasive or NIV"> <img src="docs/screenshots/07-patient-en.png" width="420" alt="Patient data"></p>
 
@@ -124,7 +124,7 @@ From now on you see it on the console, waveforms included, and each action appea
 
 ## 5. Using it on your own
 
-Open the app and choose **On my own**, or open the simulator in a browser and click **Use without instructor**. The start screen has a **Guided tour** button that walks a learner through their first ventilation.
+Open the app and choose **On my own**, or open the simulator in a browser and click **Use without instructor**. Without an instructor, the patient screen shows an **Exercise settings** box (lung picture and teaching traces) to set up the case yourself. The start screen has a **Guided tour** button that walks a learner through their first ventilation.
 
 <p align="center"><img src="docs/screenshots/20-tour-en.png" width="640" alt="Guided tour"></p>
 
@@ -195,6 +195,10 @@ The log survives closing and reopening the console.
 
 ## 9. What's new
 
+### 3.1.2 — 8 November 2026
+
+- A learner linked to the console only enters weight and age: lung picture and teaching traces are the instructor's call. On your own they are still there, set apart as "Exercise settings".
+
 ### 3.1.1 — 8 November 2026
 
 - Settings bar: long names ("Inspiratory pause") no longer wrap; the tile shows the short name, the full one is in the tooltip.
@@ -242,6 +246,8 @@ npm run dist:mac       # .dmg installer   (npm run dist:win for Windows)
 ### Acknowledgements
 
 Developed at Università del Piemonte Orientale, Novara, Italy. Clinical team: F.L. Barra MD, E. Moro MD, L. Carenzo MD, A. Costa MD, G. Rodella RN, R. Vaschetto MD PhD. Technical facilitators: S. Ricci PhD, J. Travenec MSc. Thanks to all the Anaesthesiology residents who gave feedback.
+
+**Images for slides and articles:** [`docs/press/`](docs/press) holds high-resolution screenshots (2880×1800) in English and Italian, free to use under the project licence.
 
 **Support:** [Issues](https://github.com/fedebarra/open-vent-sim/issues) · federico.barra@med.uniupo.it
 
