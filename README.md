@@ -4,6 +4,8 @@
 
 🇮🇹 [Versione italiana](README.it.md) · 📅 Version 3.2.0 — 9 November 2026 · MIT licence
 
+📄 **The paper:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. If you use Open Vent Sim in a course, a thesis or a paper, [please cite it](#11-how-to-cite).
+
 <p align="center"><img src="docs/screenshots/10-regia-live-en.png" width="820" alt="The instructor console showing a learner's ventilator live"></p>
 
 > ⚠️ **For education only.** Not a medical device. Never use it for clinical decisions.
@@ -22,6 +24,7 @@
 8. [Troubleshooting](#8-troubleshooting)
 9. [What's new](#9-whats-new)
 10. [For developers](#10-for-developers)
+11. [How to cite](#11-how-to-cite)
 
 ---
 
@@ -268,6 +271,28 @@ npm run dist:mac       # .dmg installer   (npm run dist:win for Windows)
 - Releases build themselves on GitHub Actions when a `v*` tag is pushed.
 
 **Development requires** Node.js 20 or later.
+
+---
+
+## 11. How to cite
+
+If you use Open Vent Sim in a course, a thesis, a poster or a paper, please cite the article that describes it:
+
+> Barra FL, Ricci S, Moro E, Travěnec J, Costa A, Carenzo L, Rodella G, Vaschetto R. *Simulator development using natural language: clinician-led innovation through artificial intelligence.* Advances in Simulation. 2026;11(1). [doi:10.1186/s41077-026-00467-2](https://doi.org/10.1186/s41077-026-00467-2)
+
+```bibtex
+@article{barra2026openventsim,
+  author  = {Barra, Federico Lorenzo and Ricci, Serena and Moro, Edoardo and Trav{\v{e}}nec, Ji{\v{r}}{\'i} and Costa, Alessandro and Carenzo, Luca and Rodella, Giovanna and Vaschetto, Rosanna},
+  title   = {Simulator development using natural language: clinician-led innovation through artificial intelligence},
+  journal = {Advances in Simulation},
+  year    = {2026},
+  volume  = {11},
+  number  = {1},
+  doi     = {10.1186/s41077-026-00467-2}
+}
+```
+
+On GitHub the same reference is behind the **“Cite this repository”** button (file `CITATION.cff`).
 
 ---
 
