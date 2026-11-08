@@ -50,11 +50,17 @@ jobs:
         run: |
           # XProtect keeps freshly created disk images busy on hosted runners
           # (actions/runner-images#7522): stop it before hdiutil runs.
-          sudo pkill -9 XProtect >/dev/null 2>&1 || true
-          while pgrep XProtect >/dev/null; do sleep 3; done
-          npx electron-builder --mac --arm64 --publish never
-          sudo pkill -9 XProtect >/dev/null 2>&1 || true
-          npx electron-builder --mac --x64 --publish never
+          build() {
+            for i in 1 2 3; do
+              sudo pkill -9 XProtect >/dev/null 2>&1 || true
+              while pgrep XProtect >/dev/null; do sleep 3; done
+              npx electron-builder --mac "$1" --publish never && return 0
+              echo "Mac build $1 failed (attempt $i), retrying"; sleep 15
+            done
+            return 1
+          }
+          build --arm64
+          build --x64
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - name: Build installers (Windows)
