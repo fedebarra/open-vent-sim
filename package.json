@@ -13,7 +13,8 @@
     "test": "vitest run && node --test tests/server.test.mjs",
     "test:e2e": "npm run build && playwright test",
     "typecheck": "tsc --noEmit -p .",
-    "screenshots": "npm run build && node scripts/screenshots.mjs && LANG_SHOTS=en node scripts/screenshots.mjs"
+    "screenshots": "npm run build && node scripts/screenshots.mjs && LANG_SHOTS=en node scripts/screenshots.mjs",
+    "press": "npm run build && OUT=docs/press SCALE=2 node scripts/screenshots.mjs && OUT=docs/press SCALE=2 LANG_SHOTS=en node scripts/screenshots.mjs"
   },
   "dependencies": {
     "ws": "^8.18.0"

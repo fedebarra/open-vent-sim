@@ -7,7 +7,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { createLink, Link, LinkStatus } from './link';
 import type { RemoteCommand, RemoteEvent, ServerMessage, VentInfo, VentSnapshot } from './protocol';
-import { rt, RemoteStrings } from './strings';
+import { rt, RemoteStrings, ventName } from './strings';
 import { MiniWaves } from './MiniWaves';
 import { EVENT_LIBRARY, SequenceStep, parseSequence, EventDef } from './events';
 import { RegistroView } from './RegistroView';
@@ -62,8 +62,8 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
   // ------------------------------------------------------------ registro --
   const addVoce = useCallback((at: number, vent: string, cat: Categoria, who: 'learner' | 'director' | 'system', text: string, key?: string, value?: string | number) => {
     if (!recRef.current) return;
-    setRegistro((r) => r ? { ...r, vents: { ...r.vents, [vent]: ventsRef.current.find((v) => v.id === vent)?.name || r.vents[vent] || vent }, voci: [...r.voci, { at, vent, cat, who, text, key, value }] } : r);
-  }, []);
+    setRegistro((r) => r ? { ...r, vents: { ...r.vents, [vent]: ventName(ventsRef.current.find((v) => v.id === vent)?.name || r.vents[vent] || vent, language) }, voci: [...r.voci, { at, vent, cat, who, text, key, value }] } : r);
+  }, [language]);
 
   useEffect(() => { try { if (registro) localStorage.setItem(REGISTRO_KEY, JSON.stringify(registro)); } catch { /* full */ } }, [registro]);
   useEffect(() => { try { localStorage.setItem('ovs-recording', recording ? '1' : '0'); } catch { /* ignore */ } }, [recording]);
@@ -87,7 +87,7 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
   };
   const startRecording = () => {
     const r = nuovoRegistro();
-    r.vents = Object.fromEntries(ventsRef.current.map((v) => [v.id, v.name]));
+    r.vents = Object.fromEntries(ventsRef.current.map((v) => [v.id, ventName(v.name, language)]));
     setRegistro(r); setRecording(true); broadcastRecording(true);
     setFlash(s.recBadge);
   };
@@ -276,14 +276,14 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
           <Card title={`${s.ventilators} (${vents.filter((v) => v.connected).length})`}>
             {vents.length === 0 && <p className="text-slate-400">{s.noVentilators}</p>}
             <ul className="space-y-1" data-testid="vent-list">
-              {vents.map((v) => <VentRow key={v.id} v={v} snap={snaps[v.id]} s={s} tr={tr} active={v.id === selected} onSelect={() => setSelected(v.id)}
+              {vents.map((v) => <VentRow key={v.id} v={v} snap={snaps[v.id]} s={s} tr={tr} lang={language} active={v.id === selected} onSelect={() => setSelected(v.id)}
                 onRename={(name) => linkRef.current?.send({ t: 'rename', id: v.id, name })} onRemove={() => linkRef.current?.send({ t: 'forget', id: v.id })} />)}
             </ul>
           </Card>
         </aside>
 
         <main className="space-y-3 min-w-0">
-          <Card title={vent ? vent.name : s.ventilators} right={ist && <Summary ist={ist} s={s} tr={tr} />}>
+          <Card title={vent ? ventName(vent.name, language) : s.ventilators} right={ist && <Summary ist={ist} s={s} tr={tr} />}>
             {!snap ? <p className="text-slate-400 py-8 text-center">{vent ? s.waitingData : s.noVentilators}</p>
               : !ist ? <p className="text-slate-400 py-8 text-center">{(s as any)['screen_' + snap.screen] || snap.screen}</p> : (
                 <>
@@ -330,7 +330,7 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
               {[...log].reverse().map((l, i) => (
                 <div key={i} className={`border-l-2 pl-2 ${l.source === 'director' ? 'border-amber-400' : l.source === 'device' ? 'border-red-400' : 'border-sky-400'}`}>
                   <span className="text-slate-500">{new Date(l.at).toLocaleTimeString()}</span>{' '}
-                  <span className="text-slate-400">{vents.find((v) => v.id === l.vent)?.name || l.vent}</span>{' '}
+                  <span className="text-slate-400">{ventName(vents.find((v) => v.id === l.vent)?.name || l.vent, language)}</span>{' '}
                   <span className={l.source === 'director' ? 'text-amber-200' : 'text-sky-200'}>[{l.source === 'director' ? s.director : l.source === 'device' ? s.system : s.learner}]</span>{' '}
                   <span className="break-words">{l.text}</span>
                 </div>
@@ -390,14 +390,14 @@ const ConnectCard: React.FC<{ s: RemoteStrings; ventUrl: string; tabletUrl: stri
 
 type Tr = (k: string, vars?: Record<string, string | number>) => string;
 
-const VentRow: React.FC<{ v: VentInfo; snap?: VentSnapshot; s: RemoteStrings; tr: Tr; active: boolean; onSelect: () => void; onRename: (n: string) => void; onRemove: () => void }> = ({ v, snap, s, tr, active, onSelect, onRename, onRemove }) => {
+const VentRow: React.FC<{ v: VentInfo; snap?: VentSnapshot; s: RemoteStrings; tr: Tr; lang: string; active: boolean; onSelect: () => void; onRename: (n: string) => void; onRemove: () => void }> = ({ v, snap, s, tr, lang, active, onSelect, onRename, onRemove }) => {
   const [confirm, setConfirm] = useState(false);
   const ist = snap?.ventilatore;
   return (
     <li className={`rounded-lg px-2 py-1.5 cursor-pointer border ${active ? 'bg-slate-800 border-sky-600' : 'border-transparent hover:bg-slate-800/60'}`} onClick={onSelect} data-testid={`vent-${v.id}`}>
       <div className="flex items-center gap-2">
         <Dot ok={v.connected} />
-        <span className="font-semibold truncate">{v.name}</span>
+        <span className="font-semibold truncate">{ventName(v.name, lang)}</span>
         {active && (
           <span className="ml-auto flex gap-2 text-xs">
             <button className="underline" onClick={(e) => { e.stopPropagation(); const n = window.prompt(s.rename, v.name); if (n) onRename(n); }}>{s.rename}</button>

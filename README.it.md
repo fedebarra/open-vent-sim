@@ -247,6 +247,8 @@ npm run dist:mac       # installer .dmg   (npm run dist:win per Windows)
 
 Sviluppato all'Università del Piemonte Orientale, Novara. Gruppo clinico: F.L. Barra MD, E. Moro MD, L. Carenzo MD, A. Costa MD, G. Rodella RN, R. Vaschetto MD PhD. Facilitatori tecnici: S. Ricci PhD, J. Travenec MSc. Grazie a tutti gli specializzandi di Anestesia che hanno dato il loro contributo.
 
+**Immagini per presentazioni e articoli:** in [`docs/press/`](docs/press) ci sono gli screenshot in alta risoluzione (2880×1800), in italiano e in inglese, liberi da usare con la licenza del progetto.
+
 **Supporto:** [Issues](https://github.com/fedebarra/open-vent-sim/issues) · federico.barra@med.uniupo.it
 
 **Licenza:** MIT. Le icone sono disegni originali del progetto.
