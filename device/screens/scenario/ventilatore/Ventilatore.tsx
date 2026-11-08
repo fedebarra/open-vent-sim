@@ -87,6 +87,9 @@ import {
   type Consumabile,
 } from './gas'
 import { creaOnde, nelTrigger, puntoOnda } from './onde'
+// OVS 3.1: loop e pressioni alveolare/muscolare
+import { Loop } from './Loop'
+import { pressioneAlveolare, pressioneMuscolare } from './pressioni'
 import { RECLUTAMENTO_SECONDI, type Manovra, type StatoVentilatore } from './fisica'
 import { CIRCUITI_PER_AMBIENTE, MANOVRA_SECONDI, type VentIstantanea } from './istantanea'
 import type { TranslationKey } from '../../../i18n/it'
@@ -163,6 +166,11 @@ export interface VentilatoreProps {
   onEsci?: () => void
   /** Classi in più sulla radice: oggi la riserva d'angolo per la X di Safari. */
   riserva?: string
+  /**
+   * OVS 3.1: le tracce didattiche Palv e Pmus. Spente di serie — su una
+   * macchina vera non ci sono — e il tasto compare solo se chi conduce le abilita.
+   */
+  pressioniDidattiche?: boolean
 }
 
 export function Ventilatore({
@@ -186,6 +194,7 @@ export function Ventilatore({
   onAzione,
   onEsci,
   riserva = '',
+  pressioniDidattiche = false,
 }: VentilatoreProps) {
   const t = useT()
   const [cassetto, setCassetto] = useState<Cassetto | null>(null)
@@ -228,6 +237,10 @@ export function Ventilatore({
   // tutti e due ragione. È la distinzione di `monitor/apparecchio.ts`, e per
   // questo vivono qui e non nell'istantanea.
   const [velocita, setVelocita] = useState(VELOCITA_PREDEFINITA)
+  // OVS 3.1: che cosa mostra il quadro, e se aggiungere Palv e Pmus.
+  const [vista, setVista] = useState<'curve' | 'loop'>('curve')
+  const [pressioniExtraScelte, setPressioniExtra] = useState(false)
+  const pressioniExtra = pressioniDidattiche && pressioniExtraScelte
   const [congelato, setCongelato] = useState<number | null>(null)
   const [cursore, setCursore] = useState<number | null>(null)
 
@@ -472,8 +485,31 @@ export function Ventilatore({
         scale: t('vent.unit.ml'),
         value: alCursore ? alCursore.volume.toFixed(0) : scriviValore('volumeExpired', misure.volumeExpired),
       },
+      // OVS 3.1: le due pressioni che spiegano le altre (pressioni.ts).
+      ...(pressioniExtra
+        ? [
+            {
+              key: 'palv',
+              color: '#f472b6',
+              at: (tt: number) => pressioneAlveolare(tt, stato),
+              range: () => scale.paw,
+              label: 'Palv',
+              scale: t('vent.unit.cmH2O'),
+              value: alCursore && cursore !== null ? pressioneAlveolare(cursore, stato).toFixed(1) : '',
+            },
+            {
+              key: 'pmus',
+              color: '#a78bfa',
+              at: (tt: number) => pressioneMuscolare(tt, stato),
+              range: (): [number, number] => [0, 12],
+              label: 'Pmus',
+              scale: t('vent.unit.cmH2O'),
+              value: alCursore && cursore !== null ? pressioneMuscolare(cursore, stato).toFixed(1) : '',
+            },
+          ]
+        : []),
     ]
-  }, [onde, pawAMano, capno, inManuale, inAltoFlusso, misure, scale, alCursore, t])
+  }, [onde, pawAMano, capno, inManuale, inAltoFlusso, misure, scale, alCursore, t, pressioniExtra, stato, cursore])
 
   const impostazioni = impostazioniDaMostrare(stato)
   const gruppi = gruppiMonitoraggio(ctx, stato.gas?.agenti.length ?? 0)
@@ -609,6 +645,16 @@ export function Ventilatore({
                     </button>
                   ))}
                 </div>
+                {/* OVS 3.1: curve o loop, e le pressioni in più. */}
+                {!inManuale && (
+                  <div className="simvent__velocita" role="group">
+                    <button type="button" data-testid="vista-curve" className={vista === 'curve' ? 'scelto' : ''} onClick={() => setVista('curve')}>{t('vent.vista.curve')}</button>
+                    <button type="button" data-testid="vista-loop" className={vista === 'loop' ? 'scelto' : ''} onClick={() => setVista('loop')}>{t('vent.vista.loop')}</button>
+                    {vista === 'curve' && pressioniDidattiche && (
+                      <button type="button" data-testid="vista-palv" className={pressioniExtra ? 'scelto' : ''} aria-pressed={pressioniExtra} onClick={() => setPressioniExtra((x) => !x)}>Palv·Pmus</button>
+                    )}
+                  </div>
+                )}
                 <button
                   type="button"
                   className={`simvent__congela${congelato !== null ? ' simvent__congela--attivo' : ''}`}
@@ -622,6 +668,8 @@ export function Ventilatore({
           </div>
           {inAltoFlusso ? (
             <PannelloAltoFlusso stato={stato} misure={misure} t={t} />
+          ) : stato.ventilando && vista === 'loop' && !inManuale ? (
+            <Loop stato={stato} clock={clockQuadro} t={t} />
           ) : stato.ventilando ? (
             <div
               className={`simvent__quadro${congelato !== null ? ' simvent__quadro--fermo' : ''}`}

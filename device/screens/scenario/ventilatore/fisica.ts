@@ -700,7 +700,7 @@ export function sighDiQuestoAtto<T extends PerPressioni>(
 ): { stato: T; Ti: number } | null {
   const imp = stato.impostazioni
   if (!(imp.sighRate > 0)) return null
-  if (stato.modalita !== 'VC' && stato.modalita !== 'PC' && stato.modalita !== 'SIMV') return null
+  if (stato.modalita !== 'VC' && stato.modalita !== 'PC' && stato.modalita !== 'PRVC' && stato.modalita !== 'SIMV') return null
   const ogni = Math.max(1, Math.round(60 / (imp.sighRate * Math.max(0.5, Ttot))))
   if (indiceAtto % ogni !== 0) return null
   const motrice = Math.max(0, imp.sighPressure - imp.peep)
@@ -802,7 +802,7 @@ export function volumeCorrenteAtteso(stato: StatoVentilatore): number {
     // Nessun supporto: il volume è quello che il paziente si tira da solo.
     return volumeSpontaneo(stato)
   }
-  const motrice = modalita === 'PC' ? impostazioni.pressureTarget : impostazioni.psLevel
+  const motrice = modalita === 'PC' || modalita === 'PRVC' ? impostazioni.pressureTarget : impostazioni.psLevel
   return motrice * fisiologia.compliance * riempimento
 }
 
@@ -964,7 +964,7 @@ export function misura(
       const flussoLs = Tif > 0 ? vt / 1000 / Tif : 0
       m.pPlateau = arrotonda(pAlveolare)
       m.pPeak = arrotonda(pAlveolare + flussoLs * fis.resistenza)
-    } else if (modalita === 'PC' || (modalita === 'SIMV' && imp.psLevel > 0)) {
+    } else if (modalita === 'PC' || modalita === 'PRVC' || (modalita === 'SIMV' && imp.psLevel > 0)) {
       m.pPeak = arrotonda(imp.peep + imp.pressureTarget)
       m.pPlateau = arrotonda(pAlveolare)
     } else if (modalita === 'PS') {

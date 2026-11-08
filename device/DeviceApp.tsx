@@ -57,6 +57,7 @@ const S = {
     invasive: 'Invasiva', invasiveDesc: 'Tubo endotracheale o tracheostomia',
     niv: 'Non invasiva', nivDesc: 'Maschera o casco',
     back: '← Indietro',
+    didattica: 'Mostra le tracce didattiche Palv e Pmus (non presenti su un ventilatore vero)',
     patientTitle: 'Il paziente',
     weight: 'Peso', age: 'Età', years: 'anni',
     lung: 'Polmone',
@@ -69,6 +70,7 @@ const S = {
     invasive: 'Invasive', invasiveDesc: 'Endotracheal tube or tracheostomy',
     niv: 'Non-invasive', nivDesc: 'Mask or helmet',
     back: '← Back',
+    didattica: 'Show the teaching traces Palv and Pmus (not on a real ventilator)',
     patientTitle: 'The patient',
     weight: 'Weight', age: 'Age', years: 'years',
     lung: 'Lung',
@@ -88,6 +90,9 @@ export const DeviceApp: React.FC<DeviceAppProps> = ({
   const { language } = useLanguage()
   const lang: 'it' | 'en' = language === 'it' ? 'it' : 'en'
   const s = S[lang]
+  // Teaching traces (Palv/Pmus): off by default; the learner can enable them
+  // here when alone, the director from the console.
+  const [didattica, setDidattica] = useState(false)
 
   const [screen, setScreen] = useState<DeviceScreen>('startup')
   const [icuChoice, setIcuChoice] = useState(false)
@@ -173,6 +178,7 @@ export const DeviceApp: React.FC<DeviceAppProps> = ({
   // ------------------------------------------------------------ remote --
   const applicaRemoto = useCallback((cmd: DeviceRemoteCommand) => {
     if (cmd.type === 'azione') { esegui(cmd.azione, 'director'); return }
+    if (cmd.type === 'opzioni') { if (cmd.pressioniDidattiche !== undefined) setDidattica(cmd.pressioniDidattiche); return }
     const prima = ventRef.current
     if (!prima) return
     let ist: VentIstantanea = prima
@@ -181,19 +187,7 @@ export const DeviceApp: React.FC<DeviceAppProps> = ({
       ist = { ...ist, fisiologia: { ...p.fisiologia, preset: cmd.preset }, drive: { ...ist.drive, ...p.drive } }
     }
     if (cmd.fisiologia) ist = { ...ist, fisiologia: { ...ist.fisiologia, ...cmd.fisiologia } }
-    if (cmd.drive) {
-      const eraFermo = !(ist.drive.frequenza > 0) || ist.drive.forza === 0
-      ist = { ...ist, drive: { ...ist.drive, ...cmd.drive } }
-      // A patient who starts breathing again does not start in phase with the
-      // machine: with the same rate both trains would stay locked and every
-      // effort would fall inside the machine breath, invisible. The first
-      // effort lands in the middle of the expiration instead.
-      if (eraFermo && ist.drive.frequenza > 0) {
-        const t = orologio(ist)
-        const ciclo = 60 / Math.max(1, Number(ist.impostazioni.frequency) || 12)
-        ist = { ...ist, sfasamentoSpontaneo: t - (t % ciclo) + ciclo * 0.6, frequenzaFase: ist.drive.frequenza }
-      }
-    }
+    if (cmd.drive) ist = { ...ist, drive: { ...ist.drive, ...cmd.drive } }
     if (cmd.asincronia !== undefined) ist = { ...ist, asincronia: cmd.asincronia }
     if (cmd.vitali) ist = { ...ist, paziente: { ...ist.paziente, ...cmd.vitali } }
     if (cmd.rampaFrequenza) {
@@ -289,6 +283,7 @@ export const DeviceApp: React.FC<DeviceAppProps> = ({
           regiaViva
           onAzione={(a) => esegui(a, 'learner')}
           onEsci={esci}
+          pressioniDidattiche={didattica}
         />
       </div>
     )
@@ -327,6 +322,10 @@ export const DeviceApp: React.FC<DeviceAppProps> = ({
               </button>
             ))}
           </div>
+          <label className="flex items-center gap-3 mb-5 text-gray-300 cursor-pointer">
+            <input type="checkbox" data-testid="opt-didattica" checked={didattica} onChange={(e) => setDidattica(e.target.checked)} className="w-5 h-5 accent-sky-500" />
+            {s.didattica}
+          </label>
           <button data-testid="patient-confirm" onClick={accendi} className="w-full h-14 rounded-xl bg-gradient-to-br from-teal-600 to-teal-700 hover:from-teal-500 hover:to-teal-600 text-white text-lg font-semibold shadow-lg">
             {s.confirm}
           </button>

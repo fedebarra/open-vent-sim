@@ -37,7 +37,13 @@ export interface ComandoPaziente {
   vitali?: { spo2?: number | null; etco2?: number | null; heartRate?: number | null; map?: number | null; pesoKg?: number | null }
 }
 
-export type DeviceRemoteCommand = ComandoAzione | ComandoPaziente
+/** Display options decided by the director (teaching traces). */
+export interface ComandoOpzioni {
+  type: 'opzioni'
+  pressioniDidattiche?: boolean
+}
+
+export type DeviceRemoteCommand = ComandoAzione | ComandoPaziente | ComandoOpzioni
 
 export interface DeviceRemoteActions {
   /** Called once by the device; returns an unsubscribe function. */

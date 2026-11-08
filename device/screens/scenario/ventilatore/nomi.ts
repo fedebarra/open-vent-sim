@@ -36,6 +36,7 @@ export const NOME_AMBIENTE: Record<Ambiente, TranslationKey> = {
 export const NOME_MODALITA: Record<Modalita, TranslationKey> = {
   VC: 'vent.mode.VC',
   PC: 'vent.mode.PC',
+  PRVC: 'vent.mode.PRVC',
   PS: 'vent.mode.PS',
   SIMV: 'vent.mode.SIMV',
   CPAP: 'vent.mode.CPAP',

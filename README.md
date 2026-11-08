@@ -1,8 +1,8 @@
-# Open Vent Sim 3.0
+# Open Vent Sim 3.1
 
 **A free, open-source simulator of ICU ventilator, anaesthesia machine and high-flow oxygen — with an instructor console that runs on your classroom's own network.**
 
-🇮🇹 [Versione italiana](README.it.md) · 📅 Version 3.0.0 — released 8 November 2026 · MIT licence
+🇮🇹 [Versione italiana](README.it.md) · 📅 Version 3.1.0 — released 8 November 2026 · MIT licence
 
 <p align="center"><img src="docs/screenshots/10-regia-live-en.png" width="820" alt="The instructor console showing a learner's ventilator live"></p>
 
@@ -20,7 +20,7 @@
 6. [The instructor console in detail](#6-the-instructor-console-in-detail)
 7. [The session log](#7-the-session-log)
 8. [Troubleshooting](#8-troubleshooting)
-9. [What's new in 3.0](#9-whats-new-in-30)
+9. [What's new](#9-whats-new)
 10. [For developers](#10-for-developers)
 
 ---
@@ -29,6 +29,7 @@
 
 - **Three machines in one**: anaesthesia workstation, ICU ventilator (invasive and non-invasive) and high-flow oxygen.
 - **Real waveforms**: pressure, flow and volume come from a lung model with PEEP-dependent compliance, auto-PEEP, patient effort and asynchronies.
+- **Pressure–volume and flow–volume loops**, **alveolar pressure (Palv)** and **patient effort (Pmus)** traces, **PRVC** mode.
 - **Instructor console**: from one computer (or tablet) you see every learner's ventilator live and change the patient: clinical picture, mechanics, vital signs, asynchronies, timed events.
 - **Session log** for the debriefing: who did what and when, with parameter trends. Prints to PDF.
 - **Guided tour** for people who have never touched a ventilator.
@@ -51,9 +52,9 @@ Go to **[Releases](https://github.com/fedebarra/open-vent-sim/releases/latest)**
 
 | Your computer | File |
 |---|---|
-| Windows | `OpenVentSim-3.0.0-win-x64.exe` (installer) — or `OpenVentSim-3.0.0-portable.exe` (no install, just run it) |
-| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.0.0-mac-arm64.dmg` |
-| Mac with Intel processor | `OpenVentSim-3.0.0-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.1.0-win-x64.exe` (installer) — or `OpenVentSim-3.1.0-portable.exe` (no install, just run it) |
+| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.1.0-mac-arm64.dmg` |
+| Mac with Intel processor | `OpenVentSim-3.1.0-mac-x64.dmg` |
 
 > If the `.dmg` won't open, download the `.zip` with the same name: double-click to extract, then drag **Open Vent Sim** into Applications.
 
@@ -127,6 +128,18 @@ Open the app and choose **On my own**, or open the simulator in a browser and cl
 
 <p align="center"><img src="docs/screenshots/20-tour-en.png" width="640" alt="Guided tour"></p>
 
+### Waves, loops and hidden pressures
+
+Above the waveforms there are the **Waves / Loops** buttons and, when enabled, **Palv·Pmus**:
+
+- **Waves / Loops**: "Loops" shows the **pressure–volume** and **flow–volume** loops of the last breath. White is the breath in progress, the two before are fainter. **Keep as reference** freezes the current loop in grey: change PEEP or volume and compare.
+- **Palv·Pmus** (off by default: real ventilators don't have it). The instructor enables it in the *Machine* tab, or a learner on their own ticks "Show the teaching traces" on the patient screen. It adds two traces. **Palv** is the pressure in the alveoli (Paw minus the resistive drop): it shows auto-PEEP before you measure it. **Pmus** is the patient's effort: it tells *when* they pull relative to the machine, which is how asynchronies are read.
+
+<p align="center"><img src="docs/screenshots/21-loops-en.png" width="640" alt="Pressure-volume and flow-volume loops"></p>
+<p align="center"><img src="docs/screenshots/22-palv-pmus-en.png" width="640" alt="Palv and Pmus traces"></p>
+
+**PRVC** (pressure-regulated volume control), in invasive ICU: you set the volume; the machine starts with a 10 cmH₂O test breath and changes the pressure by at most 3 cmH₂O per breath until the volume is reached. If compliance falls, pressure rises by itself — which is the point to teach.
+
 | Anaesthesia | Non-invasive | High flow |
 |---|---|---|
 | <img src="docs/screenshots/17-anesthesia-en.png" width="280"> | <img src="docs/screenshots/18-niv-en.png" width="280"> | <img src="docs/screenshots/19-highflow-en.png" width="280"> |
@@ -180,9 +193,16 @@ The log survives closing and reopening the console.
 | Mac says the app is "damaged" | Open Terminal, type `xattr -cr "/Applications/Open Vent Sim.app"`, then reopen. |
 | I want the old (2.x) interface | In the browser, add `?legacy=1` to the address (stand-alone only). |
 
-## 9. What's new in 3.0
+## 9. What's new
 
-*8 November 2026*
+### 3.1 — 8 November 2026
+
+- **Loops**: pressure–volume and flow–volume, with a reference loop to compare.
+- **Palv** (alveolar pressure) and **Pmus** (patient effort) traces.
+- **PRVC** mode in invasive ICU.
+- Fixed: a patient who resumes breathing at the same rate as the machine (NMB reversal) now shows the efforts on the waveforms.
+
+### 3.0 — 8 November 2026
 
 - **Instructor console over the local network**: built-in server, QR, PIN, automatic discovery, automatic reconnection, many ventilators at once, console on a tablet.
 - **New screens and engine** from Sim Scenario Creator: one layout for anaesthesia, invasive ICU and NIV, plus high flow. PEEP-dependent compliance, auto-PEEP, patient effort and seven asynchronies, recruitment manoeuvre, consumables, humidifier.
