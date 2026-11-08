@@ -55,6 +55,8 @@ Vai alla pagina **[Releases](https://github.com/fedebarra/open-vent-sim/releases
 | Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.0.0-mac-arm64.dmg` |
 | Mac con processore Intel | `OpenVentSim-3.0.0-mac-x64.dmg` |
 
+> Se il `.dmg` non si apre, scarica il `.zip` con lo stesso nome: doppio clic per estrarlo, poi trascina **Open Vent Sim** in Applicazioni.
+
 > Non sai che Mac hai? Menu  → **Informazioni su questo Mac**. Se vedi «Chip Apple M…» prendi `arm64`; se vedi «Processore Intel» prendi `x64`.
 
 ### Windows
