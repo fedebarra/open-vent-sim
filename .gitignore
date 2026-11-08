@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Build output and test reports
+release
+test-results
+playwright-report

@@ -1,0 +1,79 @@
+name: Build desktop apps
+
+# Builds the Windows and macOS installers.
+#  - on every pull request / push to main: build + tests, installers kept as artifacts
+#  - on a tag like v3.0.0: installers attached to the GitHub Release
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+        env: { ELECTRON_SKIP_BINARY_DOWNLOAD: '1' }
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+  build:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      # GitHub release downloads (the Electron binary) are sometimes flaky: retry.
+      - name: Install dependencies
+        shell: bash
+        run: |
+          for i in 1 2 3 4 5; do npm ci && exit 0; echo "npm ci failed, retry $i"; sleep $((i * 20)); done; exit 1
+      - run: npm run build
+      # The two Mac disk images are built one after the other: in parallel
+      # they fight over the same mounted volume and hdiutil fails.
+      - name: Build installers (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          # XProtect keeps freshly created disk images busy on hosted runners
+          # (actions/runner-images#7522): stop it before hdiutil runs.
+          sudo pkill -9 XProtect >/dev/null 2>&1 || true
+          while pgrep XProtect >/dev/null; do sleep 3; done
+          npx electron-builder --mac --arm64 --publish never
+          sudo pkill -9 XProtect >/dev/null 2>&1 || true
+          npx electron-builder --mac --x64 --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Build installers (Windows)
+        if: matrix.os == 'windows-latest'
+        run: npx electron-builder --win --publish never
+        shell: bash
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.os }}
+          path: |
+            release/*.dmg
+            release/*.zip
+            release/*.exe
+          if-no-files-found: error
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.dmg
+            release/*.zip
+            release/*.exe

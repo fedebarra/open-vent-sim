@@ -1,0 +1,46 @@
+/* Guided tour overlay (ported from the Scenario Creator familiarization).
+   The overlay sits above everything but captures nothing: only the card and
+   the tab take the finger, the rest passes through to the simulator. */
+.ovs-tour { position: fixed; inset: 0; z-index: 2147483000; pointer-events: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; color: #14181d; }
+.ovs-tour__tab { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 38px; padding: 14px 0;
+  border: 0; border-radius: 0 14px 14px 0; background: #f6b928; color: #1d1600; box-shadow: 2px 2px 12px rgba(0,0,0,.5);
+  pointer-events: auto; cursor: pointer; font: inherit; font-weight: 800; font-size: 13px; letter-spacing: .08em; }
+.ovs-tour__tab span { writing-mode: vertical-rl; transform: rotate(180deg); }
+.ovs-tour__light { position: absolute; border-radius: 12px;
+  box-shadow: 0 0 0 3px #f6b928, 0 0 0 7px rgba(246,185,40,.35), 0 0 0 9999px rgba(0,0,0,.5);
+  transition: top .2s ease, left .2s ease, width .2s ease, height .2s ease; animation: ovs-tour-pulse 1.6s ease-in-out infinite; }
+@keyframes ovs-tour-pulse { 50% { box-shadow: 0 0 0 3px #f6b928, 0 0 0 12px rgba(246,185,40,.15), 0 0 0 9999px rgba(0,0,0,.5); } }
+.ovs-tour__veil { position: absolute; inset: 0; background: rgba(0,0,0,.35); }
+.ovs-tour__card { position: absolute; left: 50%; transform: translateX(-50%); width: min(440px, calc(100vw - 24px));
+  max-height: calc(50vh - 24px); overflow: auto; padding: 14px 16px 12px; border-radius: 16px; background: #fffdf6;
+  box-shadow: 0 10px 36px rgba(0,0,0,.55); pointer-events: auto; font-size: 16px; line-height: 1.45; text-align: left; }
+.ovs-tour__card--bottom { bottom: max(14px, env(safe-area-inset-bottom)); }
+.ovs-tour__card--top { top: max(14px, env(safe-area-inset-top)); }
+.ovs-tour__card--center { top: 50%; transform: translate(-50%, -50%); max-height: calc(100vh - 100px); }
+.ovs-tour__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ovs-tour__head-buttons { display: flex; gap: 6px; }
+.ovs-tour__count { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: #8a6400; letter-spacing: .05em; }
+.ovs-tour__badge { padding: 2px 8px; border-radius: 999px; background: #f6b928; color: #1d1600; letter-spacing: .08em; }
+.ovs-tour__icon { display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 50%;
+  background: #efe8d6; color: #3b3424; cursor: pointer; font-size: 16px; font-weight: 700; }
+.ovs-tour__dots { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 2px; }
+.ovs-tour__dots span { width: 8px; height: 8px; border-radius: 50%; background: #ddd3bb; }
+.ovs-tour__dots .is-done { background: #c99a1c; }
+.ovs-tour__dots .is-here { background: #f6b928; box-shadow: 0 0 0 2px #8a6400; }
+.ovs-tour__card h2 { margin: 8px 0 4px; font-size: 20px; line-height: 1.25; color: #14181d; font-weight: 700; }
+.ovs-tour__card p { margin: 6px 0; color: #2a2f36; }
+.ovs-tour__try { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px;
+  background: #fff1c7; border: 2px dashed #e0a91e; }
+.ovs-tour__try.is-done { background: #dcf5e1; border: 2px solid #2f9e4f; }
+.ovs-tour__mark { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+  background: #e0a91e; color: #fff; font-size: 13px; font-weight: 800; }
+.ovs-tour__try.is-done .ovs-tour__mark { background: #2f9e4f; }
+.ovs-tour__missing, .ovs-tour__keys { font-size: 13px; color: #7b6a40; font-style: italic; }
+.ovs-tour__buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.ovs-tour__btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 46px; min-width: 46px;
+  padding: 0 16px; border: 1px solid #cbbf9f; border-radius: 12px; background: #fff; color: #2a2f36; font: inherit; font-weight: 600; cursor: pointer; }
+.ovs-tour__btn--next { flex: 1 1 140px; border-color: #14181d; background: #14181d; color: #fff; }
+.ovs-tour__btn--next.is-ready { border-color: #2f9e4f; background: #2f9e4f; animation: ovs-tour-ready 1.2s ease-in-out infinite; }
+@keyframes ovs-tour-ready { 50% { box-shadow: 0 0 0 6px rgba(47,158,79,.3); } }
+@media (prefers-reduced-motion: reduce) { .ovs-tour__light, .ovs-tour__btn--next.is-ready { animation: none; } }

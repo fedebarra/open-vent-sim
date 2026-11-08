@@ -13,7 +13,18 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState<Language>('en'); // Default to English
+  // Default: the browser's language (Italian or English), remembered across sessions.
+  const [language, setLanguageState] = useState<Language>(() => {
+    try {
+      const saved = localStorage.getItem('ovs-language');
+      if (saved === 'it' || saved === 'en') return saved;
+    } catch { /* storage unavailable */ }
+    return typeof navigator !== 'undefined' && /^it\b/i.test(navigator.language || '') ? 'it' : 'en';
+  });
+  const setLanguage = (l: Language) => {
+    setLanguageState(l);
+    try { localStorage.setItem('ovs-language', l); } catch { /* ignore */ }
+  };
 
   const t = useMemo(() => translations[language], [language]);
 
