@@ -36,6 +36,7 @@
 
 import { valuta, LIMITI_INIZIALI, SILENZIO_SECONDI, conLimiteDellAgente, type AllarmeAttivo, type LimitiAllarme, spostaLimite } from './allarmi'
 import type { AzioneVentilatore } from './azioni'
+import { regolaPrvc, PRVC_PROVA } from './prvc'
 import type { Circuito } from '../../paziente/presidiFigura'
 import { DRIVE_ASSENTE, driveEfficace, type Drive, type ImpostazioniAsincronia } from './asincronie'
 import type { TranslationKey } from '../../../i18n/it'
@@ -191,6 +192,8 @@ export interface VentIstantanea {
    * dovrebbe confrontarsi con un'istantanea precedente che non ha.
    */
   frequenzaFase: number
+  /** OVS 3.1: frazione d'atto non ancora contata dal regolatore PRVC. */
+  prvcAtti?: number
   misure: Misure
   allarmi: AllarmeAttivo[]
   limiti: LimitiAllarme
@@ -346,6 +349,15 @@ function riallineaFase(istantanea: VentIstantanea, tSec: number): VentIstantanea
   const nuova = driveEfficace(istantanea.drive).frequenza
   const vecchia = istantanea.frequenzaFase ?? 0
   if (nuova === vecchia) return istantanea
+  // OVS 3.1: un paziente che **riprende** a respirare non riparte in fase con
+  // la macchina. Con l'origine a zero e la stessa frequenza dei due treni ogni
+  // sforzo cadeva dentro l'atto meccanico e restava invisibile — la
+  // decurarizzazione a 12 su una macchina a 12 non mostrava niente. Il primo
+  // sforzo cade a metà espirazione.
+  if (nuova > 0 && vecchia <= 0 && istantanea.ventilando) {
+    const ciclo = 60 / Math.max(1, Number(istantanea.impostazioni.frequency) || 12)
+    return { ...istantanea, sfasamentoSpontaneo: tSec - (tSec % ciclo) + ciclo * 0.6, frequenzaFase: nuova }
+  }
   if (nuova <= 0 || vecchia <= 0) return { ...istantanea, frequenzaFase: nuova }
   const periodoVecchio = 60 / vecchia
   const periodoNuovo = 60 / nuova
@@ -379,6 +391,7 @@ export function batti(istantanea: VentIstantanea, tSec: number, dtSec: number): 
   // Il conto è: dov'era la fase con il periodo vecchio, lì deve restare con
   // quello nuovo. `origine = t − fase · periodoNuovo`.
   istantanea = riallineaFase(istantanea, tSec)
+  istantanea = regolaPrvc(istantanea, dtSec)
   const stato = statoDa(istantanea)
   const misure = misura(stato, tSec, dtSec, istantanea.misure)
   const consumati = avanza(stato, dtSec, tSec)
@@ -594,6 +607,10 @@ export function applica(
   switch (azione.tipo) {
     case 'modalita': {
       if (!MODALITA_PER_AMBIENTE[istantanea.ambiente].includes(azione.modalita)) return { istantanea }
+      // PRVC parte dall'atto di prova e da lì si regola da sé (prvc.ts).
+      if (azione.modalita === 'PRVC' && istantanea.modalita !== 'PRVC') {
+        return { istantanea: { ...istantanea, modalita: 'PRVC', prvcAtti: 0, impostazioni: { ...istantanea.impostazioni, pressureTarget: PRVC_PROVA } } }
+      }
       return { istantanea: { ...istantanea, modalita: azione.modalita } }
     }
 

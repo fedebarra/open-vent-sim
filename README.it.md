@@ -1,8 +1,8 @@
-# Open Vent Sim 3.0
+# Open Vent Sim 3.1
 
 **Simulatore gratuito e open-source di ventilatore, macchina d'anestesia e alti flussi — con la regia dell'istruttore sulla rete della tua aula.**
 
-🇬🇧 [English version](README.md) · 📅 Versione 3.0.0 — pubblicata l'8 novembre 2026 · Licenza MIT
+🇬🇧 [English version](README.md) · 📅 Versione 3.1.0 — pubblicata l'8 novembre 2026 · Licenza MIT
 
 <p align="center"><img src="docs/screenshots/10-regia-live.png" width="820" alt="La regia vede il ventilatore dello studente in diretta"></p>
 
@@ -20,7 +20,7 @@
 6. [La regia in dettaglio](#6-la-regia-in-dettaglio)
 7. [Il registro della sessione](#7-il-registro-della-sessione)
 8. [Se qualcosa non va](#8-se-qualcosa-non-va)
-9. [Novità della 3.0](#9-novità-della-30)
+9. [Novità](#9-novità)
 10. [Per sviluppatori](#10-per-sviluppatori)
 
 ---
@@ -29,6 +29,7 @@
 
 - **Tre apparecchi in uno**: macchina d'anestesia, ventilatore di terapia intensiva (invasiva e non invasiva) e alti flussi.
 - **Curve vere**: pressione, flusso e volume calcolati dal modello del polmone, con compliance che cambia con la PEEP, auto-PEEP, sforzi del paziente e asincronie.
+- **Loop pressione–volume e flusso–volume**, tracce di **pressione alveolare (Palv)** e **sforzo del paziente (Pmus)**, modalità **PRVC**.
 - **Regia dell'istruttore**: da un computer (o da un tablet) vedi in diretta il ventilatore di ogni studente e cambi il paziente: quadro clinico, meccanica, parametri vitali, asincronie, eventi programmati.
 - **Registro della sessione** per il debriefing: chi ha fatto cosa e quando, con l'andamento dei parametri. Si stampa in PDF.
 - **Guida passo passo** per chi non ha mai visto un ventilatore.
@@ -51,9 +52,9 @@ Vai alla pagina **[Releases](https://github.com/fedebarra/open-vent-sim/releases
 
 | Il tuo computer | File da scaricare |
 |---|---|
-| Windows | `OpenVentSim-3.0.0-win-x64.exe` (installazione) — oppure `OpenVentSim-3.0.0-portable.exe` (senza installare, si apre e basta) |
-| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.0.0-mac-arm64.dmg` |
-| Mac con processore Intel | `OpenVentSim-3.0.0-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.1.0-win-x64.exe` (installazione) — oppure `OpenVentSim-3.1.0-portable.exe` (senza installare, si apre e basta) |
+| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.1.0-mac-arm64.dmg` |
+| Mac con processore Intel | `OpenVentSim-3.1.0-mac-x64.dmg` |
 
 > Se il `.dmg` non si apre, scarica il `.zip` con lo stesso nome: doppio clic per estrarlo, poi trascina **Open Vent Sim** in Applicazioni.
 
@@ -127,6 +128,18 @@ Apri l'app e scegli **Da solo**, oppure apri il simulatore nel browser e clicca 
 
 <p align="center"><img src="docs/screenshots/20-tour.png" width="640" alt="Guida passo passo"></p>
 
+### Curve, loop e pressioni nascoste
+
+Sopra le curve ci sono tre tasti:
+
+- **Curve / Loop**: «Loop» mostra l'anello **pressione–volume** e **flusso–volume** dell'ultimo atto. In bianco l'atto in corso, più tenui i due precedenti. **Tieni come riferimento** congela l'anello di adesso in grigio: cambi PEEP o volume e confronti.
+- **Palv·Pmus**: aggiunge due tracce. **Palv** è la pressione negli alveoli (Paw meno la parte che serve a vincere la resistenza): fa vedere l'auto-PEEP prima di misurarla. **Pmus** è lo sforzo del paziente: dice *quando* tira rispetto alla macchina, cioè tutta la lettura delle asincronie.
+
+<p align="center"><img src="docs/screenshots/21-loops.png" width="640" alt="Loop pressione-volume e flusso-volume"></p>
+<p align="center"><img src="docs/screenshots/22-palv-pmus.png" width="640" alt="Tracce Palv e Pmus"></p>
+
+**PRVC** (pressione regolata a volume controllato), in intensiva invasiva: imposti il volume, la macchina parte da un atto di prova a 10 cmH₂O e corregge la pressione di al massimo 3 cmH₂O per atto finché il volume arriva. Se la compliance cala, la pressione sale da sola: è quello che si vuole far notare.
+
 | Anestesia | Non invasiva | Alti flussi |
 |---|---|---|
 | <img src="docs/screenshots/17-anesthesia.png" width="280"> | <img src="docs/screenshots/18-niv.png" width="280"> | <img src="docs/screenshots/19-highflow.png" width="280"> |
@@ -180,9 +193,16 @@ Il registro resta salvato anche se chiudi e riapri la regia.
 | Il Mac dice che l'app è «danneggiata» | Apri il Terminale e scrivi `xattr -cr "/Applications/Open Vent Sim.app"`, poi riapri. |
 | Voglio l'interfaccia vecchia (2.x) | Nel browser aggiungi `?legacy=1` all'indirizzo, da soli. |
 
-## 9. Novità della 3.0
+## 9. Novità
 
-*8 novembre 2026*
+### 3.1 — 8 novembre 2026
+
+- **Loop** pressione–volume e flusso–volume, con anello di riferimento da confrontare.
+- Tracce **Palv** (pressione alveolare) e **Pmus** (sforzo del paziente).
+- Modalità **PRVC** in intensiva invasiva.
+- Corretto: un paziente che ricomincia a respirare alla stessa frequenza della macchina (decurarizzazione) ora mostra gli sforzi sulle curve.
+
+### 3.0 — 8 novembre 2026
 
 - **Regia sulla rete locale**: server integrato nell'app, QR, PIN, ricerca automatica della regia, riconnessione automatica, più ventilatori insieme, regia anche da tablet.
 - **Nuove schermate e nuovo motore** presi dal Sim Scenario Creator: un solo layout per anestesia, intensiva invasiva e NIV, alti flussi. Polmone con compliance dipendente dalla PEEP, auto-PEEP, sforzo del paziente e sette asincronie, manovra di reclutamento, consumabili, umidificatore.

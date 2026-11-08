@@ -114,6 +114,13 @@ test('stand-alone use: no badge, device runs', async ({ page }) => {
   await expect(page.getByTestId('remote-badge')).toHaveCount(0);
   await startIcuVentilation(page);
   await expect(page.locator('.simvent').first()).toBeVisible();
+  // 3.1: Palv/Pmus lanes, loops with reference, PRVC available
+  await page.getByTestId('vista-palv').click();
+  await expect(page.getByTestId('vista-palv')).toHaveAttribute('aria-pressed', 'true');
+  await page.getByTestId('vista-loop').click();
+  await expect(page.getByTestId('loop')).toBeVisible();
+  await page.getByTestId('loop-riferimento').click();
+  await expect(page.getByText(/In grigio: il riferimento/)).toBeVisible();
 });
 
 test('instructor console with a wrong key says so', async ({ page }) => {

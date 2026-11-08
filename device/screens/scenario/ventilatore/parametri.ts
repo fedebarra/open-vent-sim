@@ -51,7 +51,8 @@ import type { TranslationKey } from '../../../i18n/it'
 export type Ambiente = 'anestesia' | 'invasiva' | 'niv' | 'alto-flusso'
 
 /** Le modalità di ventilazione. `AF` è l'alto flusso, che modalità non è. */
-export type Modalita = 'VC' | 'PC' | 'PS' | 'SIMV' | 'CPAP' | 'AF'
+// OVS 3.1: PRVC — pressure-regulated volume control (a PC breath whose pressure adapts to reach the set volume).
+export type Modalita = 'VC' | 'PC' | 'PRVC' | 'PS' | 'SIMV' | 'CPAP' | 'AF'
 
 /**
  * Meccanica o manuale — cioè: chi spinge l'aria dentro.
@@ -75,7 +76,7 @@ export type Disinfezione = 'pulito' | 'sporco' | 'non-sicuro'
  */
 export const MODALITA_PER_AMBIENTE: Record<Ambiente, Modalita[]> = {
   anestesia: ['VC', 'PC', 'PS'],
-  invasiva: ['VC', 'PC', 'PS', 'SIMV', 'CPAP'],
+  invasiva: ['VC', 'PC', 'PRVC', 'PS', 'SIMV', 'CPAP'],
   niv: ['PS', 'CPAP'],
   'alto-flusso': ['AF'],
 }
@@ -247,7 +248,7 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     passo: 10,
     visibile: (c) =>
       (c.ambiente === 'anestesia' && c.modalita === 'VC' && c.respiro === 'meccanica') ||
-      (c.ambiente === 'invasiva' && (c.modalita === 'VC' || c.modalita === 'SIMV')),
+      (c.ambiente === 'invasiva' && (c.modalita === 'VC' || c.modalita === 'SIMV' || c.modalita === 'PRVC')),
   },
   pressureTarget: {
     etichetta: 'vent.param.pressureTarget',
@@ -300,7 +301,7 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
         (c.modalita === 'VC' || c.modalita === 'PC') &&
         c.respiro === 'meccanica') ||
       (c.ambiente === 'invasiva' &&
-        (c.modalita === 'VC' || c.modalita === 'PC' || c.modalita === 'SIMV')),
+        (c.modalita === 'VC' || c.modalita === 'PC' || c.modalita === 'PRVC' || c.modalita === 'SIMV')),
   },
   psLevel: {
     etichetta: 'vent.param.psLevel',
@@ -348,7 +349,7 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     // supporto e in CPAP il sigh non esiste, perché non c'è una macchina che
     // decide quando insufflare.
     visibile: (c) =>
-      (c.modalita === 'VC' || c.modalita === 'PC' || c.modalita === 'SIMV') &&
+      (c.modalita === 'VC' || c.modalita === 'PC' || c.modalita === 'PRVC' || c.modalita === 'SIMV') &&
       (c.ambiente === 'invasiva' || c.ambiente === 'niv'),
   },
   sighPressure: {
@@ -362,7 +363,7 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     // spenta è una manopola che non fa niente.
     visibile: (c) =>
       c.impostazioni.sighRate > 0 &&
-      (c.modalita === 'VC' || c.modalita === 'PC' || c.modalita === 'SIMV') &&
+      (c.modalita === 'VC' || c.modalita === 'PC' || c.modalita === 'PRVC' || c.modalita === 'SIMV') &&
       (c.ambiente === 'invasiva' || c.ambiente === 'niv'),
   },
   inspiratoryRiseTimeSeconds: {
@@ -381,7 +382,7 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     visibile: (c) =>
       (c.ambiente === 'anestesia' && c.modalita === 'PS' && c.respiro === 'meccanica') ||
       (c.ambiente === 'invasiva' &&
-        (c.modalita === 'PC' || c.modalita === 'PS' || c.modalita === 'SIMV')) ||
+        (c.modalita === 'PC' || c.modalita === 'PRVC' || c.modalita === 'PS' || c.modalita === 'SIMV')) ||
       (c.ambiente === 'niv' && c.modalita === 'PS'),
   },
   flowCycleOffPercent: {
@@ -510,7 +511,7 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     visibile: (c) =>
       mecc(c) &&
       (c.ambiente === 'anestesia' || c.ambiente === 'invasiva') &&
-      (c.modalita === 'VC' || c.modalita === 'PC' || c.modalita === 'SIMV'),
+      (c.modalita === 'VC' || c.modalita === 'PC' || c.modalita === 'PRVC' || c.modalita === 'SIMV'),
   },
   pMean: {
     etichetta: 'vent.param.pMean',

@@ -181,19 +181,7 @@ export const DeviceApp: React.FC<DeviceAppProps> = ({
       ist = { ...ist, fisiologia: { ...p.fisiologia, preset: cmd.preset }, drive: { ...ist.drive, ...p.drive } }
     }
     if (cmd.fisiologia) ist = { ...ist, fisiologia: { ...ist.fisiologia, ...cmd.fisiologia } }
-    if (cmd.drive) {
-      const eraFermo = !(ist.drive.frequenza > 0) || ist.drive.forza === 0
-      ist = { ...ist, drive: { ...ist.drive, ...cmd.drive } }
-      // A patient who starts breathing again does not start in phase with the
-      // machine: with the same rate both trains would stay locked and every
-      // effort would fall inside the machine breath, invisible. The first
-      // effort lands in the middle of the expiration instead.
-      if (eraFermo && ist.drive.frequenza > 0) {
-        const t = orologio(ist)
-        const ciclo = 60 / Math.max(1, Number(ist.impostazioni.frequency) || 12)
-        ist = { ...ist, sfasamentoSpontaneo: t - (t % ciclo) + ciclo * 0.6, frequenzaFase: ist.drive.frequenza }
-      }
-    }
+    if (cmd.drive) ist = { ...ist, drive: { ...ist.drive, ...cmd.drive } }
     if (cmd.asincronia !== undefined) ist = { ...ist, asincronia: cmd.asincronia }
     if (cmd.vitali) ist = { ...ist, paziente: { ...ist.paziente, ...cmd.vitali } }
     if (cmd.rampaFrequenza) {
