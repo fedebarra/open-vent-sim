@@ -42,6 +42,12 @@ export interface DeviceAppProps {
   onEvent?: (text: string, source: EventSource, kind: string) => void
   /** Commands from the director console. */
   remoteActions?: DeviceRemoteActions
+  /**
+   * True when linked to a director console: the learner only enters what a
+   * real ventilator asks (weight, age). Lung picture and teaching traces are
+   * the instructor's call and are set from the console.
+   */
+  linked?: boolean
   /** Optional extra start-screen hooks (recording, tour, settings, manual). */
   onToggleRecording?: () => void
   isRecordingEnabled?: boolean
@@ -61,6 +67,9 @@ const S = {
     patientTitle: 'Il paziente',
     weight: 'Peso', age: 'Età', years: 'anni',
     lung: 'Polmone',
+    esercitazione: 'Impostazioni dell’esercitazione',
+    esercitazioneNota: 'Non ci sono su un ventilatore vero: servono a preparare il caso.',
+    daRegia: 'Il quadro clinico lo decide l’istruttore dalla regia.',
     confirm: 'Accendi la macchina',
     regia: 'regia',
     tour: 'Guida passo passo',
@@ -74,6 +83,9 @@ const S = {
     patientTitle: 'The patient',
     weight: 'Weight', age: 'Age', years: 'years',
     lung: 'Lung',
+    esercitazione: 'Exercise settings',
+    esercitazioneNota: 'Not on a real ventilator: they set up the case.',
+    daRegia: 'The clinical picture is set by the instructor from the console.',
     confirm: 'Switch the machine on',
     regia: 'instructor',
     tour: 'Guided tour',
@@ -84,7 +96,7 @@ const PRESETS = Object.keys(PRESET_FISIOLOGIA) as PresetFisiologia[]
 const VITALI_BASE = { spo2: 97, heartRate: 78, map: 85, etco2: null as number | null }
 
 export const DeviceApp: React.FC<DeviceAppProps> = ({
-  onSnapshot, onEvent, remoteActions,
+  onSnapshot, onEvent, remoteActions, linked = false,
   onToggleRecording, isRecordingEnabled = false, onStartTour, tourLabel, onOpenSimulatorSettings, onOpenManualModal,
 }) => {
   const { language } = useLanguage()
@@ -313,19 +325,27 @@ export const DeviceApp: React.FC<DeviceAppProps> = ({
             <Num label={s.weight} unit="kg" value={peso} min={3} max={250} onChange={setPeso} testId="patient-weight" />
             <Num label={s.age} unit={s.years} value={eta} min={0} max={110} onChange={setEta} testId="patient-age" />
           </div>
-          <div className="text-gray-300 mb-2">{s.lung}</div>
-          <div className="flex flex-wrap gap-2 mb-6">
-            {PRESETS.map((k) => (
-              <button key={k} data-testid={`patient-preset-${k}`} onClick={() => setPreset(k)}
-                className={`px-3 py-1.5 rounded-lg border ${preset === k ? 'bg-sky-700 border-sky-400 text-white' : 'bg-gray-700 border-gray-600 text-gray-200 hover:border-gray-400'}`}>
-                {translate(lang, NOME_PRESET[k])}
-              </button>
-            ))}
-          </div>
-          <label className="flex items-center gap-3 mb-5 text-gray-300 cursor-pointer">
-            <input type="checkbox" data-testid="opt-didattica" checked={didattica} onChange={(e) => setDidattica(e.target.checked)} className="w-5 h-5 accent-sky-500" />
-            {s.didattica}
-          </label>
+          {linked ? (
+            <p className="text-gray-400 text-sm mb-6" data-testid="patient-from-director">{s.daRegia}</p>
+          ) : (
+            <div className="border border-dashed border-gray-600 rounded-xl p-4 mb-6" data-testid="exercise-settings">
+              <div className="text-gray-200 font-semibold">{s.esercitazione}</div>
+              <div className="text-gray-500 text-xs mb-3">{s.esercitazioneNota}</div>
+                <div className="text-gray-300 mb-2">{s.lung}</div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {PRESETS.map((k) => (
+                    <button key={k} data-testid={`patient-preset-${k}`} onClick={() => setPreset(k)}
+                      className={`px-3 py-1.5 rounded-lg border ${preset === k ? 'bg-sky-700 border-sky-400 text-white' : 'bg-gray-700 border-gray-600 text-gray-200 hover:border-gray-400'}`}>
+                      {translate(lang, NOME_PRESET[k])}
+                    </button>
+                  ))}
+                </div>
+                <label className="flex items-center gap-3 text-gray-300 cursor-pointer">
+                  <input type="checkbox" data-testid="opt-didattica" checked={didattica} onChange={(e) => setDidattica(e.target.checked)} className="w-5 h-5 accent-sky-500" />
+                  {s.didattica}
+                </label>
+              </div>
+          )}
           <button data-testid="patient-confirm" onClick={accendi} className="w-full h-14 rounded-xl bg-gradient-to-br from-teal-600 to-teal-700 hover:from-teal-500 hover:to-teal-600 text-white text-lg font-semibold shadow-lg">
             {s.confirm}
           </button>

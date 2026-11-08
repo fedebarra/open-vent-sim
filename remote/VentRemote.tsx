@@ -58,6 +58,7 @@ export const LinkedDevice: React.FC<{ wsUrl: string; pin: string }> = ({ wsUrl, 
   return (
     <>
       <DeviceApp
+        linked
         remoteActions={remoteActions}
         onSnapshot={(_ist, info) => send({ t: 'state', state: { ...info, at: Date.now() } })}
         onEvent={(text, source, kind) => send({ t: 'event', event: { at: Date.now(), text, source, kind } }, true)}

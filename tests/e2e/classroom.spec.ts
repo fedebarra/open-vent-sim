@@ -32,7 +32,15 @@ test('director drives a learner ventilator end to end, and records the session',
   await regia.getByTestId('rec-start').click();
   await expect(vent.getByTestId('rec-badge')).toBeVisible();
 
-  await startIcuVentilation(vent);
+  // a learner linked to the console only enters weight and age: the lung is the instructor's call
+  await vent.getByTestId('mode-icu').click();
+  await vent.getByTestId('icu-invasive').click();
+  await expect(vent.getByTestId('patient-from-director')).toBeVisible();
+  await expect(vent.getByTestId('patient-preset-ards')).toHaveCount(0);
+  await expect(vent.getByTestId('opt-didattica')).toHaveCount(0);
+  await vent.getByTestId('patient-confirm').click();
+  await vent.getByRole('button', { name: 'STANDBY' }).click();
+  await vent.getByRole('button', { name: /AVVIA LA VENTILAZIONE/i }).click();
   await expect(regia.getByTestId('vent-list')).toContainText('ventila');
   await expectNum(regia, 'PEEP', (n) => n === 5);
   await expect(regia.getByTestId('regia-log')).toContainText(/Ventilatore|Ventilator/);
@@ -120,6 +128,7 @@ test('stand-alone use: no badge, device runs', async ({ page }) => {
   await expect(page.getByTestId('remote-badge')).toHaveCount(0);
   await page.getByTestId('mode-icu').click();
   await page.getByTestId('icu-invasive').click();
+  await expect(page.getByTestId('exercise-settings')).toBeVisible();
   await expect(page.getByTestId('opt-didattica')).not.toBeChecked();
   await page.getByTestId('opt-didattica').check();
   await page.getByTestId('patient-confirm').click();
