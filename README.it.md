@@ -4,6 +4,8 @@
 
 🇬🇧 [English version](README.md) · 📅 Versione 3.2.0 — 9 novembre 2026 · Licenza MIT
 
+📄 **L'articolo:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. Se usi Open Vent Sim in un corso, una tesi o un lavoro, [citalo così](#11-come-citare).
+
 <p align="center"><img src="docs/screenshots/10-regia-live.png" width="820" alt="La regia vede il ventilatore dello studente in diretta"></p>
 
 > ⚠️ **Solo per la didattica.** Non è un dispositivo medico e non va mai usato per decisioni cliniche.
@@ -22,6 +24,7 @@
 8. [Se qualcosa non va](#8-se-qualcosa-non-va)
 9. [Novità](#9-novità)
 10. [Per sviluppatori](#10-per-sviluppatori)
+11. [Come citare](#11-come-citare)
 
 ---
 
@@ -268,6 +271,28 @@ npm run dist:mac       # installer .dmg   (npm run dist:win per Windows)
 - Le release si costruiscono da sole con GitHub Actions quando si pubblica un tag `v*`.
 
 **Requisiti per lo sviluppo:** Node.js 20 o successivo.
+
+---
+
+## 11. Come citare
+
+Se usi Open Vent Sim in un corso, una tesi, un poster o un articolo, cita l'articolo che lo descrive:
+
+> Barra FL, Ricci S, Moro E, Travěnec J, Costa A, Carenzo L, Rodella G, Vaschetto R. *Simulator development using natural language: clinician-led innovation through artificial intelligence.* Advances in Simulation. 2026;11(1). [doi:10.1186/s41077-026-00467-2](https://doi.org/10.1186/s41077-026-00467-2)
+
+```bibtex
+@article{barra2026openventsim,
+  author  = {Barra, Federico Lorenzo and Ricci, Serena and Moro, Edoardo and Trav{\v{e}}nec, Ji{\v{r}}{\'i} and Costa, Alessandro and Carenzo, Luca and Rodella, Giovanna and Vaschetto, Rosanna},
+  title   = {Simulator development using natural language: clinician-led innovation through artificial intelligence},
+  journal = {Advances in Simulation},
+  year    = {2026},
+  volume  = {11},
+  number  = {1},
+  doi     = {10.1186/s41077-026-00467-2}
+}
+```
+
+Su GitHub lo stesso riferimento è nel pulsante **«Cite this repository»** (file `CITATION.cff`).
 
 ---
 

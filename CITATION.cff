@@ -1,0 +1,36 @@
+cff-version: 1.2.0
+message: "If you use Open Vent Sim, please cite the article below."
+title: "Open Vent Sim"
+type: software
+version: 3.2.0
+date-released: 2026-11-09
+license: MIT
+repository-code: "https://github.com/fedebarra/open-vent-sim"
+authors:
+  - family-names: Barra
+    given-names: Federico Lorenzo
+preferred-citation:
+  type: article
+  title: "Simulator development using natural language: clinician-led innovation through artificial intelligence"
+  journal: "Advances in Simulation"
+  year: 2026
+  volume: 11
+  issue: 1
+  doi: "10.1186/s41077-026-00467-2"
+  authors:
+    - family-names: Barra
+      given-names: Federico Lorenzo
+    - family-names: Ricci
+      given-names: Serena
+    - family-names: Moro
+      given-names: Edoardo
+    - family-names: Travěnec
+      given-names: Jiří
+    - family-names: Costa
+      given-names: Alessandro
+    - family-names: Carenzo
+      given-names: Luca
+    - family-names: Rodella
+      given-names: Giovanna
+    - family-names: Vaschetto
+      given-names: Rosanna
