@@ -3,6 +3,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { WebSocket } from 'ws';
 import { startServer } from '../server/ovs-server.mjs';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
+// a minimal built app, so the test does not depend on `npm run build`
+const distDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ovs-dist-'));
+fs.writeFileSync(path.join(distDir, 'index.html'), '<!doctype html><div id="root"></div>');
 
 const open = (port) => new Promise((res, rej) => {
   const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
@@ -27,7 +34,7 @@ const next = (ws, pred, ms = 2000) => {
 const closed = (ws) => new Promise((r) => ws.on('close', (code) => r(code)));
 
 let srv;
-test.before(async () => { srv = await startServer({ port: 0, host: '127.0.0.1', beacon: false, pin: '4321' }); });
+test.before(async () => { srv = await startServer({ port: 0, host: '127.0.0.1', beacon: false, pin: '4321', distDir }); });
 test.after(async () => { await srv.close(); });
 
 test('serves the app and /api/info', async () => {
@@ -117,8 +124,8 @@ test('garbage and oversize messages do not crash the server', async () => {
 });
 
 test('a busy port falls back to the next one', async () => {
-  const a = await startServer({ port: 18787, host: '127.0.0.1', beacon: false });
-  const b = await startServer({ port: 18787, host: '127.0.0.1', beacon: false });
+  const a = await startServer({ port: 18787, host: '127.0.0.1', beacon: false, distDir });
+  const b = await startServer({ port: 18787, host: '127.0.0.1', beacon: false, distDir });
   assert.equal(b.port, 18788);
   await a.close(); await b.close();
 });
