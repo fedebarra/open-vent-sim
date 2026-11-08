@@ -217,6 +217,14 @@ export const TOUR_STEPS: TourStep[] = [
     en: { title: 'Change the PEEP', body: 'Tap PEEP and use − and +: the value changes at once. The ✓ closes the box.', tryIt: 'set the PEEP to 8.' },
   },
   {
+    id: 'flow-pattern',
+    when: (c) => envIs('invasiva', 'anestesia')(c) && (!c.vent || c.vent.modalita === 'VC'),
+    target: outside(knob('formaFlusso'), BAR),
+    done: { state: onVent((v) => v.impostazioni.formaFlusso === 1) },
+    it: { title: 'La forma del flusso', body: 'In volume controllato il flusso può essere quadro (■) o decelerante (◣): stesso volume, stesso tempo, ma il decelerante parte dal doppio e scende a zero. Il picco di pressione si abbassa, il plateau no.', tryIt: 'metti il flusso decelerante e guarda la curva del flusso.' },
+    en: { title: 'The flow pattern', body: 'In volume control the flow can be square (■) or decelerating (◣): same volume, same time, but the decelerating one starts at twice the flow and falls to zero. Peak pressure drops, plateau does not.', tryIt: 'set decelerating flow and watch the flow waveform.' },
+  },
+  {
     id: 'flow',
     when: (c) => env(c) === 'alto-flusso',
     target: outside(knob('fgf'), BAR),
@@ -293,6 +301,37 @@ export const TOUR_STEPS: TourStep[] = [
     target: outside('.simvent__monitoraggio'),
     it: { title: 'I valori misurati', body: 'In Monitoraggio c’è quello che la macchina misura. Confrontalo con quello che hai impostato in basso.' },
     en: { title: 'The measured values', body: 'Monitoring shows what the machine measures. Compare it with what you set at the bottom.' },
+  },
+
+  {
+    id: 'drive-measures',
+    when: envIs('invasiva'),
+    target: outside('.simvent__monitoraggio'),
+    it: { title: 'P0.1 e stress index', body: 'Due numeri che leggono la forma, non il volume. La P0.1 compare quando il paziente apre gli atti: è quanto scende la pressione nei primi 100 ms dello sforzo, sopra 3,5 il drive è alto. Lo stress index compare in volume a flusso quadro: fra 0,9 e 1,1 il polmone è lineare, sotto si recluta a ogni atto, sopra si sovradistende.' },
+    en: { title: 'P0.1 and stress index', body: 'Two numbers that read the shape, not the volume. P0.1 appears when the patient opens the breaths: how much pressure falls in the first 100 ms of the effort; above 3.5 the drive is high. The stress index appears in volume control with square flow: 0.9 to 1.1 the lung is linear, below it recruits every breath, above it overdistends.' },
+  },
+  {
+    id: 'niv-leak',
+    when: (c) => env(c) === 'niv',
+    target: outside('.simvent__monitoraggio'),
+    it: { title: 'La perdita della maschera', body: 'In NIV la maschera perde: Perdita in l/min e in percentuale, e un VTi più alto del VTe. Con una perdita grande il flusso non scende alla soglia di ciclaggio e l’inspirazione si allunga; con una perdita che cambia il trigger parte da solo; con la maschera staccata la pressione non arriva. Si corregge sistemando la maschera, non alzando la pressione.' },
+    en: { title: 'The mask leak', body: 'In NIV the mask leaks: Leak in l/min and as a percentage, and a VTi higher than VTe. With a large leak the flow never falls to the cycling threshold and inspiration drags on; with a changing leak the trigger fires by itself; with the mask off the face the pressure is not reached. Fix the mask, not the pressure.' },
+  },
+  {
+    id: 'eit',
+    when: envIs('invasiva'),
+    target: outside('[data-testid="vista-eit"]', '.simvent__onde'),
+    done: { appears: '[data-testid="eit"]' },
+    it: { title: 'L’EIT', body: 'Il tasto EIT mostra una fetta del torace: in alto il ventrale, in basso il dorsale, il chiaro è dove arriva l’aria. A destra le curve di impedenza: globale, ventrale, dorsale. Se il dorsale sale mentre il ventrale scende all’inizio di uno sforzo, è pendelluft.', tryIt: 'tocca EIT.' },
+    en: { title: 'EIT', body: 'The EIT key shows a slice of the chest: ventral at the top, dorsal at the bottom; bright is where the air goes. On the right, the impedance curves: global, ventral, dorsal. If the dorsal rises while the ventral falls at the start of an effort, that is pendelluft.', tryIt: 'tap EIT.' },
+  },
+  {
+    id: 'peep-trial',
+    when: envIs('invasiva'),
+    target: outside('[data-testid="eit-prova"]', '[data-testid="vista-eit"]'),
+    done: { appears: '[data-testid="eit-incrocio"]' },
+    it: { title: 'Il PEEP trial', body: 'Una discesa di PEEP da 24 a 4 a pressione motrice costante: in arancione il polmone che collassa scendendo, in azzurro quello che si sovradistende salendo, in bianco la compliance. Dove le due curve si incrociano c’è la PEEP che le bilancia.', tryIt: 'apri l’EIT e premi PEEP trial.' },
+    en: { title: 'The PEEP trial', body: 'A PEEP descent from 24 to 4 at constant driving pressure: orange is lung that collapses going down, cyan is lung that overdistends going up, white is compliance. Where the two curves cross is the PEEP that balances them.', tryIt: 'open EIT and press PEEP trial.' },
   },
 
   // ------------------------------------------- gases (anaesthesia only) --
@@ -392,6 +431,28 @@ export const TOUR_STEPS: TourStep[] = [
     target: inside('manovre', '[data-fam="manovra-reclutamento"]'),
     it: { title: 'Manovra di reclutamento', body: 'Tiene le vie aeree a pressione alta per alcune decine di secondi. In un polmone reclutabile la compliance sale; se poi la PEEP è troppo bassa, il guadagno si perde. Si interrompe se il paziente non la tollera.' },
     en: { title: 'Recruitment manoeuvre', body: 'Holds the airway at high pressure for some tens of seconds. In a recruitable lung compliance rises; if PEEP is then too low the gain is lost. It stops if the patient does not tolerate it.' },
+  },
+  {
+    id: 'occlusion',
+    when: envNot('alto-flusso'),
+    target: inside('manovre', '[data-fam="manovra-pausa-espiratoria"]'),
+    it: { title: 'Pausa espiratoria e test di occlusione', body: 'La pausa espiratoria misura la PEEP totale. Se il paziente tira mentre la valvola è chiusa, la Paw scende quanto la pressione esofagea: l’esito riporta ΔPocc, la Pmus stimata (0,75 × |ΔPocc|) e la transpolmonare dinamica stimata.' },
+    en: { title: 'Expiratory hold and occlusion test', body: 'The expiratory hold measures total PEEP. If the patient pulls while the valve is closed, Paw falls as much as oesophageal pressure: the result reports ΔPocc, the estimated Pmus (0.75 × |ΔPocc|) and the estimated dynamic transpulmonary pressure.' },
+  },
+  {
+    id: 'slow-curve',
+    when: envIs('invasiva'),
+    target: inside('manovre', '[data-fam="manovra-curva-lenta"]'),
+    done: { state: onVent((v) => v.manovraEsito?.manovra === 'curva-lenta') },
+    it: { title: 'La curva P/V lenta', body: 'Cinque litri al minuto dalla PEEP: la curva che esce è quella statica del polmone. Se le vie aeree sono chiuse, la pressione sale ripida senza volume fino alla pressione di apertura (AOP), poi la pendenza cambia. Sotto l’AOP la PEEP non arriva agli alveoli.', tryIt: 'apri Manovre e fai la curva P/V lenta.' },
+    en: { title: 'The low-flow P/V curve', body: 'Five litres a minute from PEEP: what comes out is the static curve of the lung. If the airways are closed, pressure rises steeply with no volume up to the airway opening pressure (AOP), then the slope changes. Below the AOP, PEEP does not reach the alveoli.', tryIt: 'open Manoeuvres and run the low-flow P/V curve.' },
+  },
+  {
+    id: 'ri-ratio',
+    when: envIs('invasiva'),
+    target: inside('manovre', '[data-fam="manovra-rapporto-ri"]'),
+    it: { title: 'Il rapporto R/I', body: 'Da una PEEP di almeno 10 la macchina scende a 5 per un respiro e misura quanto volume esce in più di quello che la compliance spiega: è il polmone che la PEEP alta teneva aperto. Un rapporto da 0,5 in su dice che alzare la PEEP recluta; sotto, che gonfia soltanto.' },
+    en: { title: 'The R/I ratio', body: 'From a PEEP of at least 10 the machine drops to 5 for one breath and measures how much more volume comes out than compliance explains: the lung the high PEEP kept open. A ratio of 0.5 or more says raising PEEP recruits; below that, it only inflates.' },
   },
   {
     id: 'humidifier',

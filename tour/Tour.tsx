@@ -79,20 +79,23 @@ export interface TourProps {
   active: boolean;
   onClose: () => void;
   context: TourContext;
+  /** The steps to walk: the ventilator's by default, the console's in the director app. */
+  steps?: TourStep[];
 }
 
-export const Tour: React.FC<TourProps> = ({ active, onClose, context }) => {
+export const Tour: React.FC<TourProps> = ({ active, onClose, context, steps: elenco }) => {
+  const ALL = elenco ?? TOUR_STEPS;
   const { language } = useLanguage();
   const s = tourStrings(language);
   const lang: 'it' | 'en' = language === 'it' ? 'it' : 'en';
 
   const envKey = `${context.screen}|${context.icuChoice}|${context.ambiente}|${context.vent?.ambiente ?? ''}`;
-  const [currentId, setCurrentId] = useState<string>(TOUR_STEPS[0].id);
+  const [currentId, setCurrentId] = useState<string>(ALL[0].id);
   // Steps already shown stay in the list, so "n/N" only moves forward.
   const [seen, setSeen] = useState<string[]>([]);
   const steps = useMemo(() => {
-    const now = new Set(stepsFor(context).map((st) => st.id));
-    return TOUR_STEPS.filter((st) => now.has(st.id) || seen.includes(st.id));
+    const now = new Set((elenco ? elenco.filter((st) => !st.when || st.when(context)) : stepsFor(context)).map((st) => st.id));
+    return ALL.filter((st) => now.has(st.id) || seen.includes(st.id));
   }, [envKey, seen]); // eslint-disable-line react-hooks/exhaustive-deps
   const [open, setOpen] = useState(true);
   const [rect, setRect] = useState<Rect | null>(null);
@@ -100,14 +103,14 @@ export const Tour: React.FC<TourProps> = ({ active, onClose, context }) => {
   const [completed, setCompleted] = useState(false);
 
   // Restart from the beginning every time the tour is (re)opened.
-  useEffect(() => { if (active) { setCurrentId(TOUR_STEPS[0].id); setSeen([]); setOpen(true); } }, [active]);
+  useEffect(() => { if (active) { setCurrentId(ALL[0].id); setSeen([]); setOpen(true); } }, [active]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // If the current step stops applying (e.g. the start screen is gone), move to the next one that does.
   const index = useMemo(() => {
     const i = steps.findIndex((st) => st.id === currentId);
     if (i >= 0) return i;
-    const order = TOUR_STEPS.findIndex((st) => st.id === currentId);
-    const next = steps.findIndex((st) => TOUR_STEPS.findIndex((x) => x.id === st.id) > order);
+    const order = ALL.findIndex((st) => st.id === currentId);
+    const next = steps.findIndex((st) => ALL.findIndex((x) => x.id === st.id) > order);
     return next >= 0 ? next : steps.length - 1;
   }, [steps, currentId]);
   const step: TourStep = steps[index];

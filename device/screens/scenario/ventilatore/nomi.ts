@@ -17,6 +17,7 @@
  * nessuno lo veda finché non si aggiunge una modalità e ne compare una sola.
  */
 
+import type { QuadroMeccanica } from './quadri'
 import type { TranslationKey } from '../../../i18n/it'
 import { AGENTI, ERRORE_RIEMPIMENTO, type Agente } from './gas'
 import { ERRORE_HME_E_UMIDIFICATORE } from './istantanea'
@@ -40,6 +41,7 @@ export const NOME_MODALITA: Record<Modalita, TranslationKey> = {
   PS: 'vent.mode.PS',
   SIMV: 'vent.mode.SIMV',
   CPAP: 'vent.mode.CPAP',
+  PAV: 'vent.mode.PAV',
   AF: 'vent.mode.AF',
 }
 
@@ -60,6 +62,19 @@ export const NOME_MANOVRA: Record<Exclude<Manovra, null>, TranslationKey> = {
   'pausa-inspiratoria': 'vent.manovra.inspiratoria',
   'pausa-espiratoria': 'vent.manovra.espiratoria',
   reclutamento: 'vent.manovra.reclutamento',
+  'curva-lenta': 'vent.manovra.curvaLenta',
+  'rapporto-ri': 'vent.manovra.rapportoRI',
+}
+
+export const NOME_QUADRO: Record<QuadroMeccanica, TranslationKey> = {
+  obesita: 'vent.quadro.obesita',
+  'addome-teso': 'vent.quadro.addomeTeso',
+  'chiusura-vie': 'vent.quadro.chiusuraVie',
+  'sforzo-vigoroso': 'vent.quadro.sforzoVigoroso',
+  'respiro-irregolare': 'vent.quadro.respiroIrregolare',
+  'oscillazioni-cardiache': 'vent.quadro.oscillazioniCardiache',
+  grugnito: 'vent.quadro.grugnito',
+  'espirio-attivo': 'vent.quadro.espirioAttivo',
 }
 
 export const NOME_PRESET: Record<PresetFisiologia, TranslationKey> = {
@@ -117,6 +132,24 @@ export const NOME_ESITO: Record<string, TranslationKey> = {
   // stato fatto — a che pressione e per quanto.
   pressione: 'vent.esito.pressione',
   secondi: 'vent.esito.secondi',
+  // Il test di occlusione, quando il paziente tira dentro la pausa espiratoria.
+  pOcc: 'vent.esito.pOcc',
+  p01: 'vent.param.p01',
+  pmusStimata: 'vent.esito.pmusStimata',
+  plDinamica: 'vent.esito.plDinamica',
+  rapportoOcclusione: 'vent.esito.rapportoOcclusione',
+  // La curva lenta.
+  aperturaVie: 'vent.esito.aperturaVie',
+  complianceLenta: 'vent.esito.complianceLenta',
+  pFinale: 'vent.esito.pFinale',
+  // Il rapporto R/I.
+  peepBassa: 'vent.esito.peepBassa',
+  volumeEsalato: 'vent.esito.volumeEsalato',
+  volumePredetto: 'vent.esito.volumePredetto',
+  volumeReclutato: 'vent.esito.volumeReclutato',
+  complianceReclutata: 'vent.esito.complianceReclutata',
+  complianceBassa: 'vent.esito.complianceBassa',
+  rapportoRI: 'vent.esito.rapportoRI',
 }
 
 /**

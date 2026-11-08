@@ -78,6 +78,13 @@ test('director drives a learner ventilator end to end, and records the session',
   await regia.getByTestId('patient-apply').click();
   await expectNum(regia, 'SpO₂', (n) => n < 96, 'SpO2 falls during the ramp');
 
+  // 3.2: mechanics pictures — on, recognised from the snapshot, off again
+  await regia.getByTestId('tab-mechanics').click();
+  await regia.getByTestId('quadro-obesita').click();
+  await expect(regia.getByTestId('quadro-obesita')).toHaveClass(/bg-sky-900/, { timeout: 10_000 });
+  await regia.getByTestId('quadro-obesita').click();
+  await expect(regia.getByTestId('quadro-obesita')).not.toHaveClass(/bg-sky-900/, { timeout: 10_000 });
+
   // recruitment manoeuvre from the lung tab
   await regia.getByTestId('tab-lung').click();
   await regia.getByTestId('recruit-start').click();
@@ -148,9 +155,71 @@ test('stand-alone use: no badge, device runs', async ({ page }) => {
   await expect(page.getByTestId('loop')).toBeVisible();
   await page.getByTestId('loop-riferimento').click();
   await expect(page.getByText(/In grigio: il riferimento/)).toBeVisible();
+  // 3.2: EIT view and the PEEP trial
+  await page.getByTestId('vista-eit').click();
+  await expect(page.getByTestId('eit')).toBeVisible();
+  await expect(page.getByTestId('eit-centro')).not.toHaveText('––');
+  await page.getByTestId('eit-prova').click();
+  await expect(page.getByTestId('eit-incrocio')).toHaveText(/\d/);
 });
 
 test('instructor console with a wrong key says so', async ({ page }) => {
   await page.goto(`http://127.0.0.1:${srv.port}/?role=regia&key=wrong`);
   await expect(page.getByText(/Chiave regia non valida/)).toBeVisible();
+});
+
+test('NIV: the console sets a real mask leak, and the ventilator shows it', async ({ browser }) => {
+  const regiaCtx = await browser.newContext({ locale: 'it-IT', viewport: { width: 1440, height: 900 } });
+  const ventCtx = await browser.newContext({ locale: 'it-IT', viewport: { width: 1366, height: 860 } });
+  const regia = await regiaCtx.newPage();
+  const vent = await ventCtx.newPage();
+  const errors: string[] = [];
+  for (const pg of [regia, vent]) pg.on('pageerror', (e) => errors.push(e.message));
+  await regia.goto(srv.regiaUrl('127.0.0.1'));
+  await vent.goto(`http://127.0.0.1:${srv.port}/?role=vent&pin=1234`);
+  await vent.getByTestId('mode-icu').click();
+  await vent.getByTestId('icu-niv').click();
+  await vent.getByTestId('patient-confirm').click();
+  await vent.getByRole('button', { name: 'STANDBY' }).click();
+  await vent.getByRole('button', { name: /AVVIA LA VENTILAZIONE/i }).click();
+  await expect(regia.getByTestId('vent-list')).toContainText('ventila');
+  // earlier tests may have left ventilators in the list: pick the NIV one
+  await regia.getByTestId('vent-list').locator('li', { hasText: /Non Invasiva/ }).last().click();
+  // a breathing patient, then a big leak from the mechanics tab
+  await regia.getByTestId('tab-patient').click();
+  await regia.getByTestId('sl-spont').fill('18');
+  await regia.getByTestId('patient-apply').click();
+  await regia.getByTestId('tab-mechanics').click();
+  await regia.getByTestId('sl-mask-leak').fill('100');
+  await expect(regia.getByTestId('opt-mask-leak')).toBeChecked();
+  await regia.getByTestId('mech-apply').click();
+  // the ventilator reads a real leak: well above the usual few percent
+  await expect.poll(async () => {
+    const txt = await vent.locator('.simvent__monitoraggio').innerText();
+    const m = txt.match(/Perdita\s*\n?\s*(\d+)/);
+    return m ? Number(m[1]) : 0;
+  }, { timeout: 30_000 }).toBeGreaterThan(60);
+  // the event library has the ready-made "mask displaced / refitted"
+  await regia.getByTestId('tab-events').click();
+  await regia.getByTestId('event-fire-maskseal').click();
+  await expect.poll(async () => {
+    const txt = await vent.locator('.simvent__monitoraggio').innerText();
+    const m = txt.match(/Perdita\s*\n?\s*(\d+)/);
+    return m ? Number(m[1]) : 999;
+  }, { timeout: 30_000 }).toBeLessThan(25);
+  // the console's own guided tour: opens, a tab step ticks when the tab is opened, Esc closes it
+  await regia.getByTestId('regia-tour').click();
+  await expect(regia.getByTestId('tour-card')).toContainText('La regia');
+  for (let i = 0; i < 6; i++) await regia.keyboard.press('ArrowRight');
+  await expect(regia.getByTestId('tour-card')).toContainText('Il paziente');
+  await regia.getByTestId('tab-patient').click();
+  await regia.keyboard.press('Escape');
+  await expect(regia.getByTestId('tour-card')).toHaveCount(0);
+  // the console opens a ventilator on a second screen; it joins the session by itself
+  const [second] = await Promise.all([regia.waitForEvent('popup'), regia.getByTestId('second-screen').click()]);
+  second.on('pageerror', (e) => errors.push(e.message));
+  await expect(second.getByTestId('mode-icu')).toBeVisible();
+  await expect(second.getByTestId('remote-badge')).toContainText('Collegato alla regia');
+  expect(errors).toEqual([]);
+  await Promise.all([regiaCtx.close(), ventCtx.close()]);
 });

@@ -52,7 +52,7 @@ export type Ambiente = 'anestesia' | 'invasiva' | 'niv' | 'alto-flusso'
 
 /** Le modalità di ventilazione. `AF` è l'alto flusso, che modalità non è. */
 // OVS 3.1: PRVC — pressure-regulated volume control (a PC breath whose pressure adapts to reach the set volume).
-export type Modalita = 'VC' | 'PC' | 'PRVC' | 'PS' | 'SIMV' | 'CPAP' | 'AF'
+export type Modalita = 'VC' | 'PC' | 'PRVC' | 'PS' | 'SIMV' | 'CPAP' | 'PAV' | 'AF'
 
 /**
  * Meccanica o manuale — cioè: chi spinge l'aria dentro.
@@ -76,7 +76,7 @@ export type Disinfezione = 'pulito' | 'sporco' | 'non-sicuro'
  */
 export const MODALITA_PER_AMBIENTE: Record<Ambiente, Modalita[]> = {
   anestesia: ['VC', 'PC', 'PS'],
-  invasiva: ['VC', 'PC', 'PRVC', 'PS', 'SIMV', 'CPAP'],
+  invasiva: ['VC', 'PC', 'PRVC', 'PS', 'SIMV', 'CPAP', 'PAV'],
   niv: ['PS', 'CPAP'],
   'alto-flusso': ['AF'],
 }
@@ -113,6 +113,30 @@ export interface Impostazioni {
   sighPressure: number
   /** Tempo di salita, secondi. */
   inspiratoryRiseTimeSeconds: number
+  /**
+   * PAV: la quota del lavoro che fa la macchina, in percento (5-95).
+   *
+   * Le istantanee salvate prima della 3.2 non l'hanno: chi lo legge ripiega su 50.
+   */
+  pavSupporto: number
+  /**
+   * Il trigger è aperto anche negli atti controllati: **assistita-controllata**.
+   *
+   * Spento (il default, la decisione del 13 settembre 2026, §325) lo sforzo che
+   * cade in espirazione in VC, PC e PRVC lascia una tacca e non apre niente.
+   * Acceso è come le macchine vere e come il simulatore di riferimento: lo
+   * sforzo apre un atto, e il ciclo riparte da lì. 0 spento, 1 acceso.
+   */
+  triggerControllata: number
+  /**
+   * La forma del flusso in volume controllato: 0 quadro, 1 decelerante.
+   *
+   * Decelerante è una rampa che parte dal doppio del flusso medio e scende a
+   * zero nello stesso tempo inspiratorio, con lo stesso volume: il picco di
+   * pressione è più basso e arriva a metà, il plateau è lo stesso. Lo stress
+   * index si legge solo a flusso quadro.
+   */
+  formaFlusso: number
   /** Soglia di ciclaggio a flusso, percentuale del picco. */
   flowCycleOffPercent: number
   backupPressure: number
@@ -168,6 +192,21 @@ export interface Misure {
   mac: number | null
   deliveredTemperature: number | null
   waterLevelPercent: number | null
+  /**
+   * La P0.1: quanto scende la pressione nei primi cento millisecondi di uno
+   * sforzo a vie occluse, cmH₂O. È il drive, letto senza chiedere niente al
+   * paziente: sotto 1,5 poco, sopra 3,5 un drive alto da guardare
+   * (Telias, *AJRCCM* 2018). Solo sugli atti che il paziente apre.
+   */
+  p01: number | null
+  /** La perdita della maschera in NIV, l/min: il gas che esce dal bordo, mediato sul ciclo. */
+  leakFlow: number | null
+  /**
+   * Lo stress index (Ranieri, *Anesthesiology* 2000): la curvatura della Paw a
+   * flusso costante. Fra 0,9 e 1,1 il polmone è lineare; sotto si recluta a
+   * ogni atto, sopra si sovradistende. Solo in volume a flusso quadro.
+   */
+  stressIndex: number | null
 }
 
 export type ChiaveImpostazione = keyof Impostazioni
@@ -272,7 +311,7 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     passo: 1,
     visibile: (c) =>
       (c.ambiente === 'anestesia' && c.respiro === 'meccanica') ||
-      (inIcu(c.ambiente) && c.modalita !== 'CPAP'),
+      (inIcu(c.ambiente) && c.modalita !== 'CPAP' && c.modalita !== 'PAV'),
   },
   peep: {
     etichetta: 'vent.param.peep',
@@ -393,8 +432,37 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     max: 70,
     passo: 5,
     visibile: (c) =>
-      (c.ambiente === 'invasiva' && (c.modalita === 'PS' || c.modalita === 'SIMV')) ||
+      (c.ambiente === 'invasiva' && (c.modalita === 'PS' || c.modalita === 'SIMV' || c.modalita === 'PAV')) ||
       (c.ambiente === 'niv' && c.modalita === 'PS'),
+  },
+  pavSupporto: {
+    etichetta: 'vent.param.pavSupporto',
+    unita: 'vent.unit.percent',
+    regolabile: true,
+    min: 5,
+    max: 95,
+    passo: 5,
+    visibile: (c) => c.ambiente === 'invasiva' && c.modalita === 'PAV',
+  },
+  triggerControllata: {
+    etichetta: 'vent.param.triggerControllata',
+    unita: 'vent.unit.none',
+    regolabile: true,
+    min: 0,
+    max: 1,
+    passo: 1,
+    visibile: (c) => c.ambiente === 'invasiva' && (c.modalita === 'VC' || c.modalita === 'PC' || c.modalita === 'PRVC'),
+  },
+  formaFlusso: {
+    etichetta: 'vent.param.formaFlusso',
+    unita: 'vent.unit.none',
+    regolabile: true,
+    min: 0,
+    max: 1,
+    passo: 1,
+    visibile: (c) =>
+      (c.ambiente === 'invasiva' || (c.ambiente === 'anestesia' && c.respiro === 'meccanica')) &&
+      (c.modalita === 'VC' || (c.modalita === 'SIMV' && c.impostazioni?.psLevel === 0)),
   },
   backupPressure: {
     etichetta: 'vent.param.backupPressure',
@@ -403,7 +471,7 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     min: 5,
     max: 40,
     passo: 1,
-    visibile: (c) => inIcu(c.ambiente) && (c.modalita === 'PS' || c.modalita === 'CPAP'),
+    visibile: (c) => inIcu(c.ambiente) && (c.modalita === 'PS' || c.modalita === 'CPAP' || c.modalita === 'PAV'),
   },
   backupFrequency: {
     etichetta: 'vent.param.backupFrequency',
@@ -412,13 +480,13 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     min: 5,
     max: 30,
     passo: 1,
-    visibile: (c) => inIcu(c.ambiente) && (c.modalita === 'PS' || c.modalita === 'CPAP'),
+    visibile: (c) => inIcu(c.ambiente) && (c.modalita === 'PS' || c.modalita === 'CPAP' || c.modalita === 'PAV'),
   },
   backupIERatio: {
     etichetta: 'vent.param.backupIERatio',
     unita: 'vent.unit.none',
     regolabile: true,
-    visibile: (c) => inIcu(c.ambiente) && (c.modalita === 'PS' || c.modalita === 'CPAP'),
+    visibile: (c) => inIcu(c.ambiente) && (c.modalita === 'PS' || c.modalita === 'CPAP' || c.modalita === 'PAV'),
   },
   fgf: {
     etichetta: 'vent.param.fgf',
@@ -581,6 +649,36 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     regolabile: false,
     visibile: (c) => mecc(c) && c.ambiente !== 'alto-flusso' && c.modalita !== 'CPAP',
   },
+  p01: {
+    etichetta: 'vent.param.p01',
+    decimali: 1,
+    unita: 'vent.unit.cmH2O',
+    regolabile: false,
+    visibile: (c) =>
+      c.ambiente === 'invasiva' &&
+      (c.modalita === 'PS' ||
+        c.modalita === 'CPAP' ||
+        c.modalita === 'PAV' ||
+        c.modalita === 'SIMV' ||
+        ((c.modalita === 'VC' || c.modalita === 'PC' || c.modalita === 'PRVC') && c.impostazioni?.triggerControllata === 1)),
+  },
+  leakFlow: {
+    etichetta: 'vent.param.leakFlow',
+    decimali: 0,
+    unita: 'vent.unit.lMin',
+    regolabile: false,
+    visibile: (c) => c.ambiente === 'niv',
+  },
+  stressIndex: {
+    etichetta: 'vent.param.stressIndex',
+    decimali: 2,
+    unita: 'vent.unit.none',
+    regolabile: false,
+    visibile: (c) =>
+      c.ambiente === 'invasiva' &&
+      (c.modalita === 'VC' || (c.modalita === 'SIMV' && c.impostazioni?.psLevel === 0)) &&
+      (c.impostazioni?.formaFlusso ?? 0) === 0,
+  },
   leakPercentage: {
     etichetta: 'vent.param.leakPercentage',
     decimali: 1,
@@ -673,6 +771,9 @@ export const IMPOSTAZIONI_INIZIALI: Impostazioni = {
   sighPressure: 35,
   inspiratoryRiseTimeSeconds: 0.15,
   flowCycleOffPercent: 25,
+  pavSupporto: 50,
+  triggerControllata: 0,
+  formaFlusso: 0,
   backupPressure: 15,
   backupFrequency: 12,
   backupIERatio: '1:2',
@@ -710,6 +811,9 @@ export const MISURE_VUOTE: Misure = {
   mac: null,
   deliveredTemperature: null,
   waterLevelPercent: null,
+  p01: null,
+  leakFlow: null,
+  stressIndex: null,
 }
 
 /**
@@ -825,5 +929,9 @@ export function scriviValore(chiave: ChiaveParametro, valore: number | string | 
   if (valore === null || valore === undefined) return '\u2013\u2013'
   if (typeof valore === 'string') return valore
   if (!isFinite(valore)) return '\u2013\u2013'
+  // Un interruttore si legge come un interruttore.
+  if (chiave === 'triggerControllata') return valore ? 'ON' : 'OFF'
+  // La forma del flusso si disegna: il quadro e la rampa che scende.
+  if (chiave === 'formaFlusso') return valore ? '\u25E3' : '\u25A0'
   return valore.toFixed(PARAMETRI[chiave].decimali ?? 0)
 }

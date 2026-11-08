@@ -16,6 +16,8 @@ export const EVENT_LIBRARY: EventDef[] = [
   { id: 'edema', labelKey: 'ev_edema', patch: { preset: 'edema-polmonare', vitali: { spo2: 87, heartRate: 115 } }, rampSec: 0 },
   { id: 'ards', labelKey: 'ev_ards', patch: { preset: 'ards', vitali: { spo2: 88 } }, rampSec: 0 },
   { id: 'tachy', labelKey: 'ev_tachycardia', patch: { vitali: { heartRate: 135, map: 55 } }, rampSec: 30 },
+  { id: 'maskleak', labelKey: 'ev_maskleak', patch: { fisiologia: { perditaMaschera: 90 } }, rampSec: 0 },
+  { id: 'maskseal', labelKey: 'ev_maskseal', patch: { fisiologia: { perditaMaschera: 10 } }, rampSec: 0 },
   { id: 'normal', labelKey: 'ev_normal', patch: { preset: 'normale', asincronia: null, vitali: { spo2: 98, etco2: 38, heartRate: 75, map: 85 } }, rampSec: 0 },
 ];
 

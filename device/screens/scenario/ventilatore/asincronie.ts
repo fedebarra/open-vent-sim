@@ -84,6 +84,48 @@ export interface Drive {
    * legge il drive per farne fisica passa da `driveEfficace`.
    */
   forza?: number
+  /**
+   * La forma dello sforzo, in secondi: salita, tenuta, discesa (facoltativa).
+   *
+   * Manca = le proporzioni delle registrazioni esofagee sul tempo neurale
+   * (`durataSforzoSec`): 50% salita, 5% tenuta, 40% discesa. Una salita
+   * corta è il paziente che «strappa» (fame d'aria); una discesa lunga che
+   * sconfina nell'espirazione è il terreno del ciclaggio precoce.
+   */
+  forma?: FormaSforzo | null
+  /**
+   * Lo sforzo **risponde al supporto** (facoltativo, spento se manca).
+   *
+   * Il paziente vero scarica il lavoro sulla macchina: alzando la pressione di
+   * supporto la sua Pmus cala, abbassandola cresce (Carteaux, *Chest* 2016). Da
+   * spento lo sforzo è quello scritto, qualunque supporto ci sia — che è il
+   * modo giusto per far vedere che cosa fa la macchina da sola.
+   */
+  responsivo?: boolean
+  /**
+   * La variabilità naturale atto per atto, da 0 a 1 (facoltativa, 0 se manca).
+   *
+   * Zero lascia l'ombra del 4% sull'ampiezza che c'è sempre. Uno è un respiro
+   * irregolare vero: ampiezza, durata e istante dello sforzo che variano di
+   * qualche decina per cento, sempre uguali per lo stesso atto.
+   */
+  variabilita?: number
+  /**
+   * L'espirio attivo, da 0 a 1 (facoltativo, 0 se manca): gli addominali che
+   * spingono fuori l'aria a fine espirazione. È una Pmus **negativa** dopo ogni
+   * sforzo: la Pes sale invece di scendere, il flusso espiratorio si fa più
+   * ripido, e il volume di fine espirazione scende sotto la capacità
+   * funzionale — che è il motivo per cui il primo pezzo dello sforzo dopo non
+   * fa niente (lo «sforzo nascosto» di chi ha fame d'aria).
+   */
+  espirioAttivo?: number
+}
+
+/** Salita, tenuta e discesa dello sforzo, in secondi. */
+export interface FormaSforzo {
+  salita: number
+  tenuta: number
+  discesa: number
 }
 
 /**

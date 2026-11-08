@@ -9,7 +9,7 @@
  *  - "Ventilator" listens for instructor beacons on the LAN and navigates the
  *    window to the chosen instructor's server.
  */
-import { app, BrowserWindow, ipcMain, shell, dialog, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, dialog, Menu, screen } from 'electron';
 import path from 'node:path';
 import dgram from 'node:dgram';
 import { fileURLToPath } from 'node:url';
@@ -22,6 +22,7 @@ let win = null;
 let localServer = null;   // 127.0.0.1, launcher + solo
 let lanServer = null;     // 0.0.0.0, classroom
 let listener = null;      // UDP beacon listener
+const secondScreens = new Set(); // ventilators opened on another display of this computer
 
 if (!app.requestSingleInstanceLock()) app.quit();
 app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
@@ -38,6 +39,8 @@ async function createWindow() {
   // External links (manual, donations) open in the system browser.
   win.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
   await win.loadURL(`http://127.0.0.1:${localServer.port}/?desktop=1`);
+  // Closing the main window closes the screens it opened.
+  win.on('closed', () => { for (const w of secondScreens) w.close(); });
 }
 
 // ------------------------------------------------------------------ IPC --
@@ -52,6 +55,36 @@ ipcMain.handle('ovs:start-regia', async (event) => {
     lanServer = await startServer({ port: DEFAULT_PORT, host: '0.0.0.0', distDir });
   }
   return lanServer.regiaUrl('127.0.0.1');
+});
+
+/**
+ * A ventilator on the second screen of this computer (a projector, an
+ * interactive whiteboard): a window that joins this computer's classroom
+ * session like any learner, opened full screen on the other display. With one
+ * display only it opens as a normal window next to the console.
+ */
+ipcMain.handle('ovs:open-second-screen', async (event) => {
+  if (!fromLocal(event) || !lanServer) throw new Error('not allowed');
+  const current = screen.getDisplayMatching(win ? win.getBounds() : screen.getPrimaryDisplay().bounds);
+  const other = screen.getAllDisplays().find((d) => d.id !== current.id) ?? null;
+  const area = (other ?? current).workArea;
+  const w = new BrowserWindow({
+    x: area.x + 40, y: area.y + 40,
+    width: Math.min(1440, area.width - 80), height: Math.min(900, area.height - 80),
+    minWidth: 900, minHeight: 600,
+    backgroundColor: '#0f172a',
+    title: 'Open Vent Sim',
+    autoHideMenuBar: true,
+    webPreferences: { preload: path.join(here, 'preload.cjs'), contextIsolation: true, sandbox: true },
+  });
+  w.webContents.setWindowOpenHandler(({ url }) => { shell.openExternal(url); return { action: 'deny' }; });
+  // Esc leaves full screen: on a whiteboard there is no keyboard shortcut to remember.
+  w.webContents.on('before-input-event', (_e, input) => { if (input.key === 'Escape' && w.isFullScreen()) w.setFullScreen(false); });
+  secondScreens.add(w);
+  w.on('closed', () => secondScreens.delete(w));
+  await w.loadURL(`http://127.0.0.1:${lanServer.port}/?role=vent&pin=${lanServer.pin}`);
+  if (other) w.setFullScreen(true);
+  return { external: !!other };
 });
 
 ipcMain.handle('ovs:server-info', (event) => !fromLocal(event) ? null : lanServer ? {
