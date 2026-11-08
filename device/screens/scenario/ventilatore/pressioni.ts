@@ -16,8 +16,10 @@
 import { pmusc } from './asincronie'
 import { polmoneOra, type StatoVentilatore } from './fisica'
 import { puntoOnda } from './onde'
+import { campioneMotore, motoreCopre } from './motore'
 
 export function pressioneAlveolare(tSec: number, stato: StatoVentilatore): number {
+  if (!stato.manovra && motoreCopre(stato)) return campioneMotore(tSec, polmoneOra(stato)).palv
   const p = puntoOnda(tSec, stato)
   if (stato.manovra) return p.paw
   const ora = polmoneOra(stato)
@@ -26,5 +28,39 @@ export function pressioneAlveolare(tSec: number, stato: StatoVentilatore): numbe
 
 export function pressioneMuscolare(tSec: number, stato: StatoVentilatore): number {
   if (!stato.ventilando) return 0
+  // Lo sforzo è del paziente: durante una pausa continua uguale.
+  const senza = stato.manovra ? { ...stato, manovra: null } : stato
+  if (motoreCopre(senza)) return campioneMotore(tSec, polmoneOra(senza)).pmus
   return pmusc(tSec, stato.drive, stato.sfasamentoSpontaneo ?? 0)
+}
+
+/**
+ * La pressione **esofagea**: la parete toracica che si gonfia, meno lo sforzo,
+ * più il battito del cuore che le sta sopra. `Pes = Pes,base + V/Ccw − Pmus`.
+ *
+ * (Aggiunta della 3.2, sul modello del simulatore di Piraino rivisto da
+ * Bellani.) Col motore spento — il pallone, l'alto flusso — non c'è.
+ */
+export function pressioneEsofagea(tSec: number, stato: StatoVentilatore): number | null {
+  if (!stato.ventilando) return null
+  if (!stato.manovra) return motoreCopre(stato) ? campioneMotore(tSec, polmoneOra(stato)).pes : null
+  // ## In pausa la Pes resta dov'era, e lo sforzo la scava
+  //
+  // A vie aeree chiuse il volume non cambia: la parete sta dove l'ha lasciata
+  // l'ultimo istante prima della pausa, e lo sforzo la tira giù quanto tira giù
+  // la Paw. È la metà esofagea del test di occlusione.
+  if (stato.manovra !== 'pausa-inspiratoria' && stato.manovra !== 'pausa-espiratoria') return null
+  const senza = polmoneOra({ ...stato, manovra: null })
+  if (!motoreCopre(senza)) return null
+  const da = stato.manovraDa ?? tSec
+  const prima = campioneMotore(da, senza)
+  return prima.pes + prima.pmus - campioneMotore(tSec, senza).pmus
+}
+
+/** La transpolmonare, `PL = Paw − Pes`: quello che il polmone sente davvero. */
+export function pressioneTranspolmonare(tSec: number, stato: StatoVentilatore): number | null {
+  if (!stato.ventilando) return null
+  if (!stato.manovra) return motoreCopre(stato) ? campioneMotore(tSec, polmoneOra(stato)).pl : null
+  const pes = pressioneEsofagea(tSec, stato)
+  return pes === null ? null : puntoOnda(tSec, stato).paw - pes
 }

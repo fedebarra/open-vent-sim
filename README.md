@@ -1,8 +1,8 @@
-# Open Vent Sim 3.1
+# Open Vent Sim 3.2
 
 **A free, open-source simulator of ICU ventilator, anaesthesia machine and high-flow oxygen — with an instructor console that runs on your classroom's own network.**
 
-🇮🇹 [Versione italiana](README.it.md) · 📅 Version 3.1.3 — released 8 November 2026 · MIT licence
+🇮🇹 [Versione italiana](README.it.md) · 📅 Version 3.2.0 — 9 November 2026 · MIT licence
 
 <p align="center"><img src="docs/screenshots/10-regia-live-en.png" width="820" alt="The instructor console showing a learner's ventilator live"></p>
 
@@ -30,6 +30,7 @@
 - **Three machines in one**: anaesthesia workstation, ICU ventilator (invasive and non-invasive) and high-flow oxygen.
 - **Real waveforms**: pressure, flow and volume come from a lung model with PEEP-dependent compliance, auto-PEEP, patient effort and asynchronies.
 - **Pressure–volume and flow–volume loops**, **alveolar pressure (Palv)** and **patient effort (Pmus)** traces, **PRVC** mode.
+- A **breathing engine** that integrates the equation of motion: auto-PEEP, triggers, cycling and asynchronies happen instead of being drawn. **PAV+**, assist-control (A/C), **decelerating flow**, **Pes and PL** traces, **P0.1** and **stress index**, **EIT** with PEEP trial and pendelluft, **low-flow P/V curve** (airway opening pressure), **R/I ratio**, the **occlusion test**.
 - **Instructor console**: from one computer (or tablet) you see every learner's ventilator live and change the patient: clinical picture, mechanics, vital signs, asynchronies, timed events.
 - **Session log** for the debriefing: who did what and when, with parameter trends. Prints to PDF.
 - **Guided tour** for people who have never touched a ventilator.
@@ -52,9 +53,9 @@ Go to **[Releases](https://github.com/fedebarra/open-vent-sim/releases/latest)**
 
 | Your computer | File |
 |---|---|
-| Windows | `OpenVentSim-3.1.3-win-x64.exe` (installer) — or `OpenVentSim-3.1.3-portable.exe` (no install, just run it) |
-| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.1.3-mac-arm64.dmg` |
-| Mac with Intel processor | `OpenVentSim-3.1.3-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.2.0-win-x64.exe` (installer) — or `OpenVentSim-3.2.0-portable.exe` (no install, just run it) |
+| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.2.0-mac-arm64.dmg` |
+| Mac with Intel processor | `OpenVentSim-3.2.0-mac-x64.dmg` |
 
 > If the `.dmg` won't open, download the `.zip` with the same name: double-click to extract, then drag **Open Vent Sim** into Applications.
 
@@ -138,7 +139,18 @@ Above the waveforms there are the **Waves / Loops** buttons and, when enabled, *
 <p align="center"><img src="docs/screenshots/21-loops-en.png" width="640" alt="Pressure-volume and flow-volume loops"></p>
 <p align="center"><img src="docs/screenshots/22-palv-pmus-en.png" width="640" alt="Palv and Pmus traces"></p>
 
-**PRVC** (pressure-regulated volume control), in invasive ICU: you set the volume; the machine starts with a 10 cmH₂O test breath and changes the pressure by at most 3 cmH₂O per breath until the volume is reached. If compliance falls, pressure rises by itself — which is the point to teach.
+**PRVC** (pressure-regulated volume control), in invasive ICU: you set the volume; the machine starts with a 10 cmH₂O test breath and changes the pressure by at most 3 cmH₂O per breath until the volume is reached. If compliance falls, pressure rises by itself — which is the point to teach. The regulator reads the breaths actually delivered: if the patient pulls, the machine lowers the pressure.
+
+### The breathing engine, EIT and the new manoeuvres (3.2)
+
+The waveforms come from a **breathing engine**: the equation of motion integrated at 200 Hz, with the patient's effort inside. Auto-PEEP builds up breath by breath, an ineffective effort is a real effort that misses the trigger, a double trigger is an effort longer than the machine's inspiration. The engine was validated against the simulator by T. Piraino (sim.rtmaven.com, reviewed by G. Bellani): tidal volumes within 1–2%, pressures within 0.5 cmH₂O (comparison in `docs/confronto-rtmaven.md`).
+
+- **PAV+** and **A/C** (trigger open in VC, PC, PRVC; off by default). **Decelerating flow** in VC.
+- **Pes·PL**: oesophageal and transpulmonary pressure, with the cardiac artefact.
+- **P0.1** (when the patient opens the breaths) and **stress index** (VC, square flow) on the display.
+- **EIT** (invasive ICU): tidal and dynamic image, global/ventral/dorsal impedance, pendelluft with vigorous efforts, and a **PEEP trial** with collapse/overdistension curves and their crossing (Costa 2009).
+- **Manoeuvres**: the expiratory hold becomes an **occlusion test** when the patient pulls (ΔPocc, estimated Pmus and dynamic PL); **low-flow P/V curve** finds the airway opening pressure; **R/I ratio** (Chen 2020) from PEEP ≥ 10.
+- In the instructor console, the **Effort & chest wall** tab: obesity, tense abdomen, airway closure, vigorous effort, irregular breathing, cardiac oscillations, grunting, active expiration; effort shape, effort that responds to support, breath-to-breath variability. The **Machine** tab saves and loads a **scenario** (patient and machine) as a file.
 
 | Anaesthesia | Non-invasive | High flow |
 |---|---|---|
@@ -194,6 +206,16 @@ The log survives closing and reopening the console.
 | I want the old (2.x) interface | In the browser, add `?legacy=1` to the address (stand-alone only). |
 
 ## 9. What's new
+
+### 3.2.0 — 9 November 2026
+
+- Breathing engine (equation of motion, deterministic for the classroom network), validated against sim.rtmaven.com.
+- PAV+, A/C, decelerating flow, Pes·PL, P0.1, stress index, EIT with PEEP trial and pendelluft.
+- Occlusion test, low-flow P/V curve (airway opening pressure), R/I ratio.
+- Console: *Effort & chest wall* tab, scenario save/load. PRVC reads the delivered breaths.
+- NIV: the console sets a **real mask leak** (l/min): VTi above VTe, delayed cycling, auto-triggering, pressure not reached with the mask off the face. New *Leak* reading in l/min.
+- **Ventilator on the second screen**: one button in the console opens a ventilator, already joined, full screen on the projector or interactive whiteboard (Esc leaves full screen). Learners still need nothing installed: any browser on the same network (iPad included) opens the ventilator from the QR code or the address and PIN.
+- Guided tour: steps for every new function.
 
 ### 3.1.3 — 8 November 2026
 

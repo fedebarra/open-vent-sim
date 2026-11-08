@@ -10,9 +10,27 @@
  * solo il volume non se ne accorge.
  *
  * (Aggiunta di Open Vent Sim 3.1; il resto del motore tratta PRVC come PC.)
+ *
+ * Dalla 3.2 il volume che il regolatore legge è quello **erogato dal motore**,
+ * la media degli ultimi atti: se il paziente tira, l'atto porta più volume e
+ * la macchina abbassa la pressione — è il PRVC che «toglie» il supporto a chi
+ * ha fame d'aria, e si vede solo se il regolatore guarda gli atti veri.
  */
-import { polmoneOra, tempiRespiro, volumeCorrenteAtteso } from './fisica'
+import { polmoneOra, tempiRespiro, volumeCorrenteAtteso, type StatoVentilatore } from './fisica'
 import { statoDa, type VentIstantanea } from './istantanea'
+import { attiRecenti, motoreCopre } from './motore'
+
+/**
+ * Il volume che il regolatore misura, ml: gli ultimi tre atti del motore a un
+ * istante fisso (il regime, lo stesso per tutti gli schermi), o il conto
+ * analitico dove il motore non c'è.
+ */
+function volumeMisurato(stato: StatoVentilatore): number {
+  if (!motoreCopre(stato)) return volumeCorrenteAtteso(stato)
+  const ultimi = attiRecenti(60, stato, 20).slice(-3)
+  if (!ultimi.length) return volumeCorrenteAtteso(stato)
+  return ultimi.reduce((x, a) => x + a.vti, 0) / ultimi.length
+}
 
 export const PRVC_PROVA = 10
 export const PRVC_PASSO = 3
@@ -38,8 +56,15 @@ export function regolaPrvc(ist: VentIstantanea, dtSec: number): VentIstantanea {
   let pressione = ist.impostazioni.pressureTarget
   while (atti >= 1) {
     const stato = polmoneOra(statoDa({ ...ist, impostazioni: { ...ist.impostazioni, pressureTarget: pressione } }))
-    pressione = prossimaPressione(pressione, volumeCorrenteAtteso(stato), ist.impostazioni.volume, stato.fisiologia.compliance)
+    const prossima = prossimaPressione(pressione, volumeMisurato(stato), ist.impostazioni.volume, stato.fisiologia.compliance)
     atti -= 1
+    // Arrivato: gli atti che restano non cambiano più niente, e un recupero
+    // lungo non deve rifare il motore per ognuno.
+    if (prossima === pressione) {
+      atti = atti % 1
+      break
+    }
+    pressione = prossima
   }
   return { ...ist, prvcAtti: atti, impostazioni: { ...ist.impostazioni, pressureTarget: pressione } }
 }

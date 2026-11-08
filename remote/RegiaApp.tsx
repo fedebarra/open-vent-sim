@@ -10,16 +10,20 @@ import type { RemoteCommand, RemoteEvent, ServerMessage, VentInfo, VentSnapshot 
 import { rt, RemoteStrings, ventName } from './strings';
 import { MiniWaves } from './MiniWaves';
 import { EVENT_LIBRARY, SequenceStep, parseSequence, EventDef } from './events';
+import { comandiScenario, parseScenario, scenarioDa } from './scenario';
+import { Tour } from '../tour/Tour';
+import { REGIA_STEPS } from '../tour/regia';
 import { RegistroView } from './RegistroView';
 import { Categoria, Registro, nuovoRegistro, vociAllarmi, PASSO_CAMPIONE_MS, leggiJson } from './registro';
 import { useLanguage } from '../src/contexts/LanguageContext';
 import { translate } from '../device/i18n';
 import type { ComandoPaziente, VentIstantanea, AzioneVentilatore } from '../device/remoteTypes';
-import { PRESET_FISIOLOGIA, RECLUTAMENTO_SECONDI, trasmissioneToracica } from '../device/screens/scenario/ventilatore/fisica';
+import { PEEP_MINIMA_RI, PRESET_FISIOLOGIA, RECLUTAMENTO_SECONDI, trasmissioneToracica } from '../device/screens/scenario/ventilatore/fisica';
 import { PRESET_ASINCRONIA, TIPI_ASINCRONIA, type TipoAsincronia } from '../device/screens/scenario/ventilatore/asincronie';
 import { MODALITA_PER_AMBIENTE, PARAMETRI, impostazioniVisibili, type ChiaveImpostazione } from '../device/screens/scenario/ventilatore/parametri';
 import { ALLARMI } from '../device/screens/scenario/ventilatore/allarmi';
-import { NOME_AMBIENTE, NOME_ASINCRONIA, NOME_MODALITA, NOME_PRESET, NOME_MANOVRA } from '../device/screens/scenario/ventilatore/nomi';
+import { NOME_AMBIENTE, NOME_ASINCRONIA, NOME_MODALITA, NOME_PRESET, NOME_MANOVRA, NOME_QUADRO } from '../device/screens/scenario/ventilatore/nomi';
+import { QUADRI_MECCANICA, conQuadro, quadroAcceso, senzaQuadro, type QuadroMeccanica } from '../device/screens/scenario/ventilatore/quadri';
 
 interface Props { wsUrl: string; regiaKey: string }
 interface LogLine { at: number; vent: string; text: string; source: 'learner' | 'director' | 'device'; kind?: string }
@@ -44,13 +48,14 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
   const [log, setLog] = useState<LogLine[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [sendAll, setSendAll] = useState(false);
-  const [tab, setTab] = useState<'patient' | 'async' | 'lung' | 'machine' | 'events'>('patient');
+  const [tab, setTab] = useState<'patient' | 'async' | 'mechanics' | 'lung' | 'machine' | 'events'>('patient');
   const [flash, setFlash] = useState<string | null>(null);
   const [ramps, setRamps] = useState<Ramp[]>([]);
   const [info, setInfo] = useState<{ addresses: string[]; port: number } | null>(null);
   const [registro, setRegistro] = useState<Registro | null>(() => { try { const t = localStorage.getItem(REGISTRO_KEY); return t ? leggiJson(t) : null; } catch { return null; } });
   const [recording, setRecording] = useState(() => { try { return localStorage.getItem('ovs-recording') === '1'; } catch { return false; } });
   const [showRegistro, setShowRegistro] = useState(false);
+  const [tourActive, setTourActive] = useState(false);
 
   const linkRef = useRef<Link | null>(null);
   const rampsRef = useRef<Ramp[]>([]); rampsRef.current = ramps;
@@ -248,6 +253,15 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
   const ventUrl = `http://${lan[0]}:${port}/?role=vent&pin=${session.pin}`;
   const tabletUrl = `http://${lan[0]}:${port}/?role=regia&key=${regiaKey}`;
 
+  // A ventilator on the second screen of the computer running the console: the
+  // desktop app places it full screen on the other display; in a browser it is
+  // a new window to drag there (it joins this session like any learner).
+  const apriSecondoSchermo = () => {
+    const desk = (window as any).ovsDesktop;
+    if (desk?.openSecondScreen) { desk.openSecondScreen().catch((e: unknown) => setFlash(String(e))); return; }
+    window.open(`${window.location.protocol}//${window.location.host}/?role=vent&pin=${session.pin}`, '_blank', 'popup,width=1366,height=860');
+  };
+
   if (denied) return <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6"><p className="text-red-300 text-lg">{s.regiaDenied}</p></div>;
 
   return (
@@ -261,6 +275,8 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
           {!recording
             ? <button data-testid="rec-start" onClick={startRecording} className="px-3 py-1.5 rounded-lg border-2 border-red-500 bg-slate-800 font-semibold">● {s.recStart}</button>
             : <button data-testid="rec-stop" onClick={stopRecording} className="px-3 py-1.5 rounded-lg bg-red-600 font-semibold animate-pulse">■ {s.recStop}</button>}
+          <button data-testid="regia-tour" onClick={() => setTourActive(true)} className="px-3 py-1.5 rounded-lg bg-sky-800">? {s.guide}</button>
+          <button data-testid="second-screen" title={s.secondScreenHint} onClick={apriSecondoSchermo} className="px-3 py-1.5 rounded-lg bg-slate-700">▣ {s.secondScreen}</button>
           {registro && <button data-testid="rec-open" onClick={() => setShowRegistro(true)} className="px-3 py-1.5 rounded-lg bg-slate-700">{s.recOpen}</button>}
           <span className="px-3 py-1 rounded-lg bg-slate-800 border border-slate-700">{s.regiaPin}: <b data-testid="regia-pin" className="text-2xl tracking-widest text-amber-300 font-mono">{session.pin || '····'}</b></span>
           <select aria-label={s.language} value={language} onChange={(e) => setLanguage(e.target.value as 'it' | 'en')} className="bg-slate-800 border border-slate-700 rounded px-2 py-1">
@@ -268,6 +284,8 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
           </select>
         </span>
       </header>
+      <Tour active={tourActive} onClose={() => setTourActive(false)} steps={REGIA_STEPS}
+        context={{ screen: 'running', icuChoice: false, ambiente: ist?.ambiente ?? null, vent: ist, actions: [] }} />
       {flash && <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 shadow-xl" data-testid="regia-flash">{flash}</div>}
 
       <div className="grid gap-3 p-3" style={{ gridTemplateColumns: 'minmax(250px, 300px) 1fr minmax(260px, 320px)' }}>
@@ -286,7 +304,7 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
           <Card title={vent ? ventName(vent.name, language) : s.ventilators} right={ist && <Summary ist={ist} s={s} tr={tr} />}>
             {!snap ? <p className="text-slate-400 py-8 text-center">{vent ? s.waitingData : s.noVentilators}</p>
               : !ist ? <p className="text-slate-400 py-8 text-center">{(s as any)['screen_' + snap.screen] || snap.screen}</p> : (
-                <>
+                <div data-tour="regia-ventilatore">
                   <MiniWaves ist={ist} />
                   <Numbers ist={ist} />
                   <div className="mt-2 flex flex-wrap gap-1 items-center">
@@ -294,15 +312,15 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
                     {ist.allarmi.length === 0 ? <span className="text-slate-500">{s.noAlarms}</span> :
                       ist.allarmi.map((a) => <span key={a.chiave} className="px-2 py-0.5 rounded bg-red-900/70 border border-red-600 text-red-100 text-xs">{tr((ALLARMI as any)[a.chiave]?.etichetta ?? a.chiave)}{a.verso ? (a.verso === 'alto' ? ' ↑' : ' ↓') : ''}</span>)}
                   </div>
-                </>
+                </div>
               )}
           </Card>
 
           <Card title="" pad={false}>
             <div className="flex flex-wrap items-center gap-1 border-b border-slate-800 px-2 pt-2">
-              {(['patient', 'async', 'lung', 'machine', 'events'] as const).map((k) => (
+              {(['patient', 'async', 'mechanics', 'lung', 'machine', 'events'] as const).map((k) => (
                 <button key={k} data-testid={`tab-${k}`} onClick={() => setTab(k)} className={`px-3 py-2 rounded-t-lg ${tab === k ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-white'}`}>
-                  {{ patient: s.tabPatient, async: s.tabAsync, lung: s.tabLung, machine: s.tabMachine, events: s.tabEvents }[k]}
+                  {{ patient: s.tabPatient, async: s.tabAsync, mechanics: s.tabMechanics, lung: s.tabLung, machine: s.tabMachine, events: s.tabEvents }[k]}
                 </button>
               ))}
               <label className="ml-auto flex items-center gap-2 text-slate-300 pb-1 pr-2">{s.sendTo}:
@@ -315,8 +333,9 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
               {!ist && tab !== 'events' ? <p className="text-slate-400">{s.notRunning}</p> : <>
                 {tab === 'patient' && ist && <PatientTab key={selected!} s={s} tr={tr} ist={ist} onApply={paziente} ramps={ramps.filter((r) => targets().includes(r.vent))} onStopRamps={() => setRamps([])} />}
                 {tab === 'async' && ist && <AsyncTab key={selected!} s={s} tr={tr} ist={ist} onApply={paziente} />}
+                {tab === 'mechanics' && ist && <MechanicsTab key={selected!} s={s} tr={tr} ist={ist} onApply={paziente} />}
                 {tab === 'lung' && ist && <LungTab key={selected!} s={s} ist={ist} onApply={paziente} onRecruit={() => azione({ tipo: 'manovra', manovra: 'reclutamento' }, s.recruitmentStart)} />}
-                {tab === 'machine' && ist && <MachineTab s={s} tr={tr} ist={ist} azione={azione} opzioni={(on) => { targets().forEach((id) => sendRaw(id, { type: 'opzioni', pressioniDidattiche: on })); setFlash(`${s.applied}: ${s.teachingTraces} ${on ? 'ON' : 'OFF'}`); }} />}
+                {tab === 'machine' && ist && <MachineTab s={s} tr={tr} ist={ist} azione={azione} onPaziente={paziente} opzioni={(on) => { targets().forEach((id) => sendRaw(id, { type: 'opzioni', pressioniDidattiche: on })); setFlash(`${s.applied}: ${s.teachingTraces} ${on ? 'ON' : 'OFF'}`); }} />}
               </>}
               {tab === 'events' && <EventsTab s={s} steps={steps} setSteps={setSteps} seq={seq} setSeq={setSeq} fire={fireEvent} />}
             </div>
@@ -560,6 +579,77 @@ const AsyncTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; onAppl
   );
 };
 
+// ------------------------------------------------------------ Mechanics tab
+const MechanicsTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; onApply: (p: Patch, label: string, rampSec: number) => void }> = ({ s, tr, ist, onApply }) => {
+  const f = ist.fisiologia;
+  const d = ist.drive;
+  const [osc, setOsc] = useState(num(f.oscillazioniCardiache, 0));
+  const [pes, setPes] = useState(num(f.pesBasale, 0));
+  const [aop, setAop] = useState(num(f.aperturaVie, 0));
+  const [freno, setFreno] = useState(num(f.sforzoEspiratorio, 0));
+  const [ea, setEa] = useState(num(d.espirioAttivo, 0));
+  const [vari, setVari] = useState(num(d.variabilita, 0));
+  const [auto, setAuto] = useState(!d.forma);
+  const [forma, setForma] = useState(d.forma ?? { salita: 0.5, tenuta: 0.05, discesa: 0.4 });
+  const [resp, setResp] = useState(!!d.responsivo);
+  const [leakOn, setLeakOn] = useState(typeof f.perditaMaschera === 'number');
+  const [leak, setLeak] = useState(num(f.perditaMaschera, 20));
+  // A quadro: the patch is only the fields the picture touches, so the
+  // director's other choices stay where they are.
+  const toggle = (q: QuadroMeccanica) => {
+    const on = quadroAcceso(ist, q);
+    const next = on ? senzaQuadro(ist, q) : conQuadro(ist, q);
+    const quadro = QUADRI_MECCANICA[q];
+    const patch: Patch = {};
+    if (quadro.fisiologia) patch.fisiologia = Object.fromEntries(Object.keys(quadro.fisiologia).map((k) => [k, (next.fisiologia as any)[k]])) as any;
+    if (quadro.drive) patch.drive = Object.fromEntries(Object.keys(quadro.drive).map((k) => [k, (next.drive as any)[k]])) as any;
+    onApply(patch, `${tr(NOME_QUADRO[q])} ${on ? 'OFF' : 'ON'}`, 0);
+  };
+  const apply = () => onApply({
+    fisiologia: { oscillazioniCardiache: osc, pesBasale: pes, aperturaVie: aop, sforzoEspiratorio: freno, ...(ist.ambiente === 'niv' ? { perditaMaschera: leakOn ? leak : null } : {}) },
+    drive: { espirioAttivo: ea, variabilita: vari, responsivo: resp, forma: auto ? null : forma },
+  }, s.tabMechanics, 0);
+  return (
+    <div className="space-y-3">
+      <p className="text-slate-400 text-xs">{s.mechIntro}</p>
+      <div className="flex flex-wrap gap-1 items-center">
+        <span className="text-slate-400 mr-1">{s.mechPictures}:</span>
+        {(Object.keys(QUADRI_MECCANICA) as QuadroMeccanica[]).map((q) => (
+          <button key={q} data-testid={`quadro-${q}`} onClick={() => toggle(q)}
+            className={`px-2.5 py-1 rounded border ${quadroAcceso(ist, q) ? 'bg-sky-900 border-sky-500' : 'bg-slate-800 border-slate-700 hover:border-sky-500'}`}>{tr(NOME_QUADRO[q])}</button>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+        <Slider testId="sl-cardiac" label={s.cardiacOsc} value={osc} min={0} max={1} step={0.05} digits={2} live={f.oscillazioniCardiache ?? 0} nowLabel={s.now} onChange={setOsc} />
+        <Slider testId="sl-pes" label={s.pesBaseline} value={pes} min={0} max={25} step={1} unit="cmH₂O" live={f.pesBasale ?? 0} nowLabel={s.now} onChange={setPes} />
+        <Slider testId="sl-aop" label={s.aop} value={aop} min={0} max={20} step={1} unit="cmH₂O" live={f.aperturaVie ?? 0} nowLabel={s.now} onChange={setAop} />
+        <Slider label={s.expBrake} value={freno} min={0} max={1} step={0.05} digits={2} live={f.sforzoEspiratorio} nowLabel={s.now} onChange={setFreno} />
+        <Slider label={s.activeExp} value={ea} min={0} max={1} step={0.05} digits={2} live={d.espirioAttivo ?? 0} nowLabel={s.now} onChange={setEa} />
+        <Slider testId="sl-variability" label={s.variability} value={vari} min={0} max={1} step={0.05} digits={2} live={d.variabilita ?? 0} nowLabel={s.now} onChange={setVari} />
+      </div>
+      {ist.ambiente === 'niv' && (
+        <div className="grid grid-cols-2 gap-x-6 gap-y-2 items-end">
+          <Slider testId="sl-mask-leak" label={s.maskLeak} value={leak} min={0} max={200} step={5} live={f.perditaMaschera ?? '–'} nowLabel={s.now} onChange={(v) => { setLeak(v); setLeakOn(true); }} />
+          <label className="flex items-center gap-2 text-slate-300 text-xs" title={s.maskLeakHint}><input type="checkbox" data-testid="opt-mask-leak" checked={leakOn} onChange={(e) => setLeakOn(e.target.checked)} className="accent-sky-500" /> {s.maskLeakSet}</label>
+        </div>
+      )}
+      <div className="flex flex-wrap items-center gap-4 text-slate-300">
+        <span className="text-slate-400">{s.effortShape}</span>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} className="accent-sky-500" /> {s.autoShape}</label>
+        <label className="flex items-center gap-2"><input type="checkbox" data-testid="opt-responsive" checked={resp} onChange={(e) => setResp(e.target.checked)} className="accent-sky-500" /> {s.responsive}</label>
+      </div>
+      {!auto && (
+        <div className="grid grid-cols-3 gap-x-6 gap-y-2">
+          <Slider label={s.riseS} value={forma.salita} min={0.1} max={1.5} step={0.05} digits={2} unit="s" onChange={(v) => setForma((x) => ({ ...x, salita: v }))} />
+          <Slider label={s.holdS} value={forma.tenuta} min={0} max={1} step={0.05} digits={2} unit="s" onChange={(v) => setForma((x) => ({ ...x, tenuta: v }))} />
+          <Slider label={s.releaseS} value={forma.discesa} min={0.1} max={1.5} step={0.05} digits={2} unit="s" onChange={(v) => setForma((x) => ({ ...x, discesa: v }))} />
+        </div>
+      )}
+      <button data-testid="mech-apply" onClick={apply} className="px-5 py-2 rounded-lg bg-sky-600 font-semibold">{s.apply}</button>
+    </div>
+  );
+};
+
 // ----------------------------------------------------------------- Lung tab
 const LungTab: React.FC<{ s: RemoteStrings; ist: VentIstantanea; onApply: (p: Patch, label: string, rampSec: number) => void; onRecruit: () => void }> = ({ s, ist, onApply, onRecruit }) => {
   const [r, setR] = useState(num(ist.fisiologia.reclutabilita, 0.15));
@@ -592,8 +682,22 @@ const LungTab: React.FC<{ s: RemoteStrings; ist: VentIstantanea; onApply: (p: Pa
 const Info: React.FC<{ k: string; v: string }> = ({ k, v }) => <div className="bg-slate-800 rounded px-2 py-1"><div className="text-slate-400">{k}</div><div className="font-mono text-base">{v}</div></div>;
 
 // -------------------------------------------------------------- Machine tab
-const MachineTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; azione: (a: AzioneVentilatore, label: string) => void; opzioni: (on: boolean) => void }> = ({ s, tr, ist, azione, opzioni }) => {
+const MachineTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; azione: (a: AzioneVentilatore, label: string) => void; onPaziente: (p: Patch, label: string, rampSec: number) => void; opzioni: (on: boolean) => void }> = ({ s, tr, ist, azione, onPaziente, opzioni }) => {
   const [values, setValues] = useState<Record<string, string>>({});
+  const scenarioRef = useRef<HTMLInputElement>(null);
+  // The scenario: patient and machine as they are now, to a file and back.
+  const salvaScenario = () => {
+    const blob = new Blob([JSON.stringify(scenarioDa(ist, 'scenario'), null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `open-vent-sim-scenario-${ist.modalita}.json`; a.click(); URL.revokeObjectURL(a.href);
+  };
+  const caricaScenario = (f: File) => f.text().then((txt) => {
+    try {
+      const sc = parseScenario(txt);
+      const c = comandiScenario(sc, ist);
+      c.azioni.forEach((a) => azione(a, a.tipo === 'parametro' ? `${a.chiave} → ${a.valore}` : `${s.mode} → ${(a as any).modalita}`));
+      onPaziente(c.paziente, `${s.scenarioLoaded}: ${sc.name}${c.ambienteDiverso ? ` (${s.scenarioOtherEnv})` : ''}`, 0);
+    } catch (e) { window.alert(String(e)); }
+  });
   const keys = impostazioniVisibili({ ambiente: ist.ambiente, modalita: ist.modalita, respiro: ist.respiro, impostazioni: ist.impostazioni }) as ChiaveImpostazione[];
   return (
     <div className="space-y-3">
@@ -631,12 +735,19 @@ const MachineTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; azio
       <div className="flex flex-wrap gap-2">
         <button data-testid="vent-toggle" onClick={() => azione({ tipo: 'standby', ventilando: !ist.ventilando }, ist.ventilando ? s.ventOff : s.ventOn)} className={`px-4 py-2 rounded-lg font-semibold ${ist.ventilando ? 'bg-red-700' : 'bg-green-700'}`}>{ist.ventilando ? s.ventOff : s.ventOn}</button>
         <button onClick={() => azione({ tipo: 'silenzia' }, s.silence)} className="px-4 py-2 rounded-lg bg-slate-700">{s.silence}</button>
+        <button data-testid="scenario-save" onClick={salvaScenario} className="px-4 py-2 rounded-lg bg-slate-700">{s.scenarioSave}</button>
+        <button data-testid="scenario-load" onClick={() => scenarioRef.current?.click()} className="px-4 py-2 rounded-lg bg-slate-700">{s.scenarioLoad}</button>
+        <input ref={scenarioRef} data-testid="scenario-file" type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) caricaScenario(f); e.target.value = ''; }} />
         <label className="flex items-center gap-2 text-slate-300 px-2">
           <input type="checkbox" data-testid="opt-didattica" onChange={(e) => opzioni(e.target.checked)} className="accent-sky-500" /> {s.teachingTraces}
         </label>
         {ist.ambiente === 'invasiva' || ist.ambiente === 'anestesia' ? <>
           <button disabled={!ist.ventilando || !!ist.manovra} onClick={() => azione({ tipo: 'manovra', manovra: 'pausa-inspiratoria' }, s.inspHold)} className="px-4 py-2 rounded-lg bg-slate-700 disabled:opacity-40">{s.inspHold}</button>
           <button disabled={!ist.ventilando || !!ist.manovra} onClick={() => azione({ tipo: 'manovra', manovra: 'pausa-espiratoria' }, s.expHold)} className="px-4 py-2 rounded-lg bg-slate-700 disabled:opacity-40">{s.expHold}</button>
+          {ist.ambiente === 'invasiva' && <>
+            <button data-testid="man-curva-lenta" disabled={!ist.ventilando || !!ist.manovra} onClick={() => azione({ tipo: 'manovra', manovra: 'curva-lenta' }, s.slowCurve)} className="px-4 py-2 rounded-lg bg-slate-700 disabled:opacity-40">{s.slowCurve}</button>
+            <button data-testid="man-rapporto-ri" disabled={!ist.ventilando || !!ist.manovra || num(ist.impostazioni.peep) < PEEP_MINIMA_RI} onClick={() => azione({ tipo: 'manovra', manovra: 'rapporto-ri' }, s.riRatio)} className="px-4 py-2 rounded-lg bg-slate-700 disabled:opacity-40">{s.riRatio}</button>
+          </>}
           {ist.manovra && <button onClick={() => azione({ tipo: 'manovra', manovra: null }, '■')} className="px-4 py-2 rounded-lg bg-slate-600">■ {tr(NOME_MANOVRA[ist.manovra])}</button>}
         </> : null}
       </div>

@@ -66,3 +66,26 @@ describe('tour steps', () => {
     expect(tourStrings('it').step(3, 14)).toBe('Passo 3 di 14');
   });
 });
+
+import { REGIA_STEPS } from '../tour/regia';
+describe('console tour steps', () => {
+  it('have unique ids, both languages, and differ from the ventilator ids', () => {
+    const ids = REGIA_STEPS.map((s) => s.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    const vent = new Set(TOUR_STEPS.map((s) => s.id));
+    for (const s of REGIA_STEPS) {
+      expect(vent.has(s.id), s.id).toBe(false);
+      for (const l of ['it', 'en'] as const) {
+        expect(s[l].title.trim().length, `${s.id}.${l}.title`).toBeGreaterThan(0);
+        expect(s[l].body.trim().length, `${s.id}.${l}.body`).toBeGreaterThan(0);
+      }
+      expect(!!s.it.tryIt, `${s.id} tryIt`).toBe(!!s.en.tryIt);
+      expect(s.it.body).not.toBe(s.en.body);
+    }
+  });
+  it('covers every tab of the console', () => {
+    for (const k of ['patient', 'async', 'mechanics', 'lung', 'machine', 'events']) {
+      expect(REGIA_STEPS.some((s) => s.target?.includes(`[data-testid="tab-${k}"]`)), k).toBe(true);
+    }
+  });
+});

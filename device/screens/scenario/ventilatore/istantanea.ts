@@ -268,6 +268,7 @@ export function statoDa(istantanea: VentIstantanea): StatoVentilatore {
     paziente: istantanea.paziente,
     seme: istantanea.seme,
     sfasamentoSpontaneo: istantanea.sfasamentoSpontaneo ?? 0,
+    manovraDa: istantanea.manovraDa ?? null,
   }
 }
 
@@ -467,7 +468,7 @@ export function batti(istantanea: VentIstantanea, tSec: number, dtSec: number): 
         ? motivoInterruzione(prossima, prossima.baseManovra, misure)
         : null
     if (stop !== null || tenuta >= quanto) {
-      const esito = esitoManovra(statoDa(prossima), prossima.manovra, misure)
+      const esito = esitoManovra(statoDa(prossima), prossima.manovra, misure, tSec)
       prossima = {
         ...prossima,
         manovraEsito: {

@@ -1,8 +1,8 @@
-# Open Vent Sim 3.1
+# Open Vent Sim 3.2
 
 **Simulatore gratuito e open-source di ventilatore, macchina d'anestesia e alti flussi — con la regia dell'istruttore sulla rete della tua aula.**
 
-🇬🇧 [English version](README.md) · 📅 Versione 3.1.3 — pubblicata l'8 novembre 2026 · Licenza MIT
+🇬🇧 [English version](README.md) · 📅 Versione 3.2.0 — 9 novembre 2026 · Licenza MIT
 
 <p align="center"><img src="docs/screenshots/10-regia-live.png" width="820" alt="La regia vede il ventilatore dello studente in diretta"></p>
 
@@ -30,6 +30,7 @@
 - **Tre apparecchi in uno**: macchina d'anestesia, ventilatore di terapia intensiva (invasiva e non invasiva) e alti flussi.
 - **Curve vere**: pressione, flusso e volume calcolati dal modello del polmone, con compliance che cambia con la PEEP, auto-PEEP, sforzi del paziente e asincronie.
 - **Loop pressione–volume e flusso–volume**, tracce di **pressione alveolare (Palv)** e **sforzo del paziente (Pmus)**, modalità **PRVC**.
+- Un **motore del respiro** che integra l'equazione del moto: auto-PEEP, trigger, ciclaggio e asincronie succedono invece di essere disegnati. **PAV+**, assistita-controllata (A/C), **flusso decelerante**, tracce **Pes e PL**, **P0.1** e **stress index**, **EIT** con PEEP trial e pendelluft, **curva P/V lenta** (pressione di apertura delle vie aeree), **rapporto R/I**, il **test di occlusione**.
 - **Regia dell'istruttore**: da un computer (o da un tablet) vedi in diretta il ventilatore di ogni studente e cambi il paziente: quadro clinico, meccanica, parametri vitali, asincronie, eventi programmati.
 - **Registro della sessione** per il debriefing: chi ha fatto cosa e quando, con l'andamento dei parametri. Si stampa in PDF.
 - **Guida passo passo** per chi non ha mai visto un ventilatore.
@@ -52,9 +53,9 @@ Vai alla pagina **[Releases](https://github.com/fedebarra/open-vent-sim/releases
 
 | Il tuo computer | File da scaricare |
 |---|---|
-| Windows | `OpenVentSim-3.1.3-win-x64.exe` (installazione) — oppure `OpenVentSim-3.1.3-portable.exe` (senza installare, si apre e basta) |
-| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.1.3-mac-arm64.dmg` |
-| Mac con processore Intel | `OpenVentSim-3.1.3-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.2.0-win-x64.exe` (installazione) — oppure `OpenVentSim-3.2.0-portable.exe` (senza installare, si apre e basta) |
+| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.2.0-mac-arm64.dmg` |
+| Mac con processore Intel | `OpenVentSim-3.2.0-mac-x64.dmg` |
 
 > Se il `.dmg` non si apre, scarica il `.zip` con lo stesso nome: doppio clic per estrarlo, poi trascina **Open Vent Sim** in Applicazioni.
 
@@ -138,7 +139,18 @@ Sopra le curve ci sono i tasti **Curve / Loop** e, se abilitato, **Palv·Pmus**:
 <p align="center"><img src="docs/screenshots/21-loops.png" width="640" alt="Loop pressione-volume e flusso-volume"></p>
 <p align="center"><img src="docs/screenshots/22-palv-pmus.png" width="640" alt="Tracce Palv e Pmus"></p>
 
-**PRVC** (pressione regolata a volume controllato), in intensiva invasiva: imposti il volume, la macchina parte da un atto di prova a 10 cmH₂O e corregge la pressione di al massimo 3 cmH₂O per atto finché il volume arriva. Se la compliance cala, la pressione sale da sola: è quello che si vuole far notare.
+**PRVC** (pressione regolata a volume controllato), in intensiva invasiva: imposti il volume, la macchina parte da un atto di prova a 10 cmH₂O e corregge la pressione di al massimo 3 cmH₂O per atto finché il volume arriva. Se la compliance cala, la pressione sale da sola: è quello che si vuole far notare. Il regolatore legge gli atti erogati davvero: se il paziente tira, la macchina abbassa la pressione.
+
+### Il motore del respiro, l'EIT e le manovre nuove (3.2)
+
+Le curve escono da un **motore del respiro**: l'equazione del moto integrata a 200 Hz, con dentro lo sforzo del paziente. L'auto-PEEP si accumula atto dopo atto, lo sforzo inefficace è uno sforzo vero che non arriva al trigger, il doppio trigger è uno sforzo più lungo dell'inspirazione della macchina. Il motore è stato confrontato con il simulatore di T. Piraino (sim.rtmaven.com, rivisto da G. Bellani): volumi correnti entro l'1-2%, pressioni entro 0,5 cmH₂O (il confronto è in `docs/confronto-rtmaven.md`).
+
+- **PAV+** e **A/C** (trigger aperto in VC, PC, PRVC; spento di default). **Flusso decelerante** in VC.
+- **Pes·PL**: pressione esofagea e transpolmonare, con l'artefatto cardiaco.
+- **P0.1** (quando il paziente apre gli atti) e **stress index** (VC a flusso quadro) sul display.
+- **EIT** (intensiva invasiva): immagine tidal e dinamica, impedenza globale/ventrale/dorsale, pendelluft con gli sforzi vigorosi, e un **PEEP trial** con le curve di collasso e sovradistensione e il loro incrocio (Costa 2009).
+- **Manovre**: la pausa espiratoria diventa un **test di occlusione** quando il paziente tira (ΔPocc, Pmus e PL dinamica stimate); la **curva P/V lenta** trova la pressione di apertura delle vie aeree; il **rapporto R/I** (Chen 2020) da PEEP ≥ 10.
+- In regia, la scheda **Sforzo e parete**: obesità, addome teso, chiusura delle vie aeree, sforzo vigoroso, respiro irregolare, oscillazioni cardiache, grugnito, espirio attivo; forma dello sforzo, sforzo che risponde al supporto, variabilità atto per atto. La scheda **Macchina** salva e carica uno **scenario** (paziente e macchina) in un file.
 
 | Anestesia | Non invasiva | Alti flussi |
 |---|---|---|
@@ -194,6 +206,16 @@ Il registro resta salvato anche se chiudi e riapri la regia.
 | Voglio l'interfaccia vecchia (2.x) | Nel browser aggiungi `?legacy=1` all'indirizzo, da soli. |
 
 ## 9. Novità
+
+### 3.2.0 — 9 novembre 2026
+
+- Motore del respiro (equazione del moto, deterministico per l'aula in rete), confrontato con sim.rtmaven.com.
+- PAV+, A/C, flusso decelerante, Pes·PL, P0.1, stress index, EIT con PEEP trial e pendelluft.
+- Test di occlusione, curva P/V lenta (pressione di apertura delle vie aeree), rapporto R/I.
+- Regia: scheda *Sforzo e parete*, salvataggio e caricamento dello scenario. Il PRVC legge gli atti erogati.
+- NIV: dalla regia una **perdita vera della maschera** (l/min): VTi sopra VTe, ciclaggio ritardato, auto-trigger, pressione che non arriva con la maschera staccata. Nuova misura *Perdita* in l/min.
+- **Ventilatore sul secondo schermo**: un pulsante della regia apre un ventilatore già collegato, a tutto schermo sul proiettore o sulla LIM (Esc per uscire dal tutto schermo). I discenti continuano a non installare niente: qualunque browser sulla stessa rete (iPad compreso) apre il ventilatore dal QR o dall'indirizzo col PIN.
+- Visita guidata: i passi per ogni funzione nuova.
 
 ### 3.1.3 — 8 novembre 2026
 

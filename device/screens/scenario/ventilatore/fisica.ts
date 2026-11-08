@@ -65,6 +65,7 @@ import {
   type StatoGas,
 } from './gas'
 import { rumore } from './caso'
+import { attiRecenti, campioneMotore, letturaCurvaLenta, motoreCopre } from './motore'
 import type { Circuito } from '../../paziente/presidiFigura'
 
 /**
@@ -114,6 +115,42 @@ export interface Fisiologia {
   secrezioni: number
   /** Quale quadro è stato scelto in regia, se ne è stato scelto uno. */
   preset: PresetFisiologia | null
+  /**
+   * Le oscillazioni cardiache sul flusso, 0–1 (facoltativo, 0 se manca).
+   *
+   * Il cuore batte contro il polmone e lascia sul flusso un'increspatura a ogni
+   * sistole; con un trigger a flusso molto sensibile basta a far partire un
+   * atto — è l'auto-trigger vero, quello che non ha bisogno di una perdita.
+   */
+  oscillazioniCardiache?: number
+  /**
+   * La pressione di apertura delle vie aeree, cmH₂O (facoltativa, 0 se manca).
+   *
+   * Sotto questa pressione le piccole vie si chiudono e il polmone resta
+   * isolato dal ventilatore (Chen, *AJRCCM* 2018): con la PEEP più bassa la
+   * pressione motrice letta è più alta di quella vera, e la pausa espiratoria
+   * non vede l'aria intrappolata. Si trova con la curva a basso flusso.
+   */
+  aperturaVie?: number
+  /**
+   * La pressione esofagea a fine espirazione, cmH₂O (facoltativa).
+   *
+   * Manca = cinque, più la quota della PEEP che arriva alla parete. L'obeso e
+   * l'addome teso stanno a quindici-venti: è lì che la PL espiratoria va
+   * negativa e la PEEP guidata dalla Pes ha senso (Talmor, *NEJM* 2008).
+   */
+  pesBasale?: number
+  /**
+   * La perdita della maschera in NIV, l/min a 10 cmH₂O (facoltativa).
+   *
+   * Manca = la perdita piccola e casuale di sempre, solo sul display. Scritta
+   * (anche zero) è una perdita **vera** nel motore: un orifizio, il flusso che
+   * cresce con √Paw. La macchina la stima e la toglie, ma non del tutto: con una
+   * perdita grande il flusso non scende mai alla soglia di ciclaggio e la PS
+   * resta in inspirazione fino al tempo massimo; con una perdita che cambia il
+   * trigger parte da solo; oltre il flusso massimo la pressione non arriva.
+   */
+  perditaMaschera?: number | null
 }
 
 export type PresetFisiologia =
@@ -204,7 +241,20 @@ export const FISIOLOGIA_NORMALE: Fisiologia = {
  * strumento, e a differenza delle pause può **interrompersi da sé** quando il
  * paziente non la regge (`RECLUTAMENTO_SECONDI`, `motivoInterruzione`).
  */
-export type Manovra = 'pausa-inspiratoria' | 'pausa-espiratoria' | 'reclutamento' | null
+export type Manovra =
+  | 'pausa-inspiratoria'
+  | 'pausa-espiratoria'
+  | 'reclutamento'
+  /** La curva pressione-volume a basso flusso: trova la pressione di apertura. */
+  | 'curva-lenta'
+  /** Il rapporto reclutamento/inflazione di Chen, da PEEP alta a PEEP bassa. */
+  | 'rapporto-ri'
+  | null
+
+/** Sotto questa PEEP il rapporto R/I non si fa: non c'è un gradino di dieci. */
+export const PEEP_MINIMA_RI = 10
+/** La PEEP bassa del rapporto R/I, cmH₂O (Chen, *AJRCCM* 2020). */
+export const PEEP_BASSA_RI = 5
 
 /**
  * Quanto dura il reclutamento sostenuto, in secondi.
@@ -414,6 +464,12 @@ export interface StatoVentilatore {
    * Sta nell'istantanea, quindi tutti gli schermi disegnano lo stesso atto.
    */
   sfasamentoSpontaneo: number
+  /**
+   * Quando è cominciata la manovra tenuta, nel tempo del ventilatore
+   * (facoltativo). La pausa ferma l'ultimo atto **prima** di questo istante, e
+   * lo sforzo del paziente che cade dentro la pausa è il test di occlusione.
+   */
+  manovraDa?: number | null
 }
 
 /** Da cmH₂O a mmHg. Le pressioni del torace si misurano in acqua, la PVC no. */
@@ -899,6 +955,7 @@ export function misura(
   // in giù `fis` e tutto quello che riceve `stato` hanno la compliance vera
   // (`polmoneOra`), e il numero sul display combacia con la curva disegnata.
   stato = polmoneOra(stato)
+  const statoMotore = stato
   const { impostazioni: imp, fisiologia: fis, ambiente, modalita } = stato
   const prima = precedenti ?? MISURE_VUOTE
   const m: Misure = { ...MISURE_VUOTE }
@@ -963,7 +1020,11 @@ export function misura(
     if (modalita === 'VC' || (modalita === 'SIMV' && imp.psLevel === 0)) {
       const flussoLs = Tif > 0 ? vt / 1000 / Tif : 0
       m.pPlateau = arrotonda(pAlveolare)
-      m.pPeak = arrotonda(pAlveolare + flussoLs * fis.resistenza)
+      m.pPeak = arrotonda(
+        (imp.formaFlusso ?? 0) === 1
+          ? piccoDecelerante(imp.peep, vt, Tif, fis.compliance, fis.resistenza)
+          : pAlveolare + flussoLs * fis.resistenza,
+      )
     } else if (modalita === 'PC' || modalita === 'PRVC' || (modalita === 'SIMV' && imp.psLevel > 0)) {
       m.pPeak = arrotonda(imp.peep + imp.pressureTarget)
       m.pPlateau = arrotonda(pAlveolare)
@@ -1001,7 +1062,10 @@ export function misura(
     // **apposta**, tanto di più quanto più alta è la pressione (√P, come una porta tarata):
     // l'autotest lo calibra e il ventilatore lo toglie dal conto. Non calibrato, quel flusso
     // sembra entrato nel paziente e il volume corrente letto è più alto del vero (§602).
-    const perdita = ambiente === 'niv' ? 0.03 + Math.abs(rumore(stato.seme, tSec, 0.2)) * 0.07 : 0
+    // Se la regia ha scritto la perdita della maschera, è vera e la conta il
+    // motore sugli atti (più sotto); se no, la piccola perdita di sempre.
+    const perditaVera = ambiente === 'niv' && typeof fis.perditaMaschera === 'number'
+    const perdita = ambiente === 'niv' && !perditaVera ? 0.03 + Math.abs(rumore(stato.seme, tSec, 0.2)) * 0.07 : 0
     const whisper =
       ambiente === 'niv' && stato.circuito === 'monotubo' && !stato.perditaCalibrata
         ? perditaDelWhisper(m.pPeak ?? imp.peep, Ti) / Math.max(1, vtErogato)
@@ -1021,6 +1085,66 @@ export function misura(
     const litri =
       (obbligati * (m.volumeExpired ?? 0) + spontanei * volumeSpontaneo(stato) * (1 - perdita)) / 1000
     m.volumeMinute = parseFloat(litri.toFixed(1))
+
+    // ## Dalla 3.2 i numeri li misura il motore, sugli atti che ha erogato
+    //
+    // Come un ventilatore vero e come il simulatore di riferimento: il picco è
+    // il massimo della Paw dell'atto, il corrente è l'integrale del flusso, la
+    // frequenza è quella contata. Il conto analitico di sopra resta il ripiego
+    // quando il motore non ha ancora atti da contare; quando li ha, la curva e
+    // il numero sono la stessa cosa per costruzione.
+    //
+    // **Dove**, per ora: dove il conto analitico non sa che cosa succede — gli
+    // atti che il paziente apre e chiude da sé (PS, CPAP, PAV) e l'assistita-
+    // controllata. In VC e PC passive il conto analitico è la stessa fisica del
+    // motore, e il sigh e l'ancoraggio della pressione media al circolo (giro
+    // 4-bis) restano sui numeri dell'atto che hanno.
+    const dalMotore =
+      motoreCopre(statoMotore) &&
+      (modalita === 'PS' || modalita === 'CPAP' || modalita === 'PAV' || imp.triggerControllata === 1)
+    const atti = dalMotore ? attiRecenti(tSec, statoMotore, 20) : []
+    if (atti.length >= 2) {
+      const ultimi = atti.slice(-3)
+      const media = (f: (a: (typeof atti)[number]) => number) => ultimi.reduce((x, a) => x + f(a), 0) / ultimi.length
+      const contati = (60 * (atti.length - 1)) / Math.max(0.5, atti[atti.length - 1].inizio - atti[0].inizio)
+      const vti = media((a) => a.vti)
+      const vte = media((a) => a.vte)
+      m.measuredFrequency = Math.round(contati)
+      m.volumeInspired = Math.round(vti)
+      m.volumeExpired = Math.round(vte * (1 - perdita) * (1 + whisper))
+      m.volumeMinute = parseFloat((((m.volumeExpired ?? 0) * contati) / 1000).toFixed(1))
+      m.tiTtot = parseFloat(
+        (media((a) => a.fineInsp - a.inizio) / Math.max(0.5, 60 / Math.max(1, contati))).toFixed(2),
+      )
+      // ## La perdita vera: quello che la macchina ha dato e il paziente non ha preso
+      //
+      // Il VTi della macchina comprende il gas uscito dal bordo mentre spingeva;
+      // il VTe è quello che il paziente restituisce. La differenza è la firma
+      // della perdita: la percentuale è (VTi − VTe)/VTi, come la scrivono i
+      // ventilatori; i litri al minuto sono tutto il gas perso nel ciclo.
+      if (perditaVera) {
+        const tutti = atti.slice(1)
+        const durata = Math.max(0.5, atti[atti.length - 1].fine - atti[0].fine)
+        const persi = tutti.reduce((x, a) => x + a.vPerso, 0)
+        const vti = media((a) => a.vti + a.vPersoInsp)
+        m.volumeInspired = Math.round(vti)
+        m.leakPercentage = vti > 0 ? parseFloat(Math.max(0, ((vti - vte) / vti) * 100).toFixed(1)) : 0
+        m.leakFlow = parseFloat(((persi / 1000) * (60 / durata)).toFixed(1))
+      }
+    }
+    // La P0.1 e lo stress index li sa solo il motore: sono la forma della
+    // curva, non il suo conto.
+    if (motoreCopre(statoMotore)) {
+      const recenti = atti.length ? atti : attiRecenti(tSec, statoMotore, 20)
+      const ultimi = (vals: (number | null)[]) => {
+        const v = vals.filter((x): x is number => typeof x === 'number').slice(-3)
+        return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null
+      }
+      const p01 = ultimi(recenti.map((a) => (a.innescato ? a.p01 : null)))
+      m.p01 = p01 === null ? null : parseFloat(p01.toFixed(1))
+      const si = ultimi(recenti.map((a) => a.stressIndex))
+      m.stressIndex = si === null ? null : parseFloat(si.toFixed(2))
+    }
     m.mlPerKg =
       stato.paziente.pesoKg && stato.paziente.pesoKg > 0
         ? parseFloat(((m.volumeExpired ?? 0) / stato.paziente.pesoKg).toFixed(1))
@@ -1081,12 +1205,84 @@ export function esitoManovra(
   stato: StatoVentilatore,
   quale: Exclude<Manovra, null>,
   misureCorrenti: Misure,
+  tSec?: number,
 ): Record<string, number | null> {
+  // Il rapporto R/I guarda due PEEP, e la compliance la vuole a tutt'e due:
+  // si calcola sul polmone dichiarato, prima di sistemarlo a questa PEEP.
+  if (quale === 'rapporto-ri') return esitoRapportoRI(stato)
   // La manovra **misura**, e quello che misura è il polmone a questa PEEP: è la
   // ragione per cui la pausa inspiratoria a due PEEP diverse dà due compliance
   // diverse, che è tutto il criterio di reclutabilità (punto 5 del 4-bis).
   stato = polmoneOra(stato)
   const { impostazioni: imp, fisiologia: fis } = stato
+  if (quale === 'curva-lenta') {
+    const l = letturaCurvaLenta(stato, MANOVRA_DURATA_SEC)
+    return {
+      peep: arrotonda(imp.peep),
+      aperturaVie: l.aperturaVie === null ? null : arrotonda(l.aperturaVie),
+      complianceLenta: l.compliance === null ? null : arrotonda(l.compliance),
+      pFinale: arrotonda(l.pFinale),
+      volumeInspirato: Math.round(l.volume),
+    }
+  }
+  // ## Col motore, la pausa misura l'ultimo atto vero
+  //
+  // Il plateau è la pressione alveolare a fine inspirazione dell'atto prima
+  // della pausa, la PEEP totale quella a fine espirazione — con dentro l'aria
+  // che non è uscita e le vie aeree che si chiudono. E se il paziente tira
+  // mentre la pausa espiratoria tiene chiuso, quello è il **test di
+  // occlusione**: la Paw scende quanto la Pes (Baydur 1982), e la caduta dice
+  // lo sforzo (Bertoni, *Crit Care* 2019).
+  const senza = { ...stato, manovra: null }
+  if (tSec !== undefined && (quale === 'pausa-inspiratoria' || quale === 'pausa-espiratoria') && motoreCopre(senza)) {
+    const da = stato.manovraDa ?? tSec - MANOVRA_DURATA_SEC
+    const ultimo = attiRecenti(da, senza, 20).at(-1)
+    if (ultimo) {
+      if (quale === 'pausa-inspiratoria') {
+        const vt = ultimo.vti
+        const pplat = ultimo.palvFineInsp
+        const ppeak = ultimo.pip
+        const motrice = pplat - imp.peep
+        const { Tif } = tempiRespiro(stato)
+        const quadro = inVolume(stato) && (imp.formaFlusso ?? 0) === 0
+        const flussoLs = quadro && Tif > 0 ? vt / 1000 / Tif : 0
+        return {
+          pPeak: arrotonda(ppeak),
+          pPlateau: arrotonda(pplat),
+          peep: arrotonda(imp.peep),
+          volumeInspirato: Math.round(vt),
+          pressioneMotrice: arrotonda(motrice),
+          compliance: motrice > 0 ? arrotonda(vt / motrice) : null,
+          elastanza: motrice > 0 && vt > 0 ? arrotonda(motrice / (vt / 1000)) : null,
+          resistenza: flussoLs > 0 ? arrotonda((ppeak - pplat) / flussoLs) : null,
+        }
+      }
+      // Con le vie aeree chiuse la pausa vede il circuito, non gli alveoli.
+      const totale = ultimo.vieChiuse ? imp.peep : ultimo.peepTotale
+      const out: Record<string, number | null> = {
+        peep: arrotonda(imp.peep),
+        peepTotale: arrotonda(totale),
+        autoPeep: arrotonda(Math.max(0, totale - imp.peep)),
+      }
+      let massimo = 0
+      let inizioSforzo: number | null = null
+      for (let t = da; t <= tSec; t += 0.01) {
+        const pm = campioneMotore(t, senza).pmus
+        if (inizioSforzo === null && pm > 0.2) inizioSforzo = t
+        massimo = Math.max(massimo, pm)
+      }
+      if (massimo > 0.5) {
+        const pOcc = -massimo
+        out.pOcc = arrotonda(pOcc)
+        out.p01 = inizioSforzo === null ? null : arrotonda(campioneMotore(inizioSforzo + 0.1, senza).pmus)
+        out.pmusStimata = arrotonda(0.75 * massimo)
+        out.plDinamica = arrotonda(ultimo.pip - imp.peep + 0.66 * massimo)
+        // Paw e Pes scendono insieme: nel modello lo stesso sforzo arriva a tutt'e due.
+        out.rapportoOcclusione = 1
+      }
+      return out
+    }
+  }
   // ## Il reclutamento non misura niente
   //
   // Le altre due sono strumenti: si tengono per sapere un numero. Questa è una
@@ -1130,6 +1326,64 @@ export function esitoManovra(
     peep: arrotonda(imp.peep),
     peepTotale: arrotonda(imp.peep + intrinseca),
     autoPeep: arrotonda(intrinseca),
+  }
+}
+
+/** Quanto dura una manovra che misura, in secondi: lo stesso di `MANOVRA_SECONDI`. */
+const MANOVRA_DURATA_SEC = 5
+
+function inVolume(stato: StatoVentilatore): boolean {
+  return stato.modalita === 'VC' || (stato.modalita === 'SIMV' && stato.impostazioni.psLevel === 0)
+}
+
+/**
+ * Il volume che la PEEP alta tiene **riaperto**, in ml: quello che esce in più,
+ * scendendo di PEEP, di quanto la compliance a PEEP bassa spiegherebbe.
+ *
+ * È la reclutabilità del paziente vista con un respiro (Chen, *AJRCCM* 2020):
+ * cresce con la quota di polmone da riaprire e col gradino di PEEP, e satura —
+ * oltre una decina di cmH₂O non c'è più niente da tenere aperto. Il gradino
+ * conta dalla più alta fra la PEEP bassa e la pressione di apertura: sotto
+ * quella le vie aeree sono chiuse e il polmone non si svuota.
+ */
+export function volumeReclutato(f: Fisiologia, peepAlta: number, peepBassa: number): number {
+  const sotto = Math.max(peepBassa, f.aperturaVie ?? 0)
+  const gradino = Math.max(0, peepAlta - sotto)
+  const r = Math.max(0, Math.min(1, f.reclutabilita))
+  return r * f.compliance * gradino * 1.2 * (1 - Math.exp(-gradino / 8))
+}
+
+/**
+ * Il rapporto reclutamento/inflazione (Chen, *AJRCCM* 2020): da PEEP alta a
+ * PEEP bassa in un respiro, il volume che esce in più di quanto la compliance a
+ * PEEP bassa spiega è il **reclutato**; diviso per il gradino è la compliance
+ * del polmone reclutato, e rapportata alla compliance a PEEP bassa dice se la
+ * PEEP alta riapre (≥ 0,5) o soltanto gonfia (< 0,5).
+ */
+function esitoRapportoRI(stato: StatoVentilatore): Record<string, number | null> {
+  const imp = stato.impostazioni
+  const f = stato.fisiologia
+  const alta = imp.peep
+  if (alta < PEEP_MINIMA_RI) {
+    return { peep: arrotonda(alta), peepBassa: null, volumeEsalato: null, volumeReclutato: null, rapportoRI: null }
+  }
+  const bassa = PEEP_BASSA_RI
+  const sotto = Math.max(bassa, f.aperturaVie ?? 0)
+  const gradino = Math.max(0, alta - sotto)
+  const cBassa = complianceA(f, bassa)
+  const reclutato = volumeReclutato(f, alta, bassa)
+  const predetto = cBassa * gradino
+  const esalato = predetto + reclutato
+  const cRec = gradino > 0 ? reclutato / gradino : 0
+  return {
+    peep: arrotonda(alta),
+    peepBassa: arrotonda(bassa),
+    volumeEsalato: Math.round(esalato),
+    volumePredetto: Math.round(predetto),
+    volumeReclutato: Math.round(reclutato),
+    complianceReclutata: arrotonda(cRec),
+    complianceBassa: arrotonda(cBassa),
+    rapportoRI: cBassa > 0 ? parseFloat((cRec / cBassa).toFixed(2)) : null,
   }
 }
 
@@ -1253,6 +1507,24 @@ function co2DaVentilazione(volumeMinute: number | null, pesoKg: number | null): 
   const riferimento = pesoKg && pesoKg > 0 ? (pesoKg * 100) / 1000 : 6
   if (!volumeMinute || volumeMinute <= 0) return 40
   return Math.min(90, Math.max(15, (40 * riferimento) / volumeMinute))
+}
+
+/**
+ * Il picco di pressione in volume a flusso decelerante, cmH₂O.
+ *
+ * Il flusso parte da `2·VT/Tif` e scende a zero: la Paw è
+ * `PEEP + V(t)/C + R·Q(t)`, e il massimo cade dove il ritorno elastico che
+ * cresce pareggia il resistivo che cala — a `t* = Tif − RC`. Se la costante di
+ * tempo è più lunga dell'inspirazione il picco è all'inizio, ed è tutto
+ * resistivo.
+ */
+export function piccoDecelerante(peep: number, vtMl: number, Tif: number, C: number, R: number): number {
+  if (Tif <= 0) return peep + vtMl / Math.max(1, C)
+  const q0 = (2 * vtMl) / 1000 / Tif
+  const tau = (R * Math.max(1, C)) / 1000
+  const t = Math.max(0, Tif - tau)
+  const v = q0 * (t - (t * t) / (2 * Tif)) * 1000
+  return peep + v / Math.max(1, C) + R * q0 * (1 - t / Tif)
 }
 
 function arrotonda(v: number): number {

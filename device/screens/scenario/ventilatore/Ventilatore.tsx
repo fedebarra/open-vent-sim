@@ -89,8 +89,9 @@ import {
 import { creaOnde, nelTrigger, puntoOnda } from './onde'
 // OVS 3.1: loop e pressioni alveolare/muscolare
 import { Loop } from './Loop'
-import { pressioneAlveolare, pressioneMuscolare } from './pressioni'
-import { RECLUTAMENTO_SECONDI, type Manovra, type StatoVentilatore } from './fisica'
+import { Eit } from './VistaEit'
+import { pressioneAlveolare, pressioneEsofagea, pressioneMuscolare, pressioneTranspolmonare } from './pressioni'
+import { PEEP_MINIMA_RI, RECLUTAMENTO_SECONDI, type Manovra, type StatoVentilatore } from './fisica'
 import { CIRCUITI_PER_AMBIENTE, MANOVRA_SECONDI, type VentIstantanea } from './istantanea'
 import type { TranslationKey } from '../../../i18n/it'
 import type { Circuito } from '../../paziente/presidiFigura'
@@ -238,9 +239,12 @@ export function Ventilatore({
   // questo vivono qui e non nell'istantanea.
   const [velocita, setVelocita] = useState(VELOCITA_PREDEFINITA)
   // OVS 3.1: che cosa mostra il quadro, e se aggiungere Palv e Pmus.
-  const [vista, setVista] = useState<'curve' | 'loop'>('curve')
+  const [vista, setVista] = useState<'curve' | 'loop' | 'eit'>('curve')
   const [pressioniExtraScelte, setPressioniExtra] = useState(false)
   const pressioniExtra = pressioniDidattiche && pressioniExtraScelte
+  // OVS 3.2: la pressione esofagea e la transpolmonare, dal motore.
+  const [esofageaScelta, setEsofagea] = useState(false)
+  const esofagea = pressioniDidattiche && esofageaScelta
   const [congelato, setCongelato] = useState<number | null>(null)
   const [cursore, setCursore] = useState<number | null>(null)
 
@@ -508,8 +512,32 @@ export function Ventilatore({
             },
           ]
         : []),
+      // OVS 3.2: Pes e PL. La Pes dice quanto della pressione resta alla
+      // parete e quanto il paziente tira; la PL è quella che il polmone sente.
+      ...(esofagea
+        ? [
+            {
+              key: 'pes',
+              color: '#fb923c',
+              at: (tt: number) => pressioneEsofagea(tt, stato) ?? 0,
+              range: (): [number, number] => [-10, 20],
+              label: 'Pes',
+              scale: t('vent.unit.cmH2O'),
+              value: alCursore && cursore !== null ? (pressioneEsofagea(cursore, stato) ?? 0).toFixed(1) : '',
+            },
+            {
+              key: 'pl',
+              color: '#22d3ee',
+              at: (tt: number) => pressioneTranspolmonare(tt, stato) ?? 0,
+              range: (): [number, number] => [-10, Math.max(20, scale.paw[1] - 5)],
+              label: 'PL',
+              scale: t('vent.unit.cmH2O'),
+              value: alCursore && cursore !== null ? (pressioneTranspolmonare(cursore, stato) ?? 0).toFixed(1) : '',
+            },
+          ]
+        : []),
     ]
-  }, [onde, pawAMano, capno, inManuale, inAltoFlusso, misure, scale, alCursore, t, pressioniExtra, stato, cursore])
+  }, [onde, pawAMano, capno, inManuale, inAltoFlusso, misure, scale, alCursore, t, pressioniExtra, esofagea, stato, cursore])
 
   const impostazioni = impostazioniDaMostrare(stato)
   const gruppi = gruppiMonitoraggio(ctx, stato.gas?.agenti.length ?? 0)
@@ -650,8 +678,15 @@ export function Ventilatore({
                   <div className="simvent__velocita" role="group">
                     <button type="button" data-testid="vista-curve" className={vista === 'curve' ? 'scelto' : ''} onClick={() => setVista('curve')}>{t('vent.vista.curve')}</button>
                     <button type="button" data-testid="vista-loop" className={vista === 'loop' ? 'scelto' : ''} onClick={() => setVista('loop')}>{t('vent.vista.loop')}</button>
+                    {/* OVS 3.2: l'EIT, in terapia intensiva dove c'è. */}
+                    {stato.ambiente === 'invasiva' && (
+                      <button type="button" data-testid="vista-eit" className={vista === 'eit' ? 'scelto' : ''} onClick={() => setVista('eit')}>EIT</button>
+                    )}
                     {vista === 'curve' && pressioniDidattiche && (
                       <button type="button" data-testid="vista-palv" className={pressioniExtra ? 'scelto' : ''} aria-pressed={pressioniExtra} onClick={() => setPressioniExtra((x) => !x)}>Palv·Pmus</button>
+                    )}
+                    {vista === 'curve' && pressioniDidattiche && (
+                      <button type="button" data-testid="vista-pes" className={esofagea ? 'scelto' : ''} aria-pressed={esofagea} onClick={() => setEsofagea((x) => !x)}>Pes·PL</button>
                     )}
                   </div>
                 )}
@@ -670,6 +705,8 @@ export function Ventilatore({
             <PannelloAltoFlusso stato={stato} misure={misure} t={t} />
           ) : stato.ventilando && vista === 'loop' && !inManuale ? (
             <Loop stato={stato} clock={clockQuadro} t={t} />
+          ) : stato.ventilando && vista === 'eit' && stato.ambiente === 'invasiva' ? (
+            <Eit stato={stato} clock={clockQuadro} t={t} />
           ) : stato.ventilando ? (
             <div
               className={`simvent__quadro${congelato !== null ? ' simvent__quadro--fermo' : ''}`}
@@ -1303,16 +1340,28 @@ function CassettoManovre({
   return (
     <>
       <div className="simvent__scelte simvent__scelte--colonna">
-        {(['pausa-inspiratoria', 'pausa-espiratoria', 'reclutamento'] as Exclude<Manovra, null>[]).map((m) => (
+        {(['pausa-inspiratoria', 'pausa-espiratoria', 'reclutamento', 'curva-lenta', 'rapporto-ri'] as Exclude<Manovra, null>[])
+          // La curva lenta e il rapporto R/I sono strumenti della terapia
+          // intensiva: in anestesia il cassetto resta quello di sempre.
+          .filter((m) => stato.ambiente === 'invasiva' || (m !== 'curva-lenta' && m !== 'rapporto-ri'))
+          .map((m) => (
           <button
             key={m}
             type="button"
             className={stato.manovra === m ? 'scelto' : ''}
             data-fam={`manovra-${m}`}
             onClick={() => agisci({ tipo: 'manovra', manovra: stato.manovra === m ? null : m })}
-            disabled={!stato.ventilando || (stato.manovra !== null && stato.manovra !== m)}
+            disabled={
+              !stato.ventilando ||
+              (stato.manovra !== null && stato.manovra !== m) ||
+              // Il rapporto R/I scende di dieci: da una PEEP sotto dieci non c'è gradino.
+              (m === 'rapporto-ri' && stato.manovra !== m && stato.impostazioni.peep < PEEP_MINIMA_RI)
+            }
           >
             <b>{t(NOME_MANOVRA[m])}</b>
+            {m === 'rapporto-ri' && stato.impostazioni.peep < PEEP_MINIMA_RI && (
+              <small>{t('vent.manovra.rapportoRI.hint')}</small>
+            )}
           </button>
         ))}
       </div>

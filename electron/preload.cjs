@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('ovsDesktop', {
   startDiscovery: () => ipcRenderer.invoke('ovs:start-discovery'),
   stopDiscovery: () => ipcRenderer.invoke('ovs:stop-discovery'),
   home: () => ipcRenderer.invoke('ovs:home'),
+  openSecondScreen: () => ipcRenderer.invoke('ovs:open-second-screen'),
   onDiscovered: (fn) => {
     const h = (_e, found) => fn(found);
     ipcRenderer.on('ovs:discovered', h);
