@@ -50,6 +50,7 @@ export type ChiaveAllarme =
   | 'etAgentConcentration'
   | 'flussoErogato'
   | 'acqua'
+  | 'apnea'
 
 /** Un limite: due estremi che possono mancare, e un interruttore. */
 export interface LimiteAllarme {
@@ -74,6 +75,9 @@ export interface DefinizioneAllarme {
   /** Da quale misura si guarda. Manca per gli allarmi a interruttore. */
   misura?: keyof Misure
 }
+
+/** Le modalità in cui si aspetta il respiro del paziente: lì l'apnea si sorveglia. */
+export const MODALITA_CON_APNEA: readonly string[] = ['PS', 'CPAP', 'PAV']
 
 export const ALLARMI: Record<ChiaveAllarme, DefinizioneAllarme> = {
   pPeak: {
@@ -177,6 +181,23 @@ export const ALLARMI: Record<ChiaveAllarme, DefinizioneAllarme> = {
     // apparecchio dei tre è un allarme che non si impara.
     visibile: (c) => c.ambiente !== 'anestesia',
   },
+  // ## L'apnea: il tempo senza un atto del paziente
+  //
+  // Nei modi in cui l'atto lo fa partire il paziente: se lui non tira, la macchina passa alla
+  // ventilazione di apnea e **lo dice**. Senza la scritta un paziente passivo in PSV sembrava uno
+  // che respira, e molto sovrassistito (867 mL a 12 atti in aula, 9/11). Dalla OVS 3.3 il limite è
+  // un **tempo**, in secondi, come sulle macchine vere: un paziente addormentato dalla regia non faceva
+  // suonare niente, perché il backup teneva frequenza e volume minuto dentro i limiti (rilievo
+  // dell'aula, 10/11). Il conto lo tiene l'istantanea (`attesaRespiro`).
+  apnea: {
+    etichetta: 'vent.alarm.apnea',
+    unita: 'vent.unit.seconds',
+    passo: 5,
+    minimo: 10,
+    massimo: 60,
+    soloAlto: true,
+    visibile: (c) => MODALITA_CON_APNEA.includes(c.modalita),
+  },
 }
 
 /** I limiti con cui la macchina si accende: larghi, ma non spenti. */
@@ -192,6 +213,7 @@ export const LIMITI_INIZIALI: LimitiAllarme = {
   etAgentConcentration: { basso: 0.1, alto: 5, acceso: true },
   flussoErogato: { basso: 5, alto: 70, acceso: true },
   acqua: { basso: null, alto: null, acceso: true },
+  apnea: { basso: null, alto: 20, acceso: true },
 }
 
 /**
@@ -252,6 +274,8 @@ export function valuta(
   stato: StatoVentilatore,
   misure: Misure,
   limiti: LimitiAllarme,
+  /** Da quanti secondi il paziente non fa un atto; nullo dove non si sorveglia. */
+  apneaSec: number | null = null,
 ): AllarmeAttivo[] {
   if (!stato.ventilando) return []
   if (stato.manovra) return []
@@ -267,7 +291,8 @@ export function valuta(
 
   for (const chiave of Object.keys(ALLARMI) as ChiaveAllarme[]) {
     const def = ALLARMI[chiave]
-    const limite = limiti[chiave]
+    // Un'istantanea salvata prima che l'allarme esistesse non ha il suo limite: vale quello di fabbrica.
+    const limite = limiti[chiave] ?? LIMITI_INIZIALI[chiave]
     if (!limite?.acceso || !def.visibile(ctx)) continue
 
     if (chiave === 'acqua') {
@@ -277,12 +302,26 @@ export function valuta(
     }
     if (def.interruttore) continue
 
+    if (chiave === 'apnea') {
+      if (apneaSec !== null && limite.alto !== null && apneaSec >= limite.alto) {
+        attivi.push({ chiave, verso: 'alto', valore: Math.floor(apneaSec) })
+      }
+      continue
+    }
+
     const valore = valoreDa(chiave, stato, misure)
     if (valore === null) continue
 
     // In CPAP la pressione di picco bassa non vuol dire niente: la macchina non
     // insuffla, e l'allarme suonerebbe per tutto lo scenario.
-    const saltaBasso = stato.modalita === 'CPAP' && chiave === 'pPeak'
+    //
+    // Et agente basso con il vaporizzatore chiuso, idem: la macchina d'anestesia nasce coi gas
+    // chiusi, e il limite basso suonava dall'accensione — anche in familiarizzazione — per un
+    // agente che nessuno ha ancora aperto (rilievo dell'aula, 10/11). Suona se l'erogazione è
+    // aperta e l'Et non arriva: il vaporizzatore vuoto, quello che va ricordato.
+    const saltaBasso =
+      (stato.modalita === 'CPAP' && chiave === 'pPeak') ||
+      (chiave === 'etAgentConcentration' && !stato.gas?.erogazione)
     if (limite.basso !== null && valore < limite.basso && !saltaBasso) {
       attivi.push({ chiave, verso: 'basso', valore })
       continue

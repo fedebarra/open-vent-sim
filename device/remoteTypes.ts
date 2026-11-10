@@ -47,7 +47,8 @@ export type DeviceRemoteCommand = ComandoAzione | ComandoPaziente | ComandoOpzio
 
 export interface DeviceRemoteActions {
   /** Called once by the device; returns an unsubscribe function. */
-  subscribe(fn: (cmd: DeviceRemoteCommand, source?: 'director') => void): () => void
+  /** `source`: 'mirror' when a tap on another screen showing this machine (OVS 3.3): it counts as the learner's. */
+  subscribe(fn: (cmd: DeviceRemoteCommand, source?: 'director' | 'mirror') => void): () => void
 }
 
 /** Where a log line comes from. */
@@ -61,4 +62,6 @@ export interface DeviceSnapshot {
   /** null until a machine is switched on. */
   ventilatore: VentIstantanea | null
   language: 'it' | 'en'
+  /** OVS 3.3: teaching traces shown, so that mirror screens show them too. */
+  didattica?: boolean
 }

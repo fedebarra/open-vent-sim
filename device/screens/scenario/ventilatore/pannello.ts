@@ -67,7 +67,13 @@ export function maniglie(stato: StatoVentilatore): {
   accesa: boolean
 }[] {
   const voci: { chiave: Cassetto; etichetta: TranslationKey; accesa: boolean }[] = [
-    { chiave: 'ventilazione', etichetta: 'vent.handle.ventilazione', accesa: !stato.ventilando },
+    // OVS 3.3: a macchina spenta il tasto si chiama ON/OFF (rilievo dell'aula):
+    // «Standby» su un apparecchio fermo sembrava lo stato, non il comando.
+    {
+      chiave: 'ventilazione',
+      etichetta: stato.ventilando ? 'vent.handle.ventilazione' : 'vent.handle.accensione',
+      accesa: !stato.ventilando,
+    },
     { chiave: 'modalita', etichetta: 'vent.handle.modalita', accesa: false },
   ]
   if (stato.ambiente === 'anestesia') {

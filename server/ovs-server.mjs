@@ -117,9 +117,19 @@ export async function startServer(opts = {}) {
   });
 
   const send = (ws, msg) => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(msg)); };
-  const ventList = () => [...vents.values()].map((v) => ({
-    id: v.id, name: v.name, connected: !!v.ws && v.ws.readyState === 1, lastSeen: v.lastSeen,
+  const online = (v) => !!v.ws && v.ws.readyState === 1;
+  // OVS 3.3: a screen can be a **mirror** of another ventilator (same machine on the
+  // projector and on the tablets). Mirrors are not machines: the console lists the
+  // owner only, with how many screens show it.
+  const ventList = () => [...vents.values()].filter((v) => !v.mirrorOf).map((v) => ({
+    id: v.id, name: v.name, connected: online(v), lastSeen: v.lastSeen,
+    mirrors: [...vents.values()].filter((m) => m.mirrorOf === v.id && online(m)).length,
   }));
+  /** Machines that are switched on, to offer to a screen that joins. */
+  const runningList = (except) => [...vents.values()]
+    .filter((v) => v !== except && !v.mirrorOf && online(v) && v.state?.screen === 'running' && v.state?.ventilatore)
+    .map((v) => ({ id: v.id, name: v.name }));
+  const toMirrors = (owner, msg) => { for (const m of vents.values()) if (m.mirrorOf === owner.id) send(m.ws, msg); };
   const toRegie = (msg) => { for (const r of regie) send(r, msg); };
   const announceVents = () => toRegie({ t: 'vents', list: ventList() });
 
@@ -164,7 +174,7 @@ export async function startServer(opts = {}) {
           if (!vent) {
             if (vents.size >= MAX_VENTS) { send(ws, { t: 'denied', reason: 'full' }); ws.close(4429, 'full'); return; }
             ventCounter += 1;
-            vent = { id: `v${ventCounter}`, clientId, name: `Ventilatore ${ventCounter}`, ws: null, state: null, events: [], connectedAt: Date.now(), lastSeen: Date.now() };
+            vent = { id: `v${ventCounter}`, clientId, name: `Ventilatore ${ventCounter}`, ws: null, state: null, events: [], connectedAt: Date.now(), lastSeen: Date.now(), mirrorOf: null };
             vents.set(vent.id, vent);
           } else if (vent.ws && vent.ws !== ws) {
             try { vent.ws.close(4409, 'replaced'); } catch { /* ignore */ }
@@ -174,7 +184,10 @@ export async function startServer(opts = {}) {
           vent.lastSeen = Date.now();
           role = 'vent';
           clearTimeout(helloTimer);
-          send(ws, { t: 'welcome', role, id: vent.id, name: vent.name, session: sessionName, protocol: PROTOCOL_VERSION, regia: regie.size > 0 });
+          send(ws, { t: 'welcome', role, id: vent.id, name: vent.name, session: sessionName, protocol: PROTOCOL_VERSION, regia: regie.size > 0, running: runningList(vent), mirrorOf: vent.mirrorOf });
+          // A mirror that reconnects gets the picture at once; an owner that comes back tells its mirrors.
+          if (vent.mirrorOf) { const o = vents.get(vent.mirrorOf); if (o?.state) send(ws, { t: 'mirror-state', from: o.id, name: o.name, state: o.state }); }
+          toMirrors(vent, { t: 'mirror-back', from: vent.id });
           announceVents();
           log(`${vent.name} connected from ${remote}`);
           return;
@@ -187,8 +200,23 @@ export async function startServer(opts = {}) {
       if (role === 'vent' && vent) {
         vent.lastSeen = Date.now();
         if (msg.t === 'state' && msg.state && typeof msg.state === 'object') {
+          if (vent.mirrorOf) return; // a mirror has no machine of its own
           vent.state = msg.state;
           toRegie({ t: 'state', from: vent.id, state: msg.state });
+          toMirrors(vent, { t: 'mirror-state', from: vent.id, name: vent.name, state: msg.state });
+        } else if (msg.t === 'follow') {
+          const o = vents.get(String(msg.id));
+          if (!o || o === vent || o.mirrorOf) { send(ws, { t: 'mirror-gone', from: String(msg.id) }); return; }
+          vent.mirrorOf = o.id;
+          vent.state = null;
+          if (o.state) send(ws, { t: 'mirror-state', from: o.id, name: o.name, state: o.state });
+          announceVents();
+        } else if (msg.t === 'unfollow') {
+          vent.mirrorOf = null;
+          announceVents();
+        } else if (msg.t === 'mirror-action' && vent.mirrorOf && msg.azione && typeof msg.azione === 'object') {
+          const o = vents.get(vent.mirrorOf);
+          if (o && online(o)) send(o.ws, { t: 'cmd', cmd: { type: 'azione', azione: msg.azione }, cmdId: crypto.randomUUID(), by: 'mirror' });
         } else if (msg.t === 'event' && msg.event) {
           vent.events.push(msg.event);
           if (vent.events.length > MAX_EVENTS_PER_VENT) vent.events.splice(0, vent.events.length - MAX_EVENTS_PER_VENT);
@@ -201,7 +229,7 @@ export async function startServer(opts = {}) {
 
       if (role === 'regia') {
         if (msg.t === 'cmd' && msg.cmd && typeof msg.cmd === 'object') {
-          const targets = msg.to === 'all' ? [...vents.values()] : [vents.get(String(msg.to))].filter(Boolean);
+          const targets = msg.to === 'all' ? [...vents.values()].filter((v) => !v.mirrorOf) : [vents.get(String(msg.to))].filter((v) => v && !v.mirrorOf);
           const cmdId = String(msg.cmdId || crypto.randomUUID()).slice(0, 64);
           let delivered = 0;
           for (const v of targets) { if (v.ws && v.ws.readyState === 1) { send(v.ws, { t: 'cmd', cmd: msg.cmd, cmdId }); delivered++; } }
@@ -223,7 +251,10 @@ export async function startServer(opts = {}) {
     ws.on('close', () => {
       clearTimeout(helloTimer);
       if (role === 'regia') { regie.delete(ws); for (const v of vents.values()) send(v.ws, { t: 'regia', present: regie.size > 0 }); }
-      if (role === 'vent' && vent && vent.ws === ws) { vent.ws = null; vent.lastSeen = Date.now(); announceVents(); }
+      if (role === 'vent' && vent && vent.ws === ws) {
+        vent.ws = null; vent.lastSeen = Date.now(); announceVents();
+        toMirrors(vent, { t: 'mirror-gone', from: vent.id });
+      }
     });
   });
 

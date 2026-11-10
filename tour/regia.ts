@@ -3,8 +3,10 @@
  *
  * Same engine as the ventilator's tour (`Tour.tsx`), another list: the
  * console in the order an instructor meets it before a lesson — let the
- * learners in, put a ventilator on the projector, choose who to talk to, then
- * the tabs from the patient to the events, and the session log. The targets are
+ * learners in, put a ventilator on the projector (the same machine the learners
+ * see: screens that join a machine already on mirror it, OVS 3.3), choose who to
+ * talk to, then the tabs from the patient to the alarms and the events, and the
+ * session log. The targets are
  * the console's `data-testid` hooks; a tab step ticks when the tab is opened.
  *
  * The console has no environment to filter on: every step always applies.
@@ -28,21 +30,21 @@ export const REGIA_STEPS: TourStep[] = [
   {
     id: 'regia-connect',
     target: ['[data-testid="connect-card"]', '[data-testid="regia-pin"]'],
-    it: { title: 'Far entrare i discenti', body: 'Niente da installare: sulla stessa rete Wi-Fi, iPad, tablet o portatile inquadrano il QR (o scrivono l’indirizzo) nel browser e mettono il PIN. Ogni dispositivo che entra è un ventilatore nella lista a sinistra.' },
-    en: { title: 'Letting learners in', body: 'Nothing to install: on the same Wi-Fi, an iPad, tablet or laptop scans the QR code (or types the address) in the browser and enters the PIN. Each device that joins is a ventilator in the list on the left.' },
+    it: { title: 'Far entrare i discenti', body: 'Niente da installare: sulla stessa rete Wi-Fi, iPad, tablet o portatile inquadrano il QR (o scrivono l’indirizzo) nel browser e mettono il PIN. Se in aula c’è già un ventilatore acceso, chi entra lo vede: è la stessa macchina, non un’altra. Per un ventilatore separato — un gruppo, un caso suo — lo schermo si stacca con la freccia indietro, «Stacca». Se i ventilatori accesi sono più di uno, il dispositivo chiede quale mostrare.' },
+    en: { title: 'Letting learners in', body: 'Nothing to install: on the same Wi-Fi, an iPad, tablet or laptop scans the QR code (or types the address) in the browser and enters the PIN. If a ventilator is already on in the classroom, whoever joins sees it: it is the same machine, not another one. For a separate ventilator — a group, a case of its own — the screen detaches with the back arrow, “Detach”. If more than one ventilator is on, the device asks which one to show.' },
   },
   {
     id: 'regia-second-screen',
     target: ['[data-testid="second-screen"]'],
     done: { click: ['[data-testid="second-screen"]'] },
-    it: { title: 'Il ventilatore sul proiettore', body: 'Con un proiettore o una LIM collegati a questo computer, questo pulsante apre un ventilatore già collegato sull’altro schermo, a tutto schermo: la classe lo usa col tocco, tu lo comandi da qui. Esc esce dal tutto schermo.', tryIt: 'premi Ventilatore sul secondo schermo.' },
-    en: { title: 'The ventilator on the projector', body: 'With a projector or an interactive whiteboard connected to this computer, this button opens a ventilator, already joined, full screen on the other display: the class uses it by touch, you drive it from here. Esc leaves full screen.', tryIt: 'press Ventilator on the second screen.' },
+    it: { title: 'Il ventilatore sul proiettore', body: 'Con un proiettore o una LIM collegati a questo computer, «Aprilo qui», sotto il QR, apre sull’altro schermo, a tutto schermo, lo stesso ventilatore che è già acceso: quello che tocca la classe alla LIM arriva al tablet e viceversa, e tu lo comandi da qui. Esc esce dal tutto schermo.', tryIt: 'premi Aprilo qui, sotto il QR.' },
+    en: { title: 'The ventilator on the projector', body: 'With a projector or an interactive whiteboard connected to this computer, «Open it here», under the QR code, opens full screen on the other display the same ventilator that is already on: what the class touches on the whiteboard reaches the tablet and back, and you drive it from here. Esc leaves full screen.', tryIt: 'press Open it here, under the QR code.' },
   },
   {
     id: 'regia-list',
     target: ['[data-testid="vent-list"]'],
-    it: { title: 'Chi stai guardando', body: 'Tocca un ventilatore per vederlo e comandarlo. Il pallino dice se è collegato, la riga sotto dice che macchina è, in che modalità e se ventila. Lo puoi rinominare col nome del gruppo.' },
-    en: { title: 'Who you are looking at', body: 'Tap a ventilator to see and drive it. The dot says whether it is connected; the line below says which machine, which mode and whether it is ventilating. You can rename it after the group.' },
+    it: { title: 'Chi stai guardando', body: 'Tocca un ventilatore per vederlo e comandarlo. Il pallino dice se è collegato, la riga sotto dice che macchina è, in che modalità e se ventila. Lo puoi rinominare col nome del gruppo. «▣ +1» dice quanti altri schermi mostrano la stessa macchina: comandi un ventilatore, li vedi cambiare tutti.' },
+    en: { title: 'Who you are looking at', body: 'Tap a ventilator to see and drive it. The dot says whether it is connected; the line below says which machine, which mode and whether it is ventilating. You can rename it after the group. “▣ +1” says how many other screens show the same machine: you drive one ventilator and see them all change.' },
   },
   {
     id: 'regia-overview',
@@ -91,6 +93,12 @@ export const REGIA_STEPS: TourStep[] = [
     ...tab('machine'),
     it: { title: 'La macchina', body: 'Le manopole del ventilatore, se in sala c’è una macchina vera da ricopiare; le pause, la curva P/V lenta e il rapporto R/I; «Mostra le tracce didattiche» accende Palv·Pmus e Pes·PL sui ventilatori. Qui salvi e carichi uno scenario: paziente e macchina in un file.', tryIt: 'apri la scheda Macchina.' },
     en: { title: 'The machine', body: 'The ventilator knobs, if a real machine in the room has to be mirrored; the holds, the low-flow P/V curve and the R/I ratio; “Show the teaching traces” turns on Palv·Pmus and Pes·PL on the ventilators. Here you save and load a scenario: patient and machine in a file.', tryIt: 'open the Machine tab.' },
+  },
+  {
+    id: 'regia-alarms',
+    ...tab('alarms'),
+    it: { title: 'Gli allarmi', body: 'I limiti d’allarme del ventilatore, da qui: alzi, abbassi, spegni, come dal suo pannello Allarmi. «Ripristina i limiti d’avvio» rimette quelli con cui la macchina si accende, se un gruppo li ha spostati tutti.', tryIt: 'apri la scheda Allarmi.' },
+    en: { title: 'Alarms', body: 'The ventilator’s alarm limits, from here: raise, lower, switch off, as from its own Alarms panel. “Reset to the start-up limits” puts back the ones the machine starts with, if a group has moved them all.', tryIt: 'open the Alarms tab.' },
   },
   {
     id: 'regia-events',

@@ -129,3 +129,38 @@ test('a busy port falls back to the next one', async () => {
   assert.equal(b.port, 18788);
   await a.close(); await b.close();
 });
+
+test('OVS 3.3: a screen that joins mirrors the machine already on', async () => {
+  const owner = await open(srv.port);
+  owner.send(JSON.stringify({ t: 'hello', role: 'vent', pin: '4321', clientId: 'mirror-owner' }));
+  const w1 = await next(owner, (m) => m.t === 'welcome');
+  const snap = { screen: 'running', ventilatore: { accesoDa: 1, ambiente: 'invasiva' }, language: 'it', at: Date.now() };
+  owner.send(JSON.stringify({ t: 'state', state: snap }));
+  await new Promise((r) => setTimeout(r, 50));
+
+  const screen2 = await open(srv.port);
+  screen2.send(JSON.stringify({ t: 'hello', role: 'vent', pin: '4321', clientId: 'mirror-screen' }));
+  const w2 = await next(screen2, (m) => m.t === 'welcome');
+  assert.ok(w2.running.some((r) => r.id === w1.id), 'the running machine is offered');
+  screen2.send(JSON.stringify({ t: 'follow', id: w1.id }));
+  const first = await next(screen2, (m) => m.t === 'mirror-state');
+  assert.equal(first.from, w1.id);
+  // the owner's next snapshot reaches the mirror
+  owner.send(JSON.stringify({ t: 'state', state: { ...snap, at: snap.at + 1 } }));
+  assert.equal((await next(screen2, (m) => m.t === 'mirror-state')).state.at, snap.at + 1);
+  // a tap on the mirror becomes the owner's command
+  screen2.send(JSON.stringify({ t: 'mirror-action', azione: { tipo: 'silenzia' } }));
+  const cmd = await next(owner, (m) => m.t === 'cmd');
+  assert.equal(cmd.by, 'mirror');
+  assert.deepEqual(cmd.cmd, { type: 'azione', azione: { tipo: 'silenzia' } });
+  // a mirror sends no machine state of its own, and the console lists the owner only
+  const r = await open(srv.port);
+  r.send(JSON.stringify({ t: 'hello', role: 'regia', key: srv.regiaKey }));
+  const list = await next(r, (m) => m.t === 'vents');
+  assert.ok(!list.list.some((v) => v.id === w2.id), 'mirror not listed');
+  assert.equal(list.list.find((v) => v.id === w1.id).mirrors, 1);
+  // the owner goes: the mirror is told
+  owner.close();
+  await next(screen2, (m) => m.t === 'mirror-gone');
+  screen2.close(); r.close();
+});

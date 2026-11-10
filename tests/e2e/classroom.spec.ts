@@ -42,7 +42,7 @@ test('director drives a learner ventilator end to end, and records the session',
   await expect(vent.getByTestId('patient-preset-ards')).toHaveCount(0);
   await expect(vent.getByTestId('opt-didattica')).toHaveCount(0);
   await vent.getByTestId('patient-confirm').click();
-  await vent.getByRole('button', { name: 'STANDBY' }).click();
+  await vent.locator('[data-fam="maniglia-ventilazione"]').click();
   await vent.getByRole('button', { name: /AVVIA LA VENTILAZIONE/i }).click();
   await expect(regia.getByTestId('vent-list')).toContainText('ventila');
   await expectNum(regia, 'PEEP', (n) => n === 5);
@@ -59,6 +59,15 @@ test('director drives a learner ventilator end to end, and records the session',
   await regia.getByTestId('param-peep').fill('10');
   await regia.getByTestId('param-send-peep').click();
   await expectNum(regia, 'PEEP', (n) => n === 10, 'PEEP set remotely');
+
+  // 3.3: alarm limits from the console — one step up, then back to the start-up preset
+  await regia.getByTestId('tab-alarms').click();
+  await expect(regia.getByTestId('alarm-pPeak')).toContainText('10');
+  await regia.getByTestId('alarm-pPeak-basso-plus').click();
+  await expect(regia.getByTestId('alarm-pPeak')).toContainText('11', { timeout: 10_000 });
+  await regia.getByTestId('alarms-reset').click();
+  await expect(regia.getByTestId('alarm-pPeak')).not.toContainText('11', { timeout: 10_000 });
+  await expect(regia.getByTestId('regia-log')).toContainText(/Limiti d’allarme riportati/);
 
   // patient preset ARDS
   await regia.getByTestId('tab-patient').click();
@@ -105,6 +114,10 @@ test('director drives a learner ventilator end to end, and records the session',
   const tablet = await tabletCtx.newPage();
   tablet.on('pageerror', (e) => errors.push(e.message));
   await tablet.goto(`http://127.0.0.1:${srv.port}/?role=vent&pin=1234`);
+  // 3.3: it first shows the machine already on; the group detaches to get one of its own
+  await expect(tablet.getByTestId('device-mirror')).toBeVisible({ timeout: 15_000 });
+  await tablet.locator('[data-tour="esci"]').click();
+  await tablet.getByTestId('mirror-detach').click();
   await expect(regia.getByTestId('vent-list').locator('li')).toHaveCount(2);
   await startIcuVentilation(tablet);
   await regia.getByTestId('send-to').selectOption('all');
@@ -145,7 +158,7 @@ test('stand-alone use: no badge, device runs', async ({ page }) => {
   await expect(page.getByTestId('opt-didattica')).not.toBeChecked();
   await page.getByTestId('opt-didattica').check();
   await page.getByTestId('patient-confirm').click();
-  await page.getByRole('button', { name: 'STANDBY' }).click();
+  await page.locator('[data-fam="maniglia-ventilazione"]').click();
   await page.getByRole('button', { name: /AVVIA LA VENTILAZIONE/i }).click();
   await expect(page.locator('.simvent').first()).toBeVisible();
   // 3.1: Palv/Pmus lanes, loops with reference, PRVC available
@@ -180,7 +193,7 @@ test('NIV: the console sets a real mask leak, and the ventilator shows it', asyn
   await vent.getByTestId('mode-icu').click();
   await vent.getByTestId('icu-niv').click();
   await vent.getByTestId('patient-confirm').click();
-  await vent.getByRole('button', { name: 'STANDBY' }).click();
+  await vent.locator('[data-fam="maniglia-ventilazione"]').click();
   await vent.getByRole('button', { name: /AVVIA LA VENTILAZIONE/i }).click();
   await expect(regia.getByTestId('vent-list')).toContainText('ventila');
   // earlier tests may have left ventilators in the list: pick the NIV one
@@ -215,11 +228,22 @@ test('NIV: the console sets a real mask leak, and the ventilator shows it', asyn
   await regia.getByTestId('tab-patient').click();
   await regia.keyboard.press('Escape');
   await expect(regia.getByTestId('tour-card')).toHaveCount(0);
-  // the console opens a ventilator on a second screen; it joins the session by itself
+  // the console opens a ventilator on a second screen; it joins the session by itself and,
+  // since a machine is already on, shows that same machine (3.3) instead of asking again
   const [second] = await Promise.all([regia.waitForEvent('popup'), regia.getByTestId('second-screen').click()]);
   second.on('pageerror', (e) => errors.push(e.message));
+  await expect(second.getByTestId('device-mirror')).toBeVisible({ timeout: 15_000 });
+  await expect(second.getByTestId('remote-badge')).toContainText('Specchio di');
+  await expect(regia.locator('[data-testid^="mirrors-"]')).toContainText('+1');
+  // a tap on the mirror drives the machine: standby from the projector, the learner's screen follows
+  await second.locator('[data-fam="maniglia-ventilazione"]').click();
+  await second.getByRole('button', { name: /METTI IN STANDBY/i }).click();
+  await expect(regia.getByTestId('vent-list')).toContainText('standby', { timeout: 10_000 });
+  await expect(vent.locator('.simvent__pillola--ferma')).toBeVisible();
+  // detaching from the mirror gives a ventilator of its own
+  await second.locator('[data-tour="esci"]').click();
+  await second.getByTestId('mirror-detach').click();
   await expect(second.getByTestId('mode-icu')).toBeVisible();
-  await expect(second.getByTestId('remote-badge')).toContainText('Collegato alla regia');
   expect(errors).toEqual([]);
   await Promise.all([regiaCtx.close(), ventCtx.close()]);
 });

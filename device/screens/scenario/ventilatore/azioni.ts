@@ -67,6 +67,11 @@ export type AzioneVentilatore =
   | { tipo: 'limite'; chiave: ChiaveAllarme; estremo: 'basso' | 'alto'; verso: 1 | -1 }
   /** Un allarme acceso o spento. */
   | { tipo: 'allarme'; chiave: ChiaveAllarme; acceso: boolean }
+  /**
+   * Tutti i limiti riportati a quelli con cui la macchina si accende (OVS 3.3): la regia lo
+   * chiede quando un gruppo ha spostato tutto e il caso deve ripartire da un apparecchio pulito.
+   */
+  | { tipo: 'limiti-iniziali' }
   /** L'interfaccia dell'alto flusso: adulto, pediatrica, junior. */
   | { tipo: 'interfaccia'; interfaccia: InterfacciaAltoFlusso }
   /** L'umidificatore acceso o spento. */
@@ -114,6 +119,8 @@ export function nomeAzione(azione: AzioneVentilatore): string {
       return `vent-limite:${azione.chiave}`
     case 'allarme':
       return `vent-allarme:${azione.chiave}`
+    case 'limiti-iniziali':
+      return 'vent-limiti-iniziali'
     case 'interfaccia':
       return `vent-interfaccia:${azione.interfaccia}`
     case 'silenzia':

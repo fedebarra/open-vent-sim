@@ -4,40 +4,85 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createLink, Link, LinkStatus } from './link';
-import type { RemoteCommand, ServerMessage } from './protocol';
+import type { RemoteCommand, RunningVent, ServerMessage } from './protocol';
+import type { VentIstantanea } from '../device/screens/scenario/ventilatore/istantanea';
+import { Specchio, Avviso } from './Specchio';
 import { rt, ventName } from './strings';
 import { useLanguage } from '../src/contexts/LanguageContext';
 import { DeviceApp } from '../device/DeviceApp';
 import type { DeviceRemoteActions, DeviceRemoteCommand } from '../device/remoteTypes';
 
+type Modo =
+  | { k: 'decide' }
+  | { k: 'own'; iniziale: VentIstantanea | null; n: number }
+  | { k: 'choose'; list: RunningVent[] }
+  | { k: 'mirror'; id: string; name: string; ist: VentIstantanea | null; on: boolean; offsetMs: number; didattica: boolean; gone: boolean };
+
 export const LinkedDevice: React.FC<{ wsUrl: string; pin: string }> = ({ wsUrl, pin }) => {
+  const { language } = useLanguage();
+  const s = rt(language);
   const [status, setStatus] = useState<LinkStatus>('connecting');
   const [detail, setDetail] = useState<string | undefined>();
   const [name, setName] = useState('');
   const [regiaPresent, setRegiaPresent] = useState(false);
   const [recording, setRecording] = useState(false);
+  // OVS 3.3: is this screen a machine of its own, or the mirror of one already on?
+  const [modo, setModo] = useState<Modo>({ k: 'decide' });
+  const modoRef = useRef(modo); modoRef.current = modo;
   const linkRef = useRef<Link | null>(null);
-  const listeners = useRef(new Set<(c: DeviceRemoteCommand, s?: 'director') => void>());
+  const listeners = useRef(new Set<(c: DeviceRemoteCommand, s?: 'director' | 'mirror') => void>());
   const pending = useRef<object[]>([]);
+
+  const segui = (r: RunningVent) => {
+    linkRef.current?.send({ t: 'follow', id: r.id });
+    setModo({ k: 'mirror', id: r.id, name: r.name, ist: null, on: true, offsetMs: 0, didattica: false, gone: false });
+  };
+  const proprio = (iniziale: VentIstantanea | null = null) => {
+    if (modoRef.current.k === 'mirror') linkRef.current?.send({ t: 'unfollow' });
+    setModo((m) => ({ k: 'own', iniziale, n: (m.k === 'own' ? m.n : 0) + 1 }));
+  };
 
   useEffect(() => {
     const link = createLink({
       url: wsUrl, role: 'vent', pin,
-      onStatus: (s, d) => {
-        setStatus(s); setDetail(d);
-        if (s === 'online') pending.current.splice(0).forEach((m) => link.send(m));
+      onStatus: (st, d) => {
+        setStatus(st); setDetail(d);
+        if (st === 'online') pending.current.splice(0).forEach((m) => link.send(m));
       },
       onMessage: (m: ServerMessage) => {
-        if (m.t === 'welcome') { setName(m.name); setRegiaPresent(!!m.regia); }
+        if (m.t === 'welcome') {
+          setName(m.name); setRegiaPresent(!!m.regia);
+          const ora = modoRef.current;
+          if (ora.k === 'decide') {
+            const list = m.running ?? [];
+            if (m.mirrorOf) segui({ id: m.mirrorOf, name: '' });
+            else if (list.length === 0) setModo({ k: 'own', iniziale: null, n: 1 });
+            else if (list.length === 1) segui(list[0]);
+            else setModo({ k: 'choose', list });
+          } else if (ora.k === 'mirror' && !m.mirrorOf) {
+            // The server forgot (restarted): ask again for the same machine.
+            link.send({ t: 'follow', id: ora.id });
+          }
+        }
         else if (m.t === 'renamed') setName(m.name);
         else if (m.t === 'regia') { setRegiaPresent(m.present); if (!m.present) setRecording(false); }
+        else if (m.t === 'mirror-state') {
+          setModo((ora) => ora.k !== 'mirror' || ora.id !== m.from ? ora : {
+            ...ora, name: m.name || ora.name, ist: m.state.ventilatore ?? ora.ist,
+            on: m.state.screen === 'running' && !!m.state.ventilatore,
+            offsetMs: typeof m.state.at === 'number' ? m.state.at - Date.now() : ora.offsetMs,
+            didattica: !!m.state.didattica, gone: false,
+          });
+        }
+        else if (m.t === 'mirror-gone') setModo((ora) => ora.k === 'mirror' && ora.id === m.from ? { ...ora, gone: true } : ora);
+        else if (m.t === 'mirror-back') setModo((ora) => ora.k === 'mirror' && ora.id === m.from ? { ...ora, gone: false } : ora);
         else if (m.t === 'cmd') {
           const cmd = m.cmd as RemoteCommand;
           let error: string | undefined;
           try {
             if (cmd.type === 'recording') setRecording(!!cmd.on);
             else if (listeners.current.size === 0) error = 'not-ready';
-            else listeners.current.forEach((fn) => fn(cmd, 'director'));
+            else listeners.current.forEach((fn) => fn(cmd, m.by === 'mirror' ? 'mirror' : 'director'));
           } catch (e) { error = String(e); }
           link.send({ t: 'ack', cmdId: m.cmdId, ok: !error, error });
         }
@@ -45,7 +90,14 @@ export const LinkedDevice: React.FC<{ wsUrl: string; pin: string }> = ({ wsUrl, 
     });
     linkRef.current = link;
     return () => link.close();
-  }, [wsUrl, pin]);
+  }, [wsUrl, pin]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // No answer from the classroom server: this screen is a ventilator of its own.
+  useEffect(() => {
+    if (modo.k !== 'decide') return;
+    const id = window.setTimeout(() => setModo((m) => (m.k === 'decide' ? { k: 'own', iniziale: null, n: 1 } : m)), 4000);
+    return () => window.clearTimeout(id);
+  }, [modo.k]);
 
   const remoteActions = useMemo<DeviceRemoteActions>(() => ({
     subscribe(fn) { listeners.current.add(fn); return () => { listeners.current.delete(fn); }; },
@@ -55,15 +107,58 @@ export const LinkedDevice: React.FC<{ wsUrl: string; pin: string }> = ({ wsUrl, 
     if (!linkRef.current?.send(msg) && queue) { pending.current.push(msg); if (pending.current.length > 200) pending.current.shift(); }
   };
 
+  const badgeName = modo.k === 'mirror' ? `${s.mirrorBadge} ${ventName(modo.name, language)}` : name;
+
   return (
     <>
-      <DeviceApp
-        linked
-        remoteActions={remoteActions}
-        onSnapshot={(_ist, info) => send({ t: 'state', state: { ...info, at: Date.now() } })}
-        onEvent={(text, source, kind) => send({ t: 'event', event: { at: Date.now(), text, source, kind } }, true)}
-      />
-      <ConnectionBadge status={status} detail={detail} name={name} regiaPresent={regiaPresent} recording={recording} />
+      {modo.k === 'decide' && <div style={{ position: 'fixed', inset: 0, background: '#0f172a' }} />}
+      {modo.k === 'own' && (
+        <DeviceApp
+          key={modo.n}
+          linked
+          iniziale={modo.iniziale}
+          remoteActions={remoteActions}
+          onSnapshot={(_ist, info) => send({ t: 'state', state: { ...info, at: Date.now() } })}
+          onEvent={(text, source, kind) => send({ t: 'event', event: { at: Date.now(), text, source, kind } }, true)}
+        />
+      )}
+      {modo.k === 'choose' && (
+        <Avviso>
+          <p className="text-lg text-slate-100 mb-5">{s.mirrorChoose}</p>
+          <div className="flex flex-col gap-3" data-testid="mirror-choose">
+            {modo.list.map((r) => (
+              <button key={r.id} data-testid={`mirror-pick-${r.id}`} onClick={() => segui(r)} className="px-5 py-3 rounded-xl bg-sky-700 text-white font-semibold">{ventName(r.name, language)}</button>
+            ))}
+            <button data-testid="mirror-pick-new" onClick={() => proprio()} className="px-5 py-3 rounded-xl bg-slate-700 text-white">{s.mirrorChooseNew}</button>
+          </div>
+        </Avviso>
+      )}
+      {modo.k === 'mirror' && (
+        <>
+          {modo.ist && modo.on
+            ? <Specchio ist={modo.ist} offsetMs={modo.offsetMs} didattica={modo.didattica} s={s}
+                onAzione={(azione) => send({ t: 'mirror-action', azione })} onStacca={() => proprio()} />
+            : <div style={{ position: 'fixed', inset: 0, background: '#0f172a' }} />}
+          {!modo.gone && !modo.ist && <Avviso><p className="text-lg text-slate-200" data-testid="mirror-connecting">{s.mirrorConnecting}</p></Avviso>}
+          {!modo.gone && modo.ist && !modo.on && (
+            <Avviso>
+              <p className="text-lg text-slate-100 mb-5" data-testid="mirror-off">{s.mirrorOff}</p>
+              <button onClick={() => proprio()} className="px-5 py-3 rounded-xl bg-sky-700 text-white font-semibold">{s.mirrorNew}</button>
+            </Avviso>
+          )}
+          {modo.gone && (
+            <Avviso>
+              <p className="text-lg text-slate-100 mb-5" data-testid="mirror-gone">{s.mirrorGone}</p>
+              <div className="flex flex-wrap gap-3 justify-center">
+                {modo.ist && modo.on && <button data-testid="mirror-takeover" onClick={() => proprio(modo.ist)} className="px-5 py-3 rounded-xl bg-sky-700 text-white font-semibold">{s.mirrorTakeOver}</button>}
+                <button data-testid="mirror-new" onClick={() => proprio()} className="px-5 py-3 rounded-xl bg-slate-700 text-white">{s.mirrorNew}</button>
+                <button onClick={() => setModo((m) => (m.k === 'mirror' ? { ...m, gone: false } : m))} className="px-5 py-3 rounded-xl bg-slate-800 text-slate-200">{s.mirrorWait}</button>
+              </div>
+            </Avviso>
+          )}
+        </>
+      )}
+      <ConnectionBadge status={status} detail={detail} name={badgeName} regiaPresent={regiaPresent} recording={recording} />
     </>
   );
 };

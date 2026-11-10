@@ -242,6 +242,8 @@ export function voceRegistro(kind: string): TranslationKey[] | null {
       return ['vent.log.limite', ALLARMI[coda as ChiaveAllarme]?.etichetta ?? 'vent.log.ventilatore']
     case 'vent-allarme':
       return ['vent.log.allarme', ALLARMI[coda as ChiaveAllarme]?.etichetta ?? 'vent.log.ventilatore']
+    case 'vent-limiti-iniziali':
+      return ['vent.log.limitiIniziali']
     case 'vent-interfaccia':
       return ['vent.log.interfaccia', NOME_INTERFACCIA[coda as InterfacciaAltoFlusso] ?? 'vent.log.ventilatore']
     case 'vent-silenzia':
