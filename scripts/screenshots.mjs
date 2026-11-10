@@ -17,7 +17,7 @@ const shot = async (p, name) => { await p.waitForTimeout(700); await p.screensho
 const ROOM = LANG === 'it' ? 'Open Vent Sim – Aula di simulazione' : 'Open Vent Sim – Simulation room';
 const fakeDesktop = (launcher) => `window.ovsDesktop = { isLauncher: ${launcher}, startRegia: async () => '', serverInfo: async () => ({ addresses: ['192.168.1.20'], port: 8787 }), startDiscovery: async () => true, stopDiscovery: async () => true, onDiscovered: (fn) => { const f = () => fn({ name: '${ROOM}', host: '192.168.1.20', port: 8787, seen: Date.now() }); setTimeout(f, 300); setInterval(f, 2000); return () => {}; } };`;
 const ctx = async (w, h, init) => { const c = await b.newContext({ viewport: { width: w, height: h }, locale: loc, deviceScaleFactor: SCALE }); if (init) await c.addInitScript(init); await c.addInitScript(`try{localStorage.setItem('ovs-language','${LANG}')}catch(e){}`); return c; };
-const startIcu = async (p) => { await p.getByTestId('mode-icu').click(); await p.getByTestId('icu-invasive').click(); await p.getByTestId('patient-confirm').click(); await p.getByRole('button', { name: /^STANDBY$/i }).click(); await p.getByRole('button', { name: /AVVIA LA VENTILAZIONE|START VENTILATION/i }).click(); };
+const startIcu = async (p) => { await p.getByTestId('mode-icu').click(); await p.getByTestId('icu-invasive').click(); await p.getByTestId('patient-confirm').click(); await p.locator('[data-fam="maniglia-ventilazione"]').click(); await p.getByRole('button', { name: /AVVIA LA VENTILAZIONE|START VENTILATION/i }).click(); };
 
 // 1. desktop launcher + ventilator search
 { const c = await ctx(1280, 800, fakeDesktop(true)); const p = await c.newPage(); await p.goto(`${base}/?desktop=1`); await shot(p, '01-launcher');
@@ -33,7 +33,7 @@ await vent.goto(`${base}/`); await vent.getByTestId('join-title').waitFor(); awa
 await vent.getByTestId('pin-input').fill('4821'); await vent.getByTestId('mode-icu').waitFor(); await shot(vent, '04-start');
 await vent.getByTestId('mode-icu').click(); await shot(vent, '06-icu-choice');
 await vent.getByTestId('icu-invasive').click(); await shot(vent, '07-patient');
-await vent.getByTestId('patient-confirm').click(); await vent.getByRole('button', { name: /^STANDBY$/i }).click(); await shot(vent, '08-standby-drawer');
+await vent.getByTestId('patient-confirm').click(); await vent.locator('[data-fam="maniglia-ventilazione"]').click(); await shot(vent, '08-standby-drawer');
 await vent.getByRole('button', { name: /AVVIA LA VENTILAZIONE|START VENTILATION/i }).click(); await vent.waitForTimeout(6000); await shot(vent, '09-icu-running');
 
 // 4. director live
@@ -49,6 +49,10 @@ await regia.getByTestId('tab-lung').click(); await shot(regia, '13-regia-lung');
 await regia.getByTestId('tab-machine').click(); await regia.getByTestId('param-peep').fill('8'); await regia.getByTestId('param-send-peep').click(); await shot(regia, '14-regia-machine');
 await regia.getByTestId('tab-events').click(); await regia.getByTestId('event-add-bronchospasm').click(); await regia.getByTestId('event-add-desat').click(); await regia.getByTestId('event-add-normal').click(); await shot(regia, '15-regia-events');
 await regia.getByTestId('event-fire-bronchospasm').click(); await regia.waitForTimeout(12000);
+// 3.3: alarm limits from the console, and the same machine on a second screen (projector)
+await regia.getByTestId('tab-alarms').click(); await shot(regia, '23-regia-alarms');
+{ const c = await ctx(1366, 860); const p = await c.newPage(); await p.goto(`${base}/`); await p.getByTestId('pin-input').fill('4821');
+  await p.getByTestId('device-mirror').waitFor(); await p.waitForTimeout(6000); await shot(p, '24-mirror'); await c.close(); }
 await regia.getByTestId('rec-stop').click(); await regia.getByTestId('registro').waitFor();
 await regia.getByTestId('registro').locator('input:not([type=file])').first().fill(LANG === 'it' ? 'Specializzandi 1° anno – martedì' : 'First-year residents – Tuesday');
 await shot(regia, '16-registro');
@@ -61,9 +65,16 @@ for (const [name, go] of [
   ['19-highflow', async (p) => { await p.getByTestId('mode-highflow').click(); await p.getByTestId('patient-confirm').click(); }],
 ]) {
   const c = await ctx(1366, 860); const p = await c.newPage(); await p.goto(`${base}/`); await p.getByText(/Usa senza regia|Use without instructor/).click(); await go(p);
-  await p.getByRole('button', { name: /^STANDBY$/i }).click(); const start = p.getByRole('button', { name: /AVVIA|START/i }).last(); if (await start.count()) await start.click(); else await p.keyboard.press('Escape');
+  await p.locator('[data-fam="maniglia-ventilazione"]').click(); const start = p.getByRole('button', { name: /AVVIA|START/i }).last(); if (await start.count()) await start.click(); else await p.keyboard.press('Escape');
   await p.waitForTimeout(6000); await shot(p, name); await c.close();
 }
+
+// 3.3: anaesthesia by bag — Paw, flow and CO₂
+{ const c = await ctx(1366, 860); const p = await c.newPage(); await p.goto(`${base}/`); await p.getByText(/Usa senza regia|Use without instructor/).click();
+  await p.getByTestId('mode-anesthesia').click(); await p.getByTestId('patient-confirm').click();
+  await p.locator('[data-fam="maniglia-ventilazione"]').click(); await p.locator('[data-fam="sorgente"] button').first().click();
+  await p.getByRole('button', { name: /AVVIA LA VENTILAZIONE|START VENTILATION/i }).click();
+  await p.waitForTimeout(8000); await shot(p, '25-anesthesia-manual'); await c.close(); }
 
 // 6. guided tour
 { const c = await ctx(1366, 860); const p = await c.newPage(); await p.goto(`${base}/`); await p.getByText(/Usa senza regia|Use without instructor/).click();

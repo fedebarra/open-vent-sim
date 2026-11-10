@@ -34,9 +34,10 @@
  * chiamanti diversi.
  */
 
-import { valuta, LIMITI_INIZIALI, SILENZIO_SECONDI, conLimiteDellAgente, type AllarmeAttivo, type LimitiAllarme, spostaLimite } from './allarmi'
+import { valuta, MODALITA_CON_APNEA, LIMITI_INIZIALI, SILENZIO_SECONDI, conLimiteDellAgente, type AllarmeAttivo, type LimitiAllarme, spostaLimite } from './allarmi'
 import type { AzioneVentilatore } from './azioni'
 import { regolaPrvc, PRVC_PROVA } from './prvc'
+import { attiRecenti, motoreCopre } from './motore'
 import type { Circuito } from '../../paziente/presidiFigura'
 import { DRIVE_ASSENTE, driveEfficace, type Drive, type ImpostazioniAsincronia } from './asincronie'
 import type { TranslationKey } from '../../../i18n/it'
@@ -192,6 +193,12 @@ export interface VentIstantanea {
    * dovrebbe confrontarsi con un'istantanea precedente che non ha.
    */
   frequenzaFase: number
+  /**
+   * OVS 3.3: da quando si aspetta il respiro del paziente, per l'allarme
+   * d'apnea. `chiave` è la condizione (modalità, standby…) in cui il conto è
+   * cominciato: cambiandola il conto riparte, come sulla macchina vera.
+   */
+  apneaDa?: { chiave: string; sec: number } | null
   /** OVS 3.1: frazione d'atto non ancora contata dal regolatore PRVC. */
   prvcAtti?: number
   misure: Misure
@@ -291,7 +298,9 @@ export function istantaneaIniziale(
   return {
     ambiente,
     modalita: MODALITA_PER_AMBIENTE[ambiente][0],
-    respiro: anestesia ? 'manuale' : 'meccanica',
+    // §665 (l'utente: «deve partire in VC e non in manuale»): anche la macchina d'anestesia nasce sul
+    // selettore meccanico, in standby; il pallone la porta in manuale da sé al primo atto
+    respiro: 'meccanica',
     ventilando: false,
     impostazioni: { ...IMPOSTAZIONI_INIZIALI },
     fisiologia: { ...FISIOLOGIA_NORMALE },
@@ -484,8 +493,36 @@ export function batti(istantanea: VentIstantanea, tSec: number, dtSec: number): 
     }
   }
 
-  const limiti = conLimiteDellAgente(prossima.limiti, prossima.gas?.agenti[0])
-  return { ...prossima, limiti, allarmi: valuta(statoDa(prossima), misure, limiti) }
+  // Le istantanee di prima della 3.3 non hanno il limite d'apnea, o ce l'hanno senza tempo
+  // (l'interruttore del §668): si completa con quello di fabbrica.
+  const salvati = prossima.limiti
+  const limiti = conLimiteDellAgente(
+    salvati.apnea?.alto != null
+      ? salvati
+      : { ...salvati, apnea: { ...LIMITI_INIZIALI.apnea, acceso: salvati.apnea?.acceso ?? true } },
+    prossima.gas?.agenti[0],
+  )
+  const apneaDa = attesaRespiro(prossima, tSec)
+  const apneaSec = apneaDa ? Math.max(0, tSec - apneaDa.sec) : null
+  return { ...prossima, limiti, apneaDa, allarmi: valuta(statoDa(prossima), misure, limiti, apneaSec) }
+}
+
+/**
+ * Da quando l'apparecchio aspetta un atto del paziente, o nulla dove non lo
+ * aspetta (controllata, standby, manuale, manovra).
+ *
+ * Il motore ricalcola i blocchi con il drive **di adesso**, quindi chiedergli
+ * «quando è stato l'ultimo atto» a drive spento risponderebbe «mai»: il conto
+ * si tiene nell'istantanea e avanza solo in avanti, battito dopo battito.
+ */
+function attesaRespiro(ist: VentIstantanea, tSec: number): VentIstantanea['apneaDa'] {
+  const stato = statoDa(ist)
+  if (!motoreCopre(stato) || stato.manovra || !MODALITA_CON_APNEA.includes(stato.modalita)) return null
+  const chiave = `${stato.ambiente}|${stato.modalita}|${stato.respiro}|${ist.accesoDa}`
+  const prima = ist.apneaDa && ist.apneaDa.chiave === chiave ? ist.apneaDa.sec : tSec
+  let ultimo = prima
+  for (const a of attiRecenti(tSec, stato, 20)) if (a.innescato && a.inizio > ultimo) ultimo = a.inizio
+  return { chiave, sec: Math.min(tSec, ultimo) }
 }
 
 /** Il passo per cui il battito è tarato, e il più lungo che fa in una volta. */
@@ -755,6 +792,14 @@ export function applica(
             ...istantanea.limiti,
             [azione.chiave]: { ...istantanea.limiti[azione.chiave], acceso: azione.acceso },
           },
+        },
+      }
+
+    case 'limiti-iniziali':
+      return {
+        istantanea: {
+          ...istantanea,
+          limiti: conLimiteDellAgente({ ...LIMITI_INIZIALI }, istantanea.gas?.agenti[0]),
         },
       }
 

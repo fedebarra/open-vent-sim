@@ -384,6 +384,30 @@ export function Ventilatore({
     },
     [onde],
   )
+  // ## Il flusso del pallone (OVS 3.3)
+  //
+  // In manuale la curva del flusso era sparita, e in aula è quella che dice se
+  // la compressione del pallone arriva al paziente (rilievo dell'aula). Il
+  // flusso è quello del respiro spontaneo (`onde.flusso`) più quello dell'atto
+  // dato a mano: entra mentre la Paw sale, esce passivo con la costante di
+  // tempo del polmone. Legge l'istante dell'atto da `attoPaw`, che la Paw tiene.
+  const flussoAMano = useCallback(
+    (t: number) => {
+      const a = attoPaw.current.a
+      const dopo = a === null ? -1 : t - a
+      if (dopo < 0 || dopo > 8) return onde.flusso(t)
+      const Ti = 0.8
+      const C = Math.max(1, stato.fisiologia.compliance)
+      const RC = Math.max(0.1, (stato.fisiologia.resistenza * C) / 1000)
+      const vMax = C * 10
+      const mlSec =
+        dopo < Ti
+          ? ((vMax * Math.PI) / (2 * Ti)) * Math.sin((Math.PI * dopo) / Ti)
+          : -(vMax / RC) * Math.exp(-(dopo - Ti) / RC)
+      return onde.flusso(t) + (mlSec * 60) / 1000
+    },
+    [onde, stato.fisiologia.compliance, stato.fisiologia.resistenza],
+  )
 
   // Memorizzata: un oggetto nuovo ad ogni render rifarebbe le corsie ad ogni
   // render, e con loro tutto quello che ci sta attaccato.
@@ -442,6 +466,18 @@ export function Ventilatore({
           label: 'Paw',
           scale: t('vent.unit.cmH2O'),
           value: alCursore ? alCursore.paw.toFixed(1) : scriviValore('pPeak', misure.pPeak),
+        },
+        {
+          key: 'flusso',
+          color: COLORI.flusso,
+          at: flussoAMano,
+          // Con il pallone in mano l'atto arriva a 60 l/min: la corsia si apre
+          // lì, o la compressione esce dal disegno.
+          range: (): [number, number] =>
+            attoPaw.current.a !== null ? [Math.min(-60, scale.flusso[0]), Math.max(60, scale.flusso[1])] : scale.flusso,
+          label: t('vent.wave.flusso'),
+          scale: t('vent.unit.lMin'),
+          value: alCursore ? alCursore.flusso.toFixed(1) : '',
         },
         {
           key: 'co2',
@@ -537,7 +573,7 @@ export function Ventilatore({
           ]
         : []),
     ]
-  }, [onde, pawAMano, capno, inManuale, inAltoFlusso, misure, scale, alCursore, t, pressioniExtra, esofagea, stato, cursore])
+  }, [onde, pawAMano, flussoAMano, capno, inManuale, inAltoFlusso, misure, scale, alCursore, t, pressioniExtra, esofagea, stato, cursore])
 
   const impostazioni = impostazioniDaMostrare(stato)
   const gruppi = gruppiMonitoraggio(ctx, stato.gas?.agenti.length ?? 0)

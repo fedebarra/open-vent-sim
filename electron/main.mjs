@@ -14,6 +14,7 @@ import path from 'node:path';
 import dgram from 'node:dgram';
 import { fileURLToPath } from 'node:url';
 import { startServer, BEACON_PORT, DEFAULT_PORT } from '../server/ovs-server.mjs';
+import { checkForUpdates } from './updates.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(here, '..', 'dist');
@@ -120,7 +121,9 @@ app.whenReady().then(async () => {
     { role: 'appMenu' }, { role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' },
   ]) : null);
   try { await createWindow(); }
-  catch (e) { dialog.showErrorBox('Open Vent Sim', String(e?.stack || e)); app.quit(); }
+  catch (e) { dialog.showErrorBox('Open Vent Sim', String(e?.stack || e)); app.quit(); return; }
+  // Updates come straight from the GitHub releases of the repository, at every start.
+  checkForUpdates(() => win);
 });
 
 app.on('window-all-closed', async () => {

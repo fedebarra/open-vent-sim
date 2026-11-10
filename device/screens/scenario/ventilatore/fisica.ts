@@ -1029,7 +1029,8 @@ export function misura(
       m.pPeak = arrotonda(imp.peep + imp.pressureTarget)
       m.pPlateau = arrotonda(pAlveolare)
     } else if (modalita === 'PS') {
-      m.pPeak = arrotonda(imp.peep + imp.psLevel)
+      // In apnea gli atti sono quelli di backup, al loro livello (`motore.ts`): il display lo segue.
+      m.pPeak = arrotonda(imp.peep + (spontanea > 0 ? imp.psLevel : imp.backupPressure))
       m.pPlateau = null
     } else {
       // CPAP: la pressione è quella e resta quella, con il respiro sopra.
@@ -1103,6 +1104,16 @@ export function misura(
       motoreCopre(statoMotore) &&
       (modalita === 'PS' || modalita === 'CPAP' || modalita === 'PAV' || imp.triggerControllata === 1)
     const atti = dalMotore ? attiRecenti(tSec, statoMotore, 20) : []
+    // ## Nessun atto contato è un numero, non un ripiego (OVS 3.3)
+    //
+    // In CPAP senza respiro il conto analitico dava la frequenza di backup — 12
+    // atti al minuto su una curva piatta — mentre il volume minuto era zero.
+    // Passati venti secondi dall'accensione, quello che il motore non conta non
+    // c'è: la frequenza è quella contata, e il minuto lo segue.
+    if (dalMotore && atti.length < 2 && tSec >= 20 && modalita === 'CPAP') {
+      m.measuredFrequency = atti.length * 3
+      m.volumeMinute = parseFloat((((atti[0]?.vte ?? 0) * atti.length * 3) / 1000).toFixed(1))
+    }
     if (atti.length >= 2) {
       const ultimi = atti.slice(-3)
       const media = (f: (a: (typeof atti)[number]) => number) => ultimi.reduce((x, a) => x + f(a), 0) / ultimi.length
@@ -1473,7 +1484,9 @@ export function statoIniziale(
   return {
     ambiente,
     modalita,
-    respiro: ambiente === 'anestesia' ? 'manuale' : 'meccanica',
+    // §665 (l'utente: «deve partire in VC e non in manuale»): anche la macchina d'anestesia nasce sul
+    // selettore meccanico, in standby; il pallone la porta in manuale da sé al primo atto
+    respiro: 'meccanica',
     ventilando: false,
     impostazioni,
     fisiologia: FISIOLOGIA_NORMALE,

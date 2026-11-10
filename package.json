@@ -1,6 +1,6 @@
 {
   "name": "open-vent-sim",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,13 +10,14 @@
     "desktop": "npm run build && electron .",
     "dist:mac": "npm run build && electron-builder --mac",
     "dist:win": "npm run build && electron-builder --win",
-    "test": "vitest run && node --test tests/server.test.mjs",
+    "test": "vitest run && node --test tests/server.test.mjs tests/update-pick.test.mjs",
     "test:e2e": "npm run build && playwright test",
     "typecheck": "tsc --noEmit -p .",
     "screenshots": "npm run build && node scripts/screenshots.mjs && LANG_SHOTS=en node scripts/screenshots.mjs",
     "press": "npm run build && OUT=docs/press SCALE=2 node scripts/screenshots.mjs && OUT=docs/press SCALE=2 LANG_SHOTS=en node scripts/screenshots.mjs"
   },
   "dependencies": {
+    "electron-updater": "^6.8.11",
     "ws": "^8.18.0"
   },
   "devDependencies": {
@@ -46,7 +47,7 @@
   "build": {
     "appId": "it.uniupo.openventsim",
     "productName": "Open Vent Sim",
-    "copyright": "MIT License \u2013 Federico Lorenzo Barra",
+    "copyright": "MIT License – Federico Lorenzo Barra",
     "directories": {
       "output": "release",
       "buildResources": "build"
@@ -58,6 +59,14 @@
       "package.json"
     ],
     "asar": true,
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "fedebarra",
+        "repo": "open-vent-sim",
+        "releaseType": "release"
+      }
+    ],
     "mac": {
       "target": [
         {

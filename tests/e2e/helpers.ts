@@ -11,7 +11,7 @@ export async function startIcuVentilation(p: Page) {
   await p.getByTestId('mode-icu').click();
   await p.getByTestId('icu-invasive').click();
   await p.getByTestId('patient-confirm').click();
-  await p.getByRole('button', { name: 'STANDBY' }).click();
+  await p.locator('[data-fam="maniglia-ventilazione"]').click();
   await p.getByRole('button', { name: /AVVIA LA VENTILAZIONE/i }).click();
 }
 

@@ -74,12 +74,18 @@ jobs:
             release/*.dmg
             release/*.zip
             release/*.exe
+            release/*.blockmap
+            release/latest.yml
           if-no-files-found: error
       - name: Attach to release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
+          # latest.yml and the .exe blockmap are what the Windows app reads to
+          # update itself (electron-updater); macOS only checks the release tag.
           files: |
             release/*.dmg
             release/*.zip
             release/*.exe
+            release/*.exe.blockmap
+            release/latest.yml

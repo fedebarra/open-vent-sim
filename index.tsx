@@ -27,6 +27,8 @@ const Root: React.FC = () => {
     return 'decide';
   });
   const [pin, setPin] = useState(info.pin || '');
+  // Where «On my own» was chosen from: that is where «Change mode» goes back to.
+  const [soloDa, setSoloDa] = useState<'launcher' | 'join' | null>(null);
 
   useEffect(() => {
     if (mode !== 'decide' || info.role === 'regia') return;
@@ -39,14 +41,14 @@ const Root: React.FC = () => {
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (info.role === 'regia' && info.key) return <RegiaApp wsUrl={info.wsUrl} regiaKey={info.key} />;
-  if (mode === 'launcher') return <DesktopLauncher onSolo={() => setMode('solo')} />;
+  if (mode === 'launcher') return <DesktopLauncher onSolo={() => { setSoloDa('launcher'); setMode('solo'); }} />;
   if (mode === 'join') return (
     <JoinScreen wsUrl={info.wsUrl} host={window.location.host}
       onJoined={(p) => { history.replaceState(null, '', `?role=vent&pin=${p}`); setPin(p); setMode('vent'); }}
-      onSolo={() => setMode('solo')} />
+      onSolo={() => { setSoloDa('join'); setMode('solo'); }} />
   );
   if (mode === 'vent') return <LinkedDevice wsUrl={info.wsUrl} pin={pin} />;
-  if (mode === 'solo') return new URLSearchParams(window.location.search).has('legacy') ? <App /> : <DeviceApp />;
+  if (mode === 'solo') return new URLSearchParams(window.location.search).has('legacy') ? <App /> : <DeviceApp onCambiaModalita={soloDa ? () => setMode(soloDa) : undefined} />;
   return <div style={{ minHeight: '100vh', background: '#0f172a' }} />;
 };
 

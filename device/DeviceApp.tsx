@@ -55,6 +55,17 @@ export interface DeviceAppProps {
   tourLabel?: string
   onOpenSimulatorSettings?: () => void
   onOpenManualModal?: () => void
+  /**
+   * OVS 3.3: back to the choice of how to use the app (Instructor / Ventilator
+   * / On my own). Shown on the start screen only; absent when there is nothing
+   * to go back to (plain browser).
+   */
+  onCambiaModalita?: () => void
+  /**
+   * OVS 3.3: start already running on this snapshot — a mirror screen that takes
+   * over when the screen it was showing has gone.
+   */
+  iniziale?: VentIstantanea | null
 }
 
 const S = {
@@ -73,6 +84,7 @@ const S = {
     confirm: 'Accendi la macchina',
     regia: 'regia',
     tour: 'Guida passo passo',
+    cambiaModalita: '← Cambia modalità',
   },
   en: {
     icuTitle: 'Intensive care: how is the patient connected?',
@@ -89,6 +101,7 @@ const S = {
     confirm: 'Switch the machine on',
     regia: 'instructor',
     tour: 'Guided tour',
+    cambiaModalita: '← Change mode',
   },
 }
 
@@ -98,6 +111,7 @@ const VITALI_BASE = { spo2: 97, heartRate: 78, map: 85, etco2: null as number | 
 export const DeviceApp: React.FC<DeviceAppProps> = ({
   onSnapshot, onEvent, remoteActions, linked = false,
   onToggleRecording, isRecordingEnabled = false, onStartTour, tourLabel, onOpenSimulatorSettings, onOpenManualModal,
+  onCambiaModalita, iniziale = null,
 }) => {
   const { language } = useLanguage()
   const lang: 'it' | 'en' = language === 'it' ? 'it' : 'en'
@@ -105,15 +119,17 @@ export const DeviceApp: React.FC<DeviceAppProps> = ({
   // Teaching traces (Palv/Pmus): off by default; the learner can enable them
   // here when alone, the director from the console.
   const [didattica, setDidattica] = useState(false)
+  const didatticaRef = useRef(didattica)
+  didatticaRef.current = didattica
 
-  const [screen, setScreen] = useState<DeviceScreen>('startup')
+  const [screen, setScreen] = useState<DeviceScreen>(iniziale ? 'running' : 'startup')
   const [icuChoice, setIcuChoice] = useState(false)
-  const [ambiente, setAmbiente] = useState<Ambiente | null>(null)
+  const [ambiente, setAmbiente] = useState<Ambiente | null>(iniziale?.ambiente ?? null)
   const [peso, setPeso] = useState(70)
   const [eta, setEta] = useState(50)
   const [preset, setPreset] = useState<PresetFisiologia>('normale')
 
-  const [vent, setVent] = useState<VentIstantanea | null>(null)
+  const [vent, setVent] = useState<VentIstantanea | null>(iniziale)
   const ventRef = useRef<VentIstantanea | null>(null)
   ventRef.current = vent
   const rampaRef = useRef<Rampa | null>(null)
@@ -182,14 +198,14 @@ export const DeviceApp: React.FC<DeviceAppProps> = ({
 
   // Snapshot out, ≥ 2 per second.
   useEffect(() => {
-    const id = window.setInterval(() => cbRef.current.onSnapshot?.(ventRef.current, { screen, ventilatore: ventRef.current, language: lang }), 500)
-    cbRef.current.onSnapshot?.(ventRef.current, { screen, ventilatore: ventRef.current, language: lang })
+    const id = window.setInterval(() => cbRef.current.onSnapshot?.(ventRef.current, { screen, ventilatore: ventRef.current, language: lang, didattica: didatticaRef.current }), 500)
+    cbRef.current.onSnapshot?.(ventRef.current, { screen, ventilatore: ventRef.current, language: lang, didattica: didatticaRef.current })
     return () => window.clearInterval(id)
   }, [screen, lang])
 
   // ------------------------------------------------------------ remote --
-  const applicaRemoto = useCallback((cmd: DeviceRemoteCommand) => {
-    if (cmd.type === 'azione') { esegui(cmd.azione, 'director'); return }
+  const applicaRemoto = useCallback((cmd: DeviceRemoteCommand, source?: 'director' | 'mirror') => {
+    if (cmd.type === 'azione') { esegui(cmd.azione, source === 'mirror' ? 'learner' : 'director'); return }
     if (cmd.type === 'opzioni') { if (cmd.pressioniDidattiche !== undefined) setDidattica(cmd.pressioniDidattiche); return }
     const prima = ventRef.current
     if (!prima) return
@@ -214,7 +230,7 @@ export const DeviceApp: React.FC<DeviceAppProps> = ({
 
   useEffect(() => {
     if (!remoteActions) return
-    return remoteActions.subscribe((cmd) => applicaRemoto(cmd))
+    return remoteActions.subscribe((cmd, source) => applicaRemoto(cmd, source))
   }, [remoteActions, applicaRemoto])
 
   // ------------------------------------------------------------ screens --
@@ -355,15 +371,21 @@ export const DeviceApp: React.FC<DeviceAppProps> = ({
   }
 
   return (
-    <StartupScreen
-      onSelectMode={(m, sub) => scegli(m, sub)}
-      onOpenSimulatorSettings={onOpenSimulatorSettings}
-      onOpenManualModal={onOpenManualModal}
-      onToggleRecording={onToggleRecording}
-      isRecordingEnabled={isRecordingEnabled}
-      onStartTour={() => { setTourActive(true); onStartTour?.() }}
-      tourLabel={tourLabel ?? s.tour}
-    />
+    <>
+      <StartupScreen
+        onSelectMode={(m, sub) => scegli(m, sub)}
+        onOpenSimulatorSettings={onOpenSimulatorSettings}
+        onOpenManualModal={onOpenManualModal}
+        onToggleRecording={onToggleRecording}
+        isRecordingEnabled={isRecordingEnabled}
+        onStartTour={() => { setTourActive(true); onStartTour?.() }}
+        tourLabel={tourLabel ?? s.tour}
+      />
+      {onCambiaModalita && (
+        <button data-testid="change-mode" onClick={onCambiaModalita}
+          className="fixed top-4 left-4 z-50 text-gray-300 hover:text-white underline">{s.cambiaModalita}</button>
+      )}
+    </>
   )
   })()
 
