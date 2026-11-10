@@ -1,8 +1,8 @@
-# Open Vent Sim 3.2
+# Open Vent Sim 3.3
 
 **Simulatore gratuito e open-source di ventilatore, macchina d'anestesia e alti flussi — con la regia dell'istruttore sulla rete della tua aula.**
 
-🇬🇧 [English version](README.md) · 📅 Versione 3.2.0 — 9 novembre 2026 · Licenza MIT
+🇬🇧 [English version](README.md) · 📅 Versione 3.3.0 — 10 novembre 2026 · Licenza MIT
 
 📄 **L'articolo:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. Se usi Open Vent Sim in un corso, una tesi o un lavoro, [citalo così](#11-come-citare).
 
@@ -56,13 +56,15 @@ Vai alla pagina **[Releases](https://github.com/fedebarra/open-vent-sim/releases
 
 | Il tuo computer | File da scaricare |
 |---|---|
-| Windows | `OpenVentSim-3.2.0-win-x64.exe` (installazione) — oppure `OpenVentSim-3.2.0-portable.exe` (senza installare, si apre e basta) |
-| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.2.0-mac-arm64.dmg` |
-| Mac con processore Intel | `OpenVentSim-3.2.0-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.3.0-win-x64.exe` (installazione) — oppure `OpenVentSim-3.3.0-portable.exe` (senza installare, si apre e basta) |
+| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.3.0-mac-arm64.dmg` |
+| Mac con processore Intel | `OpenVentSim-3.3.0-mac-x64.dmg` |
 
 > Se il `.dmg` non si apre, scarica il `.zip` con lo stesso nome: doppio clic per estrarlo, poi trascina **Open Vent Sim** in Applicazioni.
 
 > Non sai che Mac hai? Menu  → **Informazioni su questo Mac**. Se vedi «Chip Apple M…» prendi `arm64`; se vedi «Processore Intel» prendi `x64`.
+
+**Aggiornamenti (dalla 3.3).** A ogni avvio l'app controlla l'ultima versione su GitHub. Con l'installazione Windows la scarica da sola e chiede di riavviare (oppure la installa alla chiusura). Su Mac e con l'`.exe` portatile dice che è uscita una versione nuova e apre il download giusto: si installa sopra la vecchia. Chi ha la 3.2 o precedenti installa la 3.3 a mano una volta.
 
 ### Windows
 
@@ -106,6 +108,10 @@ Se chiede il **PIN**, scrivono le 4 cifre che vedi in regia:
 
 <p align="center"><img src="docs/screenshots/03-join-pin.png" width="560" alt="Schermata del PIN"></p>
 
+**Una macchina, più schermi.** Se quando un dispositivo entra c'è già un ventilatore acceso, il dispositivo mostra **quella stessa macchina**: proiettore e tablet vedono le stesse curve, e un tocco su uno qualunque cambia la macchina per tutti. Per un ventilatore separato (uno per gruppo) si tocca la freccia indietro → **Stacca**. Se le macchine accese sono più di una, il dispositivo chiede quale mostrare. Per mettere il ventilatore sul proiettore o sulla LIM collegati al computer della regia c'è **Aprilo qui**, sotto il QR.
+
+<p align="center"><img src="docs/screenshots/24-mirror.png" width="640" alt="Lo stesso ventilatore su un secondo schermo"></p>
+
 In alto a destra compare un pallino: **verde** vuol dire collegato alla regia (toccalo per leggere lo stato; un puntino rosso sopra indica che la sessione è registrata).
 
 ### Lo studente accende la macchina
@@ -118,7 +124,7 @@ In alto a destra compare un pallino: **verde** vuol dire collegato alla regia (t
 
 <p align="center"><img src="docs/screenshots/06-icu-choice.png" width="420" alt="Invasiva o NIV"> <img src="docs/screenshots/07-patient.png" width="420" alt="Dati del paziente"></p>
 
-3. Apre il pannello **STANDBY** (a sinistra) e preme **AVVIA LA VENTILAZIONE**.
+3. Apre il pannello **ON/OFF** (a sinistra; mentre ventila si chiama **Standby**) e preme **AVVIA LA VENTILAZIONE**.
 
 <p align="center"><img src="docs/screenshots/08-standby-drawer.png" width="640" alt="Pannello Standby"></p>
 
@@ -131,6 +137,12 @@ Da questo momento lo vedi in regia, curve comprese, e ogni sua azione compare ne
 Apri l'app e scegli **Da solo**, oppure apri il simulatore nel browser e clicca **Usa senza regia**. Senza regia, nella schermata del paziente compare il riquadro **Impostazioni dell'esercitazione** (quadro polmonare e tracce didattiche) per preparare il caso da soli. Sulla schermata iniziale c'è il pulsante **Guida passo passo**, che accompagna lo studente nella prima ventilazione.
 
 <p align="center"><img src="docs/screenshots/20-tour.png" width="640" alt="Guida passo passo"></p>
+
+**← Cambia modalità**, in alto a sinistra nella schermata iniziale, torna alla scelta fra Regia, Ventilatore e Da solo.
+
+La macchina d'anestesia parte in **volume controllato**, in standby; la ventilazione **manuale** (pallone) si sceglie nel pannello ON/OFF, con Paw, flusso e CO₂.
+
+<p align="center"><img src="docs/screenshots/25-anesthesia-manual.png" width="640" alt="Anestesia, ventilazione manuale"></p>
 
 ### Curve, loop e pressioni nascoste
 
@@ -169,6 +181,7 @@ In alto scegli **a chi mandare** i comandi: *questo ventilatore* (quello selezio
 | **Asincronie** | Sforzo inefficace, doppio ciclo, reverse triggering, fame di flusso, ciclaggio precoce/ritardato, auto-trigger, con la quota degli atti coinvolti. Lo studente vede **solo le curve**, mai il nome: riconoscerla è il suo compito. |
 | **Polmone** | Reclutabilità e compliance della parete: la compliance cambia con la PEEP. Avvio della **manovra di reclutamento**. |
 | **Macchina** | Modalità, parametri, avvio/standby, silenzio allarmi, pause inspiratoria ed espiratoria: come se li toccasse lo studente (nel registro risultano fatti dalla regia). |
+| **Allarmi** | I limiti d'allarme del ventilatore (basso/alto, acceso/spento), come dal suo pannello Allarmi; **Ripristina i limiti d'avvio**. In PS, CPAP e PAV c'è il tempo di **apnea** (20 s di serie). |
 | **Eventi** | Eventi pronti (broncospasmo, tappo di muco, pneumotorace, desaturazione, ipercapnia, induzione, risveglio, decurarizzazione…). Si lanciano subito oppure si mettono in **sequenza** con i tempi, e la sequenza si salva su file per la prossima volta. |
 
 <p align="center"><img src="docs/screenshots/11-regia-async.png" width="820" alt="Scheda Asincronie"></p>
@@ -176,6 +189,8 @@ In alto scegli **a chi mandare** i comandi: *questo ventilatore* (quello selezio
 <p align="center"><img src="docs/screenshots/12-learner-asynchrony.png" width="640" alt="Lo studente vede gli sforzi inefficaci sulle curve"></p>
 
 <p align="center"><img src="docs/screenshots/15-regia-events.png" width="820" alt="Eventi e sequenza"></p>
+
+<p align="center"><img src="docs/screenshots/23-regia-alarms.png" width="820" alt="Scheda Allarmi"></p>
 
 **Regia sul tablet.** Nel riquadro a sinistra apri «Apri la regia su un tablet» e inquadra il QR con il **tuo** tablet: avrai la regia in mano mentre giri per l'aula. Non mostrarlo agli studenti, perché dà il controllo completo.
 
@@ -209,6 +224,18 @@ Il registro resta salvato anche se chiudi e riapri la regia.
 | Voglio l'interfaccia vecchia (2.x) | Nel browser aggiungi `?legacy=1` all'indirizzo, da soli. |
 
 ## 9. Novità
+
+### 3.3.0 — 10 novembre 2026
+
+Dal primo collaudo in aula:
+- **Una macchina, più schermi**: un dispositivo che entra con un ventilatore già acceso mostra quella stessa macchina e la comanda; **Stacca** per un ventilatore separato, **Continua da qui** se lo schermo principale si scollega. In regia «▣ +1» accanto a un ventilatore mostrato su altri schermi.
+- **Allarme d'apnea** a tempo (PS, CPAP, PAV), anche mentre ventila il backup. In CPAP un paziente in apnea ora legge frequenza 0.
+- Scheda **Allarmi** in regia: limiti modificabili a distanza, o riportati a quelli d'avvio.
+- Curva del **flusso** in ventilazione manuale (pallone), compresi gli atti dati a mano.
+- La macchina d'anestesia parte in volume controllato e non suona più per l'Et agente a vaporizzatore chiuso.
+- Il primo pannello della macchina si chiama **ON/OFF** a macchina spenta.
+- **Cambia modalità** dalla schermata iniziale in modalità Da solo; **Aprilo qui** per il secondo schermo, sotto il QR.
+- **Aggiornamenti da GitHub** a ogni avvio (automatici con l'installazione Windows, link al download su Mac e con l'exe portatile).
 
 ### 3.2.0 — 9 novembre 2026
 

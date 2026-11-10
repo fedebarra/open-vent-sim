@@ -49,6 +49,10 @@ await regia.getByTestId('tab-lung').click(); await shot(regia, '13-regia-lung');
 await regia.getByTestId('tab-machine').click(); await regia.getByTestId('param-peep').fill('8'); await regia.getByTestId('param-send-peep').click(); await shot(regia, '14-regia-machine');
 await regia.getByTestId('tab-events').click(); await regia.getByTestId('event-add-bronchospasm').click(); await regia.getByTestId('event-add-desat').click(); await regia.getByTestId('event-add-normal').click(); await shot(regia, '15-regia-events');
 await regia.getByTestId('event-fire-bronchospasm').click(); await regia.waitForTimeout(12000);
+// 3.3: alarm limits from the console, and the same machine on a second screen (projector)
+await regia.getByTestId('tab-alarms').click(); await shot(regia, '23-regia-alarms');
+{ const c = await ctx(1366, 860); const p = await c.newPage(); await p.goto(`${base}/`); await p.getByTestId('pin-input').fill('4821');
+  await p.getByTestId('device-mirror').waitFor(); await p.waitForTimeout(6000); await shot(p, '24-mirror'); await c.close(); }
 await regia.getByTestId('rec-stop').click(); await regia.getByTestId('registro').waitFor();
 await regia.getByTestId('registro').locator('input:not([type=file])').first().fill(LANG === 'it' ? 'Specializzandi 1° anno – martedì' : 'First-year residents – Tuesday');
 await shot(regia, '16-registro');
@@ -64,6 +68,13 @@ for (const [name, go] of [
   await p.locator('[data-fam="maniglia-ventilazione"]').click(); const start = p.getByRole('button', { name: /AVVIA|START/i }).last(); if (await start.count()) await start.click(); else await p.keyboard.press('Escape');
   await p.waitForTimeout(6000); await shot(p, name); await c.close();
 }
+
+// 3.3: anaesthesia by bag — Paw, flow and CO₂
+{ const c = await ctx(1366, 860); const p = await c.newPage(); await p.goto(`${base}/`); await p.getByText(/Usa senza regia|Use without instructor/).click();
+  await p.getByTestId('mode-anesthesia').click(); await p.getByTestId('patient-confirm').click();
+  await p.locator('[data-fam="maniglia-ventilazione"]').click(); await p.locator('[data-fam="sorgente"] button').first().click();
+  await p.getByRole('button', { name: /AVVIA LA VENTILAZIONE|START VENTILATION/i }).click();
+  await p.waitForTimeout(8000); await shot(p, '25-anesthesia-manual'); await c.close(); }
 
 // 6. guided tour
 { const c = await ctx(1366, 860); const p = await c.newPage(); await p.goto(`${base}/`); await p.getByText(/Usa senza regia|Use without instructor/).click();

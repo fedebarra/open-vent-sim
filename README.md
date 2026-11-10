@@ -1,8 +1,8 @@
-# Open Vent Sim 3.2
+# Open Vent Sim 3.3
 
 **A free, open-source simulator of ICU ventilator, anaesthesia machine and high-flow oxygen — with an instructor console that runs on your classroom's own network.**
 
-🇮🇹 [Versione italiana](README.it.md) · 📅 Version 3.2.0 — 9 November 2026 · MIT licence
+🇮🇹 [Versione italiana](README.it.md) · 📅 Version 3.3.0 — 10 November 2026 · MIT licence
 
 📄 **The paper:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. If you use Open Vent Sim in a course, a thesis or a paper, [please cite it](#11-how-to-cite).
 
@@ -56,13 +56,15 @@ Go to **[Releases](https://github.com/fedebarra/open-vent-sim/releases/latest)**
 
 | Your computer | File |
 |---|---|
-| Windows | `OpenVentSim-3.2.0-win-x64.exe` (installer) — or `OpenVentSim-3.2.0-portable.exe` (no install, just run it) |
-| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.2.0-mac-arm64.dmg` |
-| Mac with Intel processor | `OpenVentSim-3.2.0-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.3.0-win-x64.exe` (installer) — or `OpenVentSim-3.3.0-portable.exe` (no install, just run it) |
+| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.3.0-mac-arm64.dmg` |
+| Mac with Intel processor | `OpenVentSim-3.3.0-mac-x64.dmg` |
 
 > If the `.dmg` won't open, download the `.zip` with the same name: double-click to extract, then drag **Open Vent Sim** into Applications.
 
 > Not sure which Mac? Apple menu  → **About This Mac**. "Chip Apple M…" → `arm64`; "Processor Intel" → `x64`.
+
+**Updates (from 3.3).** At every start the app checks the latest release on GitHub. With the Windows installer it downloads the new version by itself and asks to restart (or installs it when you quit). On Mac and with the portable `.exe` it says a new version is out and opens the right download: install it over the old one. If you have 3.2 or earlier, install 3.3 by hand once.
 
 ### Windows
 
@@ -106,6 +108,10 @@ If asked for a **PIN**, they type the 4 digits shown on the console:
 
 <p align="center"><img src="docs/screenshots/03-join-pin-en.png" width="560" alt="PIN screen"></p>
 
+**One machine, several screens.** If a ventilator is already on when a device joins, the device shows **that same machine**: the projector and the tablets see the same waveforms, and a tap on any of them changes the machine for everyone. For a separate ventilator (one per group) tap the back arrow → **Detach**. If several machines are on, the device asks which one to show. To put the ventilator on the projector or interactive whiteboard connected to the console's computer, use **Open it here** under the QR code.
+
+<p align="center"><img src="docs/screenshots/24-mirror-en.png" width="640" alt="The same ventilator on a second screen"></p>
+
 A small dot appears in the top-right corner: **green** means connected to the instructor (tap it to read the status; a small red mark on it means the session is being recorded).
 
 ### The learner switches the machine on
@@ -118,7 +124,7 @@ A small dot appears in the top-right corner: **green** means connected to the in
 
 <p align="center"><img src="docs/screenshots/06-icu-choice-en.png" width="420" alt="Invasive or NIV"> <img src="docs/screenshots/07-patient-en.png" width="420" alt="Patient data"></p>
 
-3. Open the **STANDBY** drawer (left) and press **START VENTILATION**.
+3. Open the **ON/OFF** drawer (left; it is called **Standby** while ventilating) and press **START VENTILATION**.
 
 <p align="center"><img src="docs/screenshots/08-standby-drawer-en.png" width="640" alt="Standby drawer"></p>
 
@@ -131,6 +137,12 @@ From now on you see it on the console, waveforms included, and each action appea
 Open the app and choose **On my own**, or open the simulator in a browser and click **Use without instructor**. Without an instructor, the patient screen shows an **Exercise settings** box (lung picture and teaching traces) to set up the case yourself. The start screen has a **Guided tour** button that walks a learner through their first ventilation.
 
 <p align="center"><img src="docs/screenshots/20-tour-en.png" width="640" alt="Guided tour"></p>
+
+**← Change mode**, top left on the start screen, goes back to the choice between Instructor, Ventilator and On my own.
+
+The anaesthesia machine starts in **volume control**, in standby; **Manual** (bag) is in the ON/OFF drawer, with Paw, flow and CO₂.
+
+<p align="center"><img src="docs/screenshots/25-anesthesia-manual-en.png" width="640" alt="Anaesthesia, manual ventilation"></p>
 
 ### Waves, loops and hidden pressures
 
@@ -169,6 +181,7 @@ At the top choose **where commands go**: *this ventilator* (selected on the left
 | **Asynchronies** | Ineffective effort, double cycling, reverse triggering, flow starvation, premature/delayed cycling, auto-triggering, with the share of breaths affected. Learners only see the **waveforms**, never the name: spotting it is their job. |
 | **Lung** | Recruitability and chest-wall compliance: compliance now depends on PEEP. Start the **recruitment manoeuvre**. |
 | **Machine** | Mode, settings, start/standby, silence alarms, inspiratory and expiratory holds: applied as if the learner touched them (logged as instructor actions). |
+| **Alarms** | The ventilator's alarm limits (low/high, on/off), as in its own Alarms drawer; **Reset to the start-up limits**. In PS, CPAP and PAV there is the **apnoea** time (default 20 s). |
 | **Events** | Ready-made events (bronchospasm, mucus plug, pneumothorax, desaturation, hypercapnia, induction, waking up, NMB reversal…). Fire now or build a timed **sequence**; save it to a file for next time. |
 
 <p align="center"><img src="docs/screenshots/11-regia-async-en.png" width="820" alt="Asynchronies tab"></p>
@@ -176,6 +189,8 @@ At the top choose **where commands go**: *this ventilator* (selected on the left
 <p align="center"><img src="docs/screenshots/12-learner-asynchrony-en.png" width="640" alt="The learner sees ineffective efforts on the waveforms"></p>
 
 <p align="center"><img src="docs/screenshots/15-regia-events-en.png" width="820" alt="Events and sequence"></p>
+
+<p align="center"><img src="docs/screenshots/23-regia-alarms-en.png" width="820" alt="Alarms tab"></p>
 
 **Console on a tablet.** In the left panel open "Open the console on a tablet" and scan the QR with **your** tablet to walk around the room with the console in hand. Don't show it to learners: it gives full control.
 
@@ -209,6 +224,18 @@ The log survives closing and reopening the console.
 | I want the old (2.x) interface | In the browser, add `?legacy=1` to the address (stand-alone only). |
 
 ## 9. What's new
+
+### 3.3.0 — 10 November 2026
+
+From the first classroom test:
+- **One machine, several screens**: a device that joins while a ventilator is on shows that same machine and drives it; **Detach** for a separate ventilator, **Carry on from here** if the main screen disconnects. The console shows "▣ +1" next to a ventilator shown on other screens.
+- **Apnoea alarm** with a time limit (PS, CPAP, PAV), also while backup ventilation runs. An apnoeic patient in CPAP now reads rate 0.
+- **Alarms** tab in the console: change the limits remotely, or reset them to the start-up ones.
+- **Flow** waveform in manual (bag) ventilation, including the breaths given by hand.
+- The anaesthesia machine starts in volume control and no longer alarms for Et agent while the vaporizer is closed.
+- The machine's first drawer reads **ON/OFF** when it is off.
+- **Change mode** from the stand-alone start screen; **Open it here** for the second screen, under the QR code.
+- **Updates from GitHub** at every start (automatic with the Windows installer, download link on Mac and portable).
 
 ### 3.2.0 — 9 November 2026
 
