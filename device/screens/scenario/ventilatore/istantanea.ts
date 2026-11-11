@@ -37,7 +37,8 @@
 import { valuta, MODALITA_CON_APNEA, LIMITI_INIZIALI, SILENZIO_SECONDI, conLimiteDellAgente, type AllarmeAttivo, type LimitiAllarme, spostaLimite } from './allarmi'
 import type { AzioneVentilatore } from './azioni'
 import { regolaPrvc, PRVC_PROVA } from './prvc'
-import { attiRecenti, motoreCopre } from './motore'
+import { attiRecenti, motoreCopre, BLOCCO_SEC, CALDO_SEC } from './motore'
+import { forzaColpo, RITARDO_TOSSE_SEC, scoppiTosse } from './tosse'
 import type { Circuito } from '../../paziente/presidiFigura'
 import { DRIVE_ASSENTE, driveEfficace, type Drive, type ImpostazioniAsincronia } from './asincronie'
 import type { TranslationKey } from '../../../i18n/it'
@@ -58,6 +59,7 @@ import {
   type StatoAltoFlusso,
   type StatoUmidificatore,
   type StatoVentilatore,
+  type TosseVentilatore,
 } from './fisica'
 import {
   ERRORE_RIEMPIMENTO,
@@ -138,6 +140,8 @@ export interface VentIstantanea {
    * soglie: si fissa premendo e si butta lasciando (`motivoInterruzione`).
    */
   baseManovra: BaseManovra | null
+  /** §674: i colpi di tosse del paziente intubato, nel tempo del ventilatore (`conTosse`). */
+  tossi?: TosseVentilatore[]
   /**
    * Quando è stato completato l'ultimo autotest, nel tempo del ventilatore,
    * o niente se su questa accensione non è mai stato fatto.
@@ -276,7 +280,28 @@ export function statoDa(istantanea: VentIstantanea): StatoVentilatore {
     seme: istantanea.seme,
     sfasamentoSpontaneo: istantanea.sfasamentoSpontaneo ?? 0,
     manovraDa: istantanea.manovraDa ?? null,
+    tossi: istantanea.tossi ?? [],
+    pressioneMassima: istantanea.limiti?.pPeak?.alto ?? null,
   }
+}
+
+/** Quanto indietro si tengono i colpi: il motore ricomincia ogni blocco quaranta secondi prima. */
+const TOSSI_TENUTE_SEC = CALDO_SEC + BLOCCO_SEC + 5
+
+/**
+ * §674: il paziente tossisce col tubo: i colpi (uno, o un accesso) entrano nell'istantanea nel tempo del ventilatore.
+ * Lo scoppio è quello della clip del paziente (`scoppiTosse`), con la forza che cala lungo l'accesso.
+ */
+export function conTosse(
+  istantanea: VentIstantanea,
+  tosse: { n: number; colpi?: number; da?: number },
+  adessoMs = Date.now(),
+): VentIstantanea {
+  const t0 = orologio(istantanea, tosse.da ?? adessoMs) + RITARDO_TOSSE_SEC
+  const ora = orologio(istantanea, adessoMs)
+  const nuovi = scoppiTosse(tosse.colpi ?? 1, tosse.n).map((s, i) => ({ t: t0 + s, forza: forzaColpo(i) }))
+  const tenuti = (istantanea.tossi ?? []).filter((c) => c.t > ora - TOSSI_TENUTE_SEC)
+  return { ...istantanea, tossi: [...tenuti, ...nuovi] }
 }
 
 /**

@@ -24,6 +24,7 @@ export interface ComandoAzione {
  *  - `rampaFrequenza` moves the spontaneous rate gradually (Scenario Creator
  *    "addormenta / risveglia": e.g. 15 → 0 over 30 s for induction).
  *  - `asincronia: null` removes any asynchrony.
+ *  - `tosse` makes the patient cough on the machine (OVS 3.4).
  *  - `vitali` are the monitor values the ventilator receives (SpO₂, EtCO₂
  *    the capnograph tracks, HR and MAP used by the recruitment stop criteria).
  */
@@ -35,6 +36,11 @@ export interface ComandoPaziente {
   rampaFrequenza?: { a: number; durataSec: number }
   asincronia?: ImpostazioniAsincronia | null
   vitali?: { spo2?: number | null; etco2?: number | null; heartRate?: number | null; map?: number | null; pesoKg?: number | null }
+  /**
+   * OVS 3.4: the patient coughs on the machine — one cough (`colpi` 1) or a coughing fit (several in a row, each a
+   * little weaker). `n` seeds the spacing of the fit, so every screen sees the same coughs (`conTosse`).
+   */
+  tosse?: { n: number; colpi: number }
 }
 
 /** Display options decided by the director (teaching traces). */

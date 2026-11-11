@@ -73,8 +73,8 @@ export const REGIA_STEPS: TourStep[] = [
   {
     id: 'regia-async',
     ...tab('async'),
-    it: { title: 'Le asincronie', body: 'Scegli l’asincronia e quanti atti coinvolge. Non sono disegni: sono cause — uno sforzo che non arriva al trigger, uno sforzo più lungo dell’inspirazione — e le curve le mostrano da sole. Il nome non compare sul ventilatore: riconoscerle è il compito dei discenti.', tryIt: 'apri la scheda Asincronie.' },
-    en: { title: 'Asynchronies', body: 'Choose the asynchrony and how many breaths it involves. They are not drawings but causes — an effort that misses the trigger, an effort longer than inspiration — and the waveforms show them by themselves. The name never appears on the ventilator: recognising it is the learners’ job.', tryIt: 'open the Asynchronies tab.' },
+    it: { title: 'Le asincronie', body: 'Scegli l’asincronia e quanti atti coinvolge. Non sono disegni: sono cause — uno sforzo che non arriva al trigger, uno sforzo più lungo dell’inspirazione — e le curve le mostrano da sole. Il nome non compare sul ventilatore: riconoscerle è il compito dei discenti. Qui sotto anche la tosse: un colpo o un accesso, con la Paw che va al limite e l’allarme di pressione.', tryIt: 'apri la scheda Asincronie.' },
+    en: { title: 'Asynchronies', body: 'Choose the asynchrony and how many breaths it involves. They are not drawings but causes — an effort that misses the trigger, an effort longer than inspiration — and the waveforms show them by themselves. The name never appears on the ventilator: recognising it is the learners’ job. Below, the cough too: a single cough or a fit, with Paw hitting the limit and the pressure alarm.', tryIt: 'open the Asynchronies tab.' },
   },
   {
     id: 'regia-mechanics',
