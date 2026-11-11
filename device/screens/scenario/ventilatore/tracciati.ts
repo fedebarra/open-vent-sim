@@ -183,7 +183,7 @@ export function campioneA(tracciato: TracciatoRegistrato, tempoMs: number): Camp
  * codice, e riformattarli vorrebbe dire perdere il diritto di dire che sono
  * l'esportazione di una macchina vera. Per questo stanno qui dentro e non là
  * fuori — ed è la ragione per cui la cartella ha potuto uscire dal repository
- * senza portarsele via (§331: sta in `~/Developer/open-vent-sim`, dove quel
+ * senza portarsele via (sta in `~/Developer/open-vent-sim`, dove quel
  * file è identico a quello da cui queste stringhe sono state copiate).
  */
 const REGISTRAZIONE_VC = `[REC]

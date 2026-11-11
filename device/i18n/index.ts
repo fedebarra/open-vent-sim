@@ -1,5 +1,5 @@
 /**
- * `useT()` as in the Scenario Creator, backed by Open Vent Sim's language
+ * `useT()`, backed by Open Vent Sim's language
  * (LanguageContext). Same signature, so the ported files stay untouched.
  */
 import { useCallback } from 'react'

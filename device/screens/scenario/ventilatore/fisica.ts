@@ -8,7 +8,7 @@
  * React, ne scriveva altri sei con `setQualcosa` mentre calcolava, e girava
  * dentro un `setInterval` ogni due secondi. Funziona in un'app dove la macchina
  * e la schermata sono la stessa cosa. Qui no: la fisica gira **in regia**, che è
- * l'unico produttore dell'istantanea (§118), e i device disegnano da quello che
+ * l'unico produttore dell'istantanea, e i device disegnano da quello che
  * ricevono — come l'ECG, che si disegna dal ritmo e non dai battuti.
  *
  * Quindi qui non c'è nessun ciclo e nessuno stato: `misura()` prende lo stato e
@@ -438,7 +438,7 @@ export interface StatoVentilatore {
   /** L'umidificatore: c'è sui tre ventilatori, non in anestesia. */
   umidificatore: StatoUmidificatore | null
   /**
-   * Come è montata la linea (§602). Conta in NIV: col monotubo il whisper perde apposta, e
+   * Come è montata la linea. Conta in NIV: col monotubo il whisper perde apposta, e
    * il ventilatore lo sa solo se l'autotest l'ha calibrato. Assente vale il bitubo.
    */
   circuito?: Circuito | null
@@ -471,27 +471,27 @@ export interface StatoVentilatore {
    */
   manovraDa?: number | null
   /**
-   * §674: i colpi di tosse, nel tempo del ventilatore: `t` lo scoppio, `forza` da 0 a 1 (in un accesso cala).
+   * i colpi di tosse, nel tempo del ventilatore: `t` lo scoppio, `forza` da 0 a 1 (in un accesso cala).
    * Li mette la regia quando il paziente tossisce col tubo (`conTosse` di istantanea.ts).
    */
   tossi?: TosseVentilatore[]
   /**
-   * §674: il limite alto della pressione di picco, cmH₂O: arrivata lì la macchina smette di insufflare e apre
+   * il limite alto della pressione di picco, cmH₂O: arrivata lì la macchina smette di insufflare e apre
    * l'espirazione. Assente, nessun taglio.
    */
   pressioneMassima?: number | null
 }
 
-/** §674: un colpo di tosse visto dal ventilatore. */
+/** un colpo di tosse visto dal ventilatore. */
 export interface TosseVentilatore {
   t: number
   forza: number
 }
 
-/** §674: per quanti secondi dopo un colpo di tosse il picco mostrato è il suo. */
+/** per quanti secondi dopo un colpo di tosse il picco mostrato è il suo. */
 export const PICCO_TOSSE_SEC = 6
 
-/** §674: la Paw più alta dei colpi di tosse degli ultimi `PICCO_TOSSE_SEC` fino a `tSec`, o null se non ce ne sono. */
+/** la Paw più alta dei colpi di tosse degli ultimi `PICCO_TOSSE_SEC` fino a `tSec`, o null se non ce ne sono. */
 export function piccoDellaTosse(stato: StatoVentilatore, tSec: number): number | null {
   let picco: number | null = null
   for (const c of stato.tossi ?? []) {
@@ -1094,7 +1094,7 @@ export function misura(
     // corregge, ed è quella che il ventilatore mostra. Il whisper del monotubo perde
     // **apposta**, tanto di più quanto più alta è la pressione (√P, come una porta tarata):
     // l'autotest lo calibra e il ventilatore lo toglie dal conto. Non calibrato, quel flusso
-    // sembra entrato nel paziente e il volume corrente letto è più alto del vero (§602).
+    // sembra entrato nel paziente e il volume corrente letto è più alto del vero.
     // Se la regia ha scritto la perdita della maschera, è vera e la conta il
     // motore sugli atti (più sotto); se no, la piccola perdita di sempre.
     const perditaVera = ambiente === 'niv' && typeof fis.perditaMaschera === 'number'
@@ -1188,7 +1188,7 @@ export function misura(
       const si = ultimi(recenti.map((a) => a.stressIndex))
       m.stressIndex = si === null ? null : parseFloat(si.toFixed(2))
     }
-    // §674: la tosse: la macchina vede la Paw del colpo appena succede (non a fine atto), la scrive come picco e sopra
+    // la tosse: la macchina vede la Paw del colpo appena succede (non a fine atto), la scrive come picco e sopra
     // il limite suona l'allarme di pressione; il numero resta per `PICCO_TOSSE_SEC`, poi torna quello dell'atto.
     const piccoTosse = motoreCopre(statoMotore) ? piccoDellaTosse(statoMotore, tSec) : null
     if (piccoTosse !== null && piccoTosse > (m.pPeak ?? 0) + 2) m.pPeak = arrotonda(piccoTosse)
@@ -1520,7 +1520,7 @@ export function statoIniziale(
   return {
     ambiente,
     modalita,
-    // §665 (l'utente: «deve partire in VC e non in manuale»): anche la macchina d'anestesia nasce sul
+    // L'utente: «deve partire in VC e non in manuale»: anche la macchina d'anestesia nasce sul
     // selettore meccanico, in standby; il pallone la porta in manuale da sé al primo atto
     respiro: 'meccanica',
     ventilando: false,

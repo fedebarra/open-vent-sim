@@ -589,7 +589,7 @@ const AsyncTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; onAppl
         <button data-testid="async-stop" onClick={() => { setTipo(null); onApply({ asincronia: null }, s.asyncStop, 0); }} className="px-4 py-2 rounded-lg bg-slate-700">{s.asyncStop}</button>
         <span className="text-xs text-slate-300" data-testid="async-current">{ist.asincronia ? `● ${name(ist.asincronia.tipo)} ${Math.round(ist.asincronia.quota * 100)}%` : ''}</span>
       </div>
-      {/* OVS 3.4: the patient coughs on the machine (Scenario Creator §674): Paw up to the high limit, alarm */}
+      {/* OVS 3.4: the patient coughs on the machine: Paw up to the high limit, alarm */}
       {ist.ambiente !== 'alto-flusso' && (
         <div className="border-t border-slate-800 pt-3 space-y-2">
           <div className="flex flex-wrap gap-2 items-center">

@@ -399,7 +399,7 @@ export function Sweep({
       // pixel di altezza, e quei sei pixel restano bianchi ad **ogni**
       // fotogramma: la traccia esce a trattini, «come disegnata a matita». È il
       // difetto che si vedeva su tutte le corsie insieme, e che non c'entra
-      // niente con i buchi del §179 — quelli erano i salti dell'orologio,
+      // niente con i buchi — quelli erano i salti dell'orologio,
       // questo è la giuntura fra un fotogramma e il successivo, sempre lì.
       //
       // Chiudendo ogni fotogramma **esattamente** su `to`, il primo punto del

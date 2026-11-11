@@ -1,7 +1,6 @@
 /**
  * What the classroom layer can send to a running device, and what the device
- * reports back. The device engine is the Scenario Creator one (Italian names
- * kept on purpose, so the files stay diff-able with the Scenario Creator).
+ * reports back. Italian names in the engine are kept on purpose.
  */
 import type { AzioneVentilatore } from './screens/scenario/ventilatore/azioni'
 import type { Fisiologia, PresetFisiologia } from './screens/scenario/ventilatore/fisica'
@@ -21,8 +20,8 @@ export interface ComandoAzione {
  * A change to the patient. Every field is optional: only what is sent changes.
  *  - `preset` loads lung mechanics AND the matching spontaneous drive.
  *  - `fisiologia` / `drive` are merged over the current values.
- *  - `rampaFrequenza` moves the spontaneous rate gradually (Scenario Creator
- *    "addormenta / risveglia": e.g. 15 → 0 over 30 s for induction).
+ *  - `rampaFrequenza` moves the spontaneous rate gradually
+ *    ("addormenta / risveglia": e.g. 15 → 0 over 30 s for induction).
  *  - `asincronia: null` removes any asynchrony.
  *  - `tosse` makes the patient cough on the machine (OVS 3.4).
  *  - `vitali` are the monitor values the ventilator receives (SpO₂, EtCO₂

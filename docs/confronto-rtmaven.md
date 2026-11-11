@@ -44,7 +44,7 @@ da capo, e su un punto (la limitazione al flusso) usa un modello diverso.
   invece di sommarsi: la regola dell'80%), e l'auto-PEEP si vede.
 - **Solo polmone**: niente circolo, gas, allarmi, anestesia, alto flusso, NIV
   con perdite, regia multi-dispositivo, registro di sessione. Su questo Open
-  Vent Sim e lo scenario creator sono un'altra categoria.
+  Vent Sim è un'altra categoria.
 - **Account e server** per salvare e insegnare; noi stiamo su LAN, gratis.
 
 ## Che cosa è entrato nella 3.2
@@ -57,7 +57,7 @@ da capo, e su un punto (la limitazione al flusso) usa un modello diverso.
 | Trigger | 100 ms disegnati | ritardo di 50 ms, soglia sul flusso vero, refrattario; circuito chiuso in controllata |
 | Ciclaggio PS | Ti = −RC·ln(soglia) | flusso < soglia × picco, o pressione, o Ti massimo |
 | Modalità | — | **PAV+** (supporto 5-95%) |
-| Assistita-controllata | no (§325) | interruttore **A/C** in VC/PC/PRVC (spento di default) |
+| Assistita-controllata | no | interruttore **A/C** in VC/PC/PRVC (spento di default) |
 | Pressioni | Palv, Pmus | + **Pes e PL** (pulsante «Pes·PL»), artefatto cardiaco |
 | Oscillazioni cardiache | — | `fisiologia.oscillazioniCardiache`: auto-trigger col trigger sensibile |
 | Pause | numeri analitici | ferme sull'ultimo atto vero (plateau statico, PEEP totale) |
@@ -72,7 +72,7 @@ stesso flusso: vedi «Che cosa resta diverso», punto 1.
 
 | Voce della lista | Com'è entrata |
 |---|---|
-| Regia: oscillazioni cardiache, forma della Pmus, Pes basale, preset | Scheda **Sforzo e parete** in OVS, sezione omonima nello scenario creator; otto quadri (`quadri.ts`) che si sommano al polmone e si tolgono uno per uno |
+| Regia: oscillazioni cardiache, forma della Pmus, Pes basale, preset | Scheda **Sforzo e parete** in OVS; otto quadri (`quadri.ts`) che si sommano al polmone e si tolgono uno per uno |
 | Pmus responsiva, P0.1, Pocc | `drive.responsivo` (−0,6 cmH₂O di Pmus per cmH₂O di PS, fondo 35%); **P0.1** sul display; la pausa espiratoria con uno sforzo dentro dà ΔPocc, Pmus stimata (0,75·|ΔPocc|), ΔPL dinamica (Bertoni 2019), ΔPaw/ΔPes |
 | Stress index, AOP, volume reclutato, R/I | Curva P-V non lineare (`E1·V + E2·V²`, corda invariata): lo stress index **esce dalla curva**, non si scrive. `aperturaVie` chiude le vie aeree; manovra **curva P/V lenta** (5 l/min) che trova il ginocchio; manovra **rapporto R/I** (Chen 2020) |
 | Variabilità naturale | `drive.variabilita`: ampiezza, durata e istante, gaussiana seminata per atto (deterministica) |

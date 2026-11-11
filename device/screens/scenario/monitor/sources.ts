@@ -1,5 +1,5 @@
 /**
- * Trimmed from the Scenario Creator monitor/sources.ts: only the vital-sign
+ * Only the vital-sign
  * shape and the capnogram used by the ventilator screen.
  */
 

@@ -7,7 +7,7 @@
  * `AllParameters` — con dentro il volume corrente che si imposta e la pressione
  * di picco che si misura, mescolati. Funziona finché lo scrive e lo legge la
  * stessa schermata; qui no, perché **l'istantanea la produce solo la regia**
- * (§118) e i due gruppi viaggiano in modo diverso: le impostazioni sono una
+ * e i due gruppi viaggiano in modo diverso: le impostazioni sono una
  * decisione di qualcuno e si mandano, le misure sono una conseguenza e si
  * ricalcolano. Un campo che sta in mezzo finisce per essere riscritto da tutti
  * e due i lati, e vince l'ultimo che parla.
@@ -33,7 +33,7 @@
  * funzioni, tipi, campi nostri — è in italiano come nel resto della casa.
  *
  * La sorgente non è più nel repository: `open-vent-sim-main/` è uscita a
- * integrazione finita (§331) e sta in `~/Developer/open-vent-sim-main`. I nomi
+ * integrazione finita e sta in `~/Developer/open-vent-sim-main`. I nomi
  * restano quelli perché sono quelli delle macchine, non perché una cartella
  * qui accanto li usava.
  */
@@ -46,7 +46,7 @@ import type { TranslationKey } from '../../../i18n/it'
  * Cambiano quali parametri esistono, quali modalità si possono scegliere e che
  * cosa la macchina misura: in anestesia c'è un circuito chiuso con i gas e la
  * calce, in alto flusso non c'è nemmeno una PEEP da impostare. Lo scenario lo
- * **propone**, la regia lo decide — come per il monitor (HANDOVER §150).
+ * **propone**, la regia lo decide — come per il monitor.
  */
 export type Ambiente = 'anestesia' | 'invasiva' | 'niv' | 'alto-flusso'
 
@@ -122,7 +122,7 @@ export interface Impostazioni {
   /**
    * Il trigger è aperto anche negli atti controllati: **assistita-controllata**.
    *
-   * Spento (il default, la decisione del 13 settembre 2026, §325) lo sforzo che
+   * Spento (il default, la decisione del 13 settembre 2026) lo sforzo che
    * cade in espirazione in VC, PC e PRVC lascia una tacca e non apre niente.
    * Acceso è come le macchine vere e come il simulatore di riferimento: lo
    * sforzo apre un atto, e il ciclo riparte da lì. 0 spento, 1 acceso.

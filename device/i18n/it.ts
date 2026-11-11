@@ -1,4 +1,4 @@
-/** Dizionario italiano del ventilatore, copiato dallo Scenario Creator (solo le chiavi usate). */
+/** Dizionario italiano del ventilatore (solo le chiavi usate). */
 export const it = {
   "action.close": "Chiudi",
   "action.back": "Indietro",

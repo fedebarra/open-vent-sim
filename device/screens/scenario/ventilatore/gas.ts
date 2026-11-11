@@ -80,7 +80,7 @@ export interface StatoGas {
   /** Fino a quando dura il flush di ossigeno, nel tempo del ventilatore. */
   flushFinoA: number
   /**
-   * L'età del paziente scritta sulla macchina, in anni (§402). Le macchine
+   * L'età del paziente scritta sulla macchina, in anni. Le macchine
    * vere la chiedono per dare la MAC corretta per l'età (Mapleson 1996): senza,
    * 5,5% di desflurano a 58 anni si leggeva 0,8 MAC invece di 0,93. Assente,
    * la MAC è quella dei quarant'anni, come prima.
@@ -259,7 +259,7 @@ export const RIEMPIMENTO_SECONDI = 30
 /**
  * Riempi. **Solo a gas chiusi.**
  *
- * Fino al §165 riusciva sempre e lasciava una riga nel registro: la regola
+ * Prima riusciva sempre e lasciava una riga nel registro: la regola
  * viveva nel debriefing, non nella macchina. Ma su una macchina vera non è una
  * cattiva idea, è una cosa che **non si fa** — si versa agente liquido con il
  * circuito in pressione — e un simulatore che la lascia fare insegna che si

@@ -266,7 +266,7 @@ export function voceRegistro(kind: string): TranslationKey[] | null {
   }
 }
 
-/** I circuiti che hanno un nome nel registro (§602): uno sconosciuto dice «Ventilatore». */
+/** I circuiti che hanno un nome nel registro: uno sconosciuto dice «Ventilatore». */
 const CIRCUITI_DEL_REGISTRO = ['hme', 'umidificatore', 'bitubo', 'monotubo']
 
 function etichettaParametro(chiave: string): TranslationKey {

@@ -1,5 +1,5 @@
 /**
- * Session log ("registro"), in the style of the Sim Scenario Creator:
+ * Session log ("registro"):
  * time from T0 (mm:ss), categories, repeated adjustments grouped, parameter
  * trends sampled during the recording, and a session sheet (title, learners,
  * notes) for the debriefing.

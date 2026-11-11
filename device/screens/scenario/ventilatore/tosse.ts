@@ -1,14 +1,13 @@
 /**
- * OVS: i tempi della tosse che in Scenario Creator stanno in `fotoreale/moti.ts` (lo schermo del paziente), qui da
- * soli: OVS non ha il paziente fotorealistico. Stessi valori e stessa sequenza degli scoppi, così ventilatore,
- * monitor e paziente vedono gli stessi colpi. In SSC `istantanea.ts` li importa da `../fotoreale/moti`.
+ * I tempi della tosse: quando arrivano gli scoppi di un colpo o di un accesso, e quanto è forte ognuno. La sequenza
+ * dipende solo dal seme, così tutti gli schermi vedono gli stessi colpi.
  */
 
 /** Il colpo sul volto, in secondi: prima l'inspirazione, poi lo scoppio. Qui serve solo `inspira`. */
 export const TOSSE = { inspira: 0.25, apre: 0.14, tiene: 0.12, torna: 0.36, svanisce: 0.08 }
 
 /**
- * §674: l'accesso di tosse: più colpi di fila, senza respiro in mezzo, ognuno un po' più debole del prima (il polmone
+ * l'accesso di tosse: più colpi di fila, senza respiro in mezzo, ognuno un po' più debole del prima (il polmone
  * si svuota). Il primo scoppio dopo l'inspirazione (`TOSSE.inspira`), gli altri a 0,42-0,62 s l'uno dall'altro.
  * Il caso viene dal numero del colpo, così tutti gli schermi vedono gli stessi scoppi.
  */
@@ -25,8 +24,8 @@ export function scoppiTosse(colpi: number, seme: number): number[] {
   return out
 }
 
-/** §674: quanto è forte il colpo `i` dell'accesso, da 1 (il primo) in giù. */
+/** quanto è forte il colpo `i` dell'accesso, da 1 (il primo) in giù. */
 export const forzaColpo = (i: number) => ACCESSO_TOSSE.cala ** i
 
-/** §674: quanto dopo l'inizio del colpo nella regia lo vede il ventilatore, in secondi. */
+/** quanto dopo l'inizio del colpo nella regia lo vede il ventilatore, in secondi. */
 export const RITARDO_TOSSE_SEC = 0.25

@@ -1,5 +1,5 @@
 /**
- * Trimmed from the Scenario Creator anestesia/modelli.ts: only what the
+ * Only what the
  * ventilator needs (MAC at 40 years and its age correction).
  */
 
@@ -8,7 +8,7 @@ export type AgenteAlogenato = 'sevoflurano' | 'desflurano' | 'isoflurano'
 /**
  * MAC a 40 anni di Mapleson 1996 (PMID 8777094), vol%. La legge anche il
  * ventilatore (`ventilatore/gas.ts`): con due tabelle «1 MAC» sulla macchina
- * era 2,0% di sevo e il BIS scendeva sotto il plateau di Kreuer (§398).
+ * era 2,0% di sevo e il BIS scendeva sotto il plateau di Kreuer.
  */
 export const MAC40: Record<AgenteAlogenato, number> = { sevoflurano: 1.8, desflurano: 6.6, isoflurano: 1.17 }
 

@@ -1,5 +1,5 @@
 /**
- * Minimal replacement of the Scenario Creator monitor/sound.ts for the
+ * Minimal monitor sound module for the
  * ventilator only: the alarm loop and the browser permission dance.
  * Uses Open Vent Sim's own `alarm.mp3` (public/).
  */

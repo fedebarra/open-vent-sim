@@ -217,8 +217,8 @@ export const LIMITI_INIZIALI: LimitiAllarme = {
 }
 
 /**
- * Il limite alto dell'Et agente con cui la macchina si accende, **per agente**
- * (§402). Il 5% di fabbrica era tarato sul sevoflurano — quasi tre MAC — e sul
+ * Il limite alto dell'Et agente con cui la macchina si accende, **per agente**.
+ * Il 5% di fabbrica era tarato sul sevoflurano — quasi tre MAC — e sul
  * desflurano è meno di una: un mantenimento normale al 5,5% suonava dal primo
  * secondo. Qui è lo stesso multiplo della MAC per tutti, dentro la scala del
  * limite (15%).

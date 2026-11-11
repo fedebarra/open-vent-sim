@@ -1,4 +1,4 @@
-/* Guided tour overlay (ported from the Scenario Creator familiarization).
+/* Guided tour overlay.
    The overlay sits above everything but captures nothing: only the card and
    the tab take the finger, the rest passes through to the simulator. */
 .ovs-tour { position: fixed; inset: 0; z-index: 2147483000; pointer-events: none;

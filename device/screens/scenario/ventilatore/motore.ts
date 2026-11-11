@@ -21,7 +21,7 @@
  *
  * ## Una funzione pura del tempo, lo stesso
  *
- * La regia produce l'istantanea e ogni schermo disegna da lì (§118): due
+ * La regia produce l'istantanea e ogni schermo disegna da lì: due
  * schermi con lo stesso stato e lo stesso istante devono disegnare lo stesso
  * punto. Un integratore ha una storia, e la storia dipende da dove si comincia.
  * Si comincia quindi sempre dallo stesso posto: il tempo è diviso in **blocchi**
@@ -100,23 +100,23 @@ const TI_MASSIMO_PS = 3
 /** Sopra la pressione bersaglio di tanto, la macchina cicla: il paziente spinge. */
 const CICLAGGIO_PRESSIONE = 3
 /**
- * §674: il colpo di tosse, in secondi: la spinta sale in tre centesimi, tiene, poi molla. E quanto spinge, cmH₂O.
+ * il colpo di tosse, in secondi: la spinta sale in tre centesimi, tiene, poi molla. E quanto spinge, cmH₂O.
  */
 const COLPO_DI_TOSSE = { salita: 0.03, tenuta: 0.12, discesa: 0.14 }
 const TOSSE_PMUS = 80
 /**
- * §674: oltre la soglia la tosse è in corso (Pmus negativa sotto questo valore, cmH₂O): la macchina che arriva al
+ * oltre la soglia la tosse è in corso (Pmus negativa sotto questo valore, cmH₂O): la macchina che arriva al
  * limite della pressione di picco taglia l'atto, e il ramo espiratorio diventa turbolento.
  */
 const TOSSE_IN_CORSO = -5
 /**
- * §674: la resistenza turbolenta del ramo espiratorio e della valvola ai flussi della tosse, cmH₂O/(l/s)² (Rohrer:
+ * la resistenza turbolenta del ramo espiratorio e della valvola ai flussi della tosse, cmH₂O/(l/s)² (Rohrer:
  * ΔP = K₁·V̇ + K₂·V̇²). Ai flussi del respiro non conta; a due litri e mezzo al secondo fa trenta centimetri: è per
  * questo che la tosse, anche in espirazione, fa suonare l'allarme di pressione.
  */
 const K_TURBOLENTO = 8
 /**
- * §674: arrivata al limite la valvola di sicurezza apre, ma non in un istante: la Paw passa il limite di poco.
+ * arrivata al limite la valvola di sicurezza apre, ma non in un istante: la Paw passa il limite di poco.
  */
 const SFORO_LIMITE = 1.5
 /** Il flusso massimo della turbina, l/s: oltre, con una perdita grande, la pressione non arriva. */
@@ -181,9 +181,9 @@ export interface AttoMotore {
    * sopra la PEEP): la pausa espiratoria non vede gli alveoli e misura la PEEP.
    */
   vieChiuse: boolean
-  /** §674: la pressione più alta di tutto l'atto, espirazione compresa: la tosse. */
+  /** la pressione più alta di tutto l'atto, espirazione compresa: la tosse. */
   pMax: number
-  /** §674: la macchina ha tagliato l'atto al limite della pressione di picco. */
+  /** la macchina ha tagliato l'atto al limite della pressione di picco. */
   limitato: boolean
 }
 
@@ -249,7 +249,7 @@ interface Parametri {
   sighTi: number
   sforzi: Sforzo[]
   autoTrigger: number[]
-  /** §674: il limite alto della pressione di picco: lì la macchina, se il paziente tossisce, smette di spingere. */
+  /** il limite alto della pressione di picco: lì la macchina, se il paziente tossisce, smette di spingere. */
   pMax: number
 }
 
@@ -560,7 +560,7 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
   const E2 = quotaE2 / (C * vRif)
   const E1 = (1 - quotaE2) / C
 
-  // ## La tosse (§674)
+  // ## La tosse
   //
   // Un colpo di tosse col tubo è un espirio esplosivo: i muscoli espiratori spingono il torace (una Pmus negativa
   // di 60-90 cmH₂O, McCool, *Chest* 2006) e l'aria esce dal tubo. Prima del primo colpo dell'accesso un'inspirazione
@@ -794,7 +794,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
       if (controllata && t >= prossimoMandatorio - 1e-9) parte = 'macchina'
       else if (!controllata && !attivo && t - ultimoAtto >= p.apnea) parte = 'macchina'
       if (!parte && aperta) {
-        // In controllata il trigger è chiuso (§325), salvo che la macchina sia
+        // In controllata il trigger è chiuso, salvo che la macchina sia
         // regolata in assistita-controllata o che lo sforzo sia di quelli che
         // la regia ha messo apposta per aprirlo.
         const puo = !controllata || p.triggerControllata || modalita === 'SIMV' || attivo?.apre === true
@@ -952,7 +952,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         }
       }
     }
-    // §674: il paziente tossisce mentre la macchina spinge: la Paw arriva al limite alto e la macchina smette di
+    // il paziente tossisce mentre la macchina spinge: la Paw arriva al limite alto e la macchina smette di
     // insufflare, apre l'espirazione (e suona l'allarme di pressione)
     const tossisce = pmus < TOSSE_IN_CORSO
     if (tossisce) ultimaTosse = t
@@ -975,7 +975,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         const chiuso =
           attivo?.muto === true ||
           (controllata && !p.triggerControllata && modalita !== 'SIMV' && attivo?.apre !== true)
-        // §674: svuotato dalla tosse sotto la capacità funzionale, il polmone si riempie dalla macchina che tiene la
+        // svuotato dalla tosse sotto la capacità funzionale, il polmone si riempie dalla macchina che tiene la
         // PEEP: col trigger chiuso la Paw restava sotto zero per secondi
         const svuotato = V < -50 && t - ultimaTosse < 4
         const rc = inAttesa !== null ? R_IN_ATTESA : chiuso && !svuotato ? R_CHIUSO : R_FLUSSO_CONTINUO
@@ -985,7 +985,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         // Il freno della glottide: chi «trattiene» in espirazione — il
         // grugnito, la PEEP fatta da sé — mette una resistenza in più all'inizio
         // dell'espirio, che si scioglie in mezzo secondo.
-        // §674: con la tosse il ramo espiratorio è turbolento (dal flusso del passo prima)
+        // con la tosse il ramo espiratorio è turbolento (dal flusso del passo prima)
         const turbolenta = tossisce ? K_TURBOLENTO * Math.abs(flussoPrima / 60) : 0
         const Re = R + R_VALVOLA + turbolenta + (p.freno > 0 ? R * 3 * p.freno * Math.exp(-te / 0.5) : 0)
         // Resistore di Starling: a valle comanda la più alta fra Paw e Pcrit.
@@ -1020,7 +1020,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
     const dV = Q * 1000 * PASSO
     V += dV
     if (fase === 0 || fase === 1) volumeErogato += Math.max(0, dV)
-    // §674: il polmone svuotato dalla tosse che si riempie fino alla capacità funzionale non è un volume corrente:
+    // il polmone svuotato dalla tosse che si riempie fino alla capacità funzionale non è un volume corrente:
     // contato, la curva del volume saliva in cima e ci restava fino all'atto dopo
     if (!(V - dV < 0 && t - ultimaTosse < 4)) vDisplay += dV
     if (modalita === 'CPAP') {
@@ -1154,7 +1154,7 @@ function chiave(stato: StatoVentilatore, inizio: number): string {
     stato.sfasamentoSpontaneo ?? 0,
     stato.paziente.heartRate ?? 80,
     stato.pressioneMassima ?? '-',
-    // §674: solo i colpi che cadono nel blocco o nel suo riscaldamento
+    // solo i colpi che cadono nel blocco o nel suo riscaldamento
     (stato.tossi ?? [])
       .filter((c) => c.t >= inizio - CALDO_SEC - 2 && c.t <= inizio + BLOCCO_SEC + 1)
       .map((c) => `${c.t.toFixed(3)}:${c.forza.toFixed(2)}`)
