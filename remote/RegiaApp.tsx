@@ -32,6 +32,8 @@ type Patch = Omit<ComandoPaziente, 'type'>;
 
 const num = (v: unknown, d = 0) => { const n = Number(v); return v !== null && v !== undefined && Number.isFinite(n) ? n : d; };
 const fmt = (v: unknown, digits = 0) => { const n = Number(v); return v !== null && v !== undefined && v !== '' && Number.isFinite(n) ? n.toFixed(digits) : '–'; };
+/** A seed for the spacing of a coughing fit: the same on every screen, different each time. */
+const seme = () => Math.floor(Math.random() * 2 ** 31);
 const PRESETS = Object.keys(PRESET_FISIOLOGIA) as (keyof typeof PRESET_FISIOLOGIA)[];
 const REGISTRO_KEY = 'ovs-registro-corrente';
 
@@ -587,6 +589,17 @@ const AsyncTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; onAppl
         <button data-testid="async-stop" onClick={() => { setTipo(null); onApply({ asincronia: null }, s.asyncStop, 0); }} className="px-4 py-2 rounded-lg bg-slate-700">{s.asyncStop}</button>
         <span className="text-xs text-slate-300" data-testid="async-current">{ist.asincronia ? `● ${name(ist.asincronia.tipo)} ${Math.round(ist.asincronia.quota * 100)}%` : ''}</span>
       </div>
+      {/* OVS 3.4: the patient coughs on the machine (Scenario Creator §674): Paw up to the high limit, alarm */}
+      {ist.ambiente !== 'alto-flusso' && (
+        <div className="border-t border-slate-800 pt-3 space-y-2">
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-slate-400 mr-1">{s.coughTitle}:</span>
+            <button data-testid="cough-one" onClick={() => onApply({ tosse: { n: seme(), colpi: 1 } }, s.coughOne, 0)} className="px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:border-amber-500">{s.coughOne}</button>
+            <button data-testid="cough-fit" onClick={() => onApply({ tosse: { n: seme(), colpi: 4 } }, s.coughFit, 0)} className="px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 hover:border-amber-500">{s.coughFit}</button>
+          </div>
+          <p className="text-slate-400 text-xs">{s.coughHint}</p>
+        </div>
+      )}
     </div>
   );
 };

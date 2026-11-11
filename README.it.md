@@ -1,8 +1,8 @@
-# Open Vent Sim 3.3
+# Open Vent Sim 3.4
 
 **Simulatore gratuito e open-source di ventilatore, macchina d'anestesia e alti flussi — con la regia dell'istruttore sulla rete della tua aula.**
 
-🇬🇧 [English version](README.md) · 📅 Versione 3.3.0 — 10 novembre 2026 · Licenza MIT
+🇬🇧 [English version](README.md) · 📅 Versione 3.4.0 — 11 novembre 2026 · Licenza MIT
 
 📄 **L'articolo:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. Se usi Open Vent Sim in un corso, una tesi o un lavoro, [citalo così](#11-come-citare).
 
@@ -56,9 +56,9 @@ Vai alla pagina **[Releases](https://github.com/fedebarra/open-vent-sim/releases
 
 | Il tuo computer | File da scaricare |
 |---|---|
-| Windows | `OpenVentSim-3.3.0-win-x64.exe` (installazione) — oppure `OpenVentSim-3.3.0-portable.exe` (senza installare, si apre e basta) |
-| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.3.0-mac-arm64.dmg` |
-| Mac con processore Intel | `OpenVentSim-3.3.0-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.4.0-win-x64.exe` (installazione) — oppure `OpenVentSim-3.4.0-portable.exe` (senza installare, si apre e basta) |
+| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.4.0-mac-arm64.dmg` |
+| Mac con processore Intel | `OpenVentSim-3.4.0-mac-x64.dmg` |
 
 > Se il `.dmg` non si apre, scarica il `.zip` con lo stesso nome: doppio clic per estrarlo, poi trascina **Open Vent Sim** in Applicazioni.
 
@@ -178,7 +178,7 @@ In alto scegli **a chi mandare** i comandi: *questo ventilatore* (quello selezio
 | Scheda | Che cosa fai |
 |---|---|
 | **Paziente** | Quadri clinici con un clic (Normale, BPCO, ARDS, COVID, Anafilassi, Edema, Polmonite, Fibroscopia); compliance, resistenza, sforzo, secrezioni; SpO₂, EtCO₂, frequenza cardiaca, pressione media. Con **«Cambia in»** il cambiamento avviene gradualmente (30 s – 5 min) invece che di colpo. |
-| **Asincronie** | Sforzo inefficace, doppio ciclo, reverse triggering, fame di flusso, ciclaggio precoce/ritardato, auto-trigger, con la quota degli atti coinvolti. Lo studente vede **solo le curve**, mai il nome: riconoscerla è il suo compito. |
+| **Asincronie** | Sforzo inefficace, doppio ciclo, reverse triggering, fame di flusso, ciclaggio precoce/ritardato, auto-trigger, con la quota degli atti coinvolti. Lo studente vede **solo le curve**, mai il nome: riconoscerla è il suo compito. Sotto, **Colpo di tosse** e **Accesso di tosse**: la Paw al limite alto e l'allarme di pressione. |
 | **Polmone** | Reclutabilità e compliance della parete: la compliance cambia con la PEEP. Avvio della **manovra di reclutamento**. |
 | **Macchina** | Modalità, parametri, avvio/standby, silenzio allarmi, pause inspiratoria ed espiratoria: come se li toccasse lo studente (nel registro risultano fatti dalla regia). |
 | **Allarmi** | I limiti d'allarme del ventilatore (basso/alto, acceso/spento), come dal suo pannello Allarmi; **Ripristina i limiti d'avvio**. In PS, CPAP e PAV c'è il tempo di **apnea** (20 s di serie). |
@@ -224,6 +224,10 @@ Il registro resta salvato anche se chiudi e riapri la regia.
 | Voglio l'interfaccia vecchia (2.x) | Nel browser aggiungi `?legacy=1` all'indirizzo, da soli. |
 
 ## 9. Novità
+
+### 3.4.0 — 11 novembre 2026
+
+- **Tosse sulla macchina** dalla regia (scheda *Asincronie*): **Colpo di tosse** o **Accesso di tosse** (quattro colpi di fila, sempre più deboli). La Paw sale fino al limite alto della pressione di picco, la macchina interrompe l'insufflazione, suona l'allarme di pressione; un flusso espiratorio brusco, poi il polmone si riempie. Stesso motore del Sim Scenario Creator.
 
 ### 3.3.0 — 10 novembre 2026
 

@@ -80,6 +80,12 @@ test('director drives a learner ventilator end to end, and records the session',
   await expect(regia.getByTestId('async-current')).toContainText('Fame di flusso');
   await expect(vent.locator('body')).not.toContainText('Fame di flusso');
 
+  // 3.4: a coughing fit from the console: Paw to the high limit, and the pressure alarm on the ventilator
+  await expect(vent.locator('body')).not.toContainText('Pressione di picco');
+  await regia.getByTestId('cough-fit').click();
+  await expect(regia.getByTestId('regia-log')).toContainText('Accesso di tosse');
+  await expect(vent.locator('body')).toContainText('Pressione di picco', { timeout: 10_000 });
+
   // gradual change: SpO2 to 85 over 30 s
   await regia.getByTestId('tab-patient').click();
   await regia.getByTestId('sl-spo2').fill('85');

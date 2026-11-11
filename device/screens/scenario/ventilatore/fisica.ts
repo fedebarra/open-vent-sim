@@ -470,6 +470,38 @@ export interface StatoVentilatore {
    * lo sforzo del paziente che cade dentro la pausa è il test di occlusione.
    */
   manovraDa?: number | null
+  /**
+   * §674: i colpi di tosse, nel tempo del ventilatore: `t` lo scoppio, `forza` da 0 a 1 (in un accesso cala).
+   * Li mette la regia quando il paziente tossisce col tubo (`conTosse` di istantanea.ts).
+   */
+  tossi?: TosseVentilatore[]
+  /**
+   * §674: il limite alto della pressione di picco, cmH₂O: arrivata lì la macchina smette di insufflare e apre
+   * l'espirazione. Assente, nessun taglio.
+   */
+  pressioneMassima?: number | null
+}
+
+/** §674: un colpo di tosse visto dal ventilatore. */
+export interface TosseVentilatore {
+  t: number
+  forza: number
+}
+
+/** §674: per quanti secondi dopo un colpo di tosse il picco mostrato è il suo. */
+export const PICCO_TOSSE_SEC = 6
+
+/** §674: la Paw più alta dei colpi di tosse degli ultimi `PICCO_TOSSE_SEC` fino a `tSec`, o null se non ce ne sono. */
+export function piccoDellaTosse(stato: StatoVentilatore, tSec: number): number | null {
+  let picco: number | null = null
+  for (const c of stato.tossi ?? []) {
+    if (c.t > tSec || c.t <= tSec - PICCO_TOSSE_SEC) continue
+    for (let t = c.t - 0.1; t <= Math.min(tSec, c.t + 0.5); t += 0.02) {
+      const paw = campioneMotore(t, stato).paw
+      if (picco === null || paw > picco) picco = paw
+    }
+  }
+  return picco
 }
 
 /** Da cmH₂O a mmHg. Le pressioni del torace si misurano in acqua, la PVC no. */
@@ -1156,6 +1188,10 @@ export function misura(
       const si = ultimi(recenti.map((a) => a.stressIndex))
       m.stressIndex = si === null ? null : parseFloat(si.toFixed(2))
     }
+    // §674: la tosse: la macchina vede la Paw del colpo appena succede (non a fine atto), la scrive come picco e sopra
+    // il limite suona l'allarme di pressione; il numero resta per `PICCO_TOSSE_SEC`, poi torna quello dell'atto.
+    const piccoTosse = motoreCopre(statoMotore) ? piccoDellaTosse(statoMotore, tSec) : null
+    if (piccoTosse !== null && piccoTosse > (m.pPeak ?? 0) + 2) m.pPeak = arrotonda(piccoTosse)
     m.mlPerKg =
       stato.paziente.pesoKg && stato.paziente.pesoKg > 0
         ? parseFloat(((m.volumeExpired ?? 0) / stato.paziente.pesoKg).toFixed(1))

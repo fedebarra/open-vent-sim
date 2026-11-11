@@ -1,8 +1,8 @@
-# Open Vent Sim 3.3
+# Open Vent Sim 3.4
 
 **A free, open-source simulator of ICU ventilator, anaesthesia machine and high-flow oxygen — with an instructor console that runs on your classroom's own network.**
 
-🇮🇹 [Versione italiana](README.it.md) · 📅 Version 3.3.0 — 10 November 2026 · MIT licence
+🇮🇹 [Versione italiana](README.it.md) · 📅 Version 3.4.0 — 11 November 2026 · MIT licence
 
 📄 **The paper:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. If you use Open Vent Sim in a course, a thesis or a paper, [please cite it](#11-how-to-cite).
 
@@ -56,9 +56,9 @@ Go to **[Releases](https://github.com/fedebarra/open-vent-sim/releases/latest)**
 
 | Your computer | File |
 |---|---|
-| Windows | `OpenVentSim-3.3.0-win-x64.exe` (installer) — or `OpenVentSim-3.3.0-portable.exe` (no install, just run it) |
-| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.3.0-mac-arm64.dmg` |
-| Mac with Intel processor | `OpenVentSim-3.3.0-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.4.0-win-x64.exe` (installer) — or `OpenVentSim-3.4.0-portable.exe` (no install, just run it) |
+| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.4.0-mac-arm64.dmg` |
+| Mac with Intel processor | `OpenVentSim-3.4.0-mac-x64.dmg` |
 
 > If the `.dmg` won't open, download the `.zip` with the same name: double-click to extract, then drag **Open Vent Sim** into Applications.
 
@@ -178,7 +178,7 @@ At the top choose **where commands go**: *this ventilator* (selected on the left
 | Tab | What you do |
 |---|---|
 | **Patient** | One-click clinical pictures (Normal, COPD, ARDS, COVID, Anaphylaxis, Pulmonary oedema, Pneumonia, Fibroscopy); compliance, resistance, effort, secretions; SpO₂, EtCO₂, heart rate, mean arterial pressure. With **"Change over"** the change happens gradually (30 s – 5 min) instead of at once. |
-| **Asynchronies** | Ineffective effort, double cycling, reverse triggering, flow starvation, premature/delayed cycling, auto-triggering, with the share of breaths affected. Learners only see the **waveforms**, never the name: spotting it is their job. |
+| **Asynchronies** | Ineffective effort, double cycling, reverse triggering, flow starvation, premature/delayed cycling, auto-triggering, with the share of breaths affected. Learners only see the **waveforms**, never the name: spotting it is their job. Below, **Single cough** and **Coughing fit**: Paw to the high limit and the pressure alarm. |
 | **Lung** | Recruitability and chest-wall compliance: compliance now depends on PEEP. Start the **recruitment manoeuvre**. |
 | **Machine** | Mode, settings, start/standby, silence alarms, inspiratory and expiratory holds: applied as if the learner touched them (logged as instructor actions). |
 | **Alarms** | The ventilator's alarm limits (low/high, on/off), as in its own Alarms drawer; **Reset to the start-up limits**. In PS, CPAP and PAV there is the **apnoea** time (default 20 s). |
@@ -224,6 +224,10 @@ The log survives closing and reopening the console.
 | I want the old (2.x) interface | In the browser, add `?legacy=1` to the address (stand-alone only). |
 
 ## 9. What's new
+
+### 3.4.0 — 11 November 2026
+
+- **Cough on the machine** from the console (*Asynchronies* tab): **Single cough** or **Coughing fit** (four coughs in a row, each weaker). Paw rises to the high peak-pressure limit, the machine stops the insufflation, the pressure alarm sounds; a sharp expiratory flow, then the lung refills. Same engine as Sim Scenario Creator.
 
 ### 3.3.0 — 10 November 2026
 

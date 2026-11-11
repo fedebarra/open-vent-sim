@@ -99,6 +99,26 @@ const PENDENZA_VALVOLA = 350
 const TI_MASSIMO_PS = 3
 /** Sopra la pressione bersaglio di tanto, la macchina cicla: il paziente spinge. */
 const CICLAGGIO_PRESSIONE = 3
+/**
+ * §674: il colpo di tosse, in secondi: la spinta sale in tre centesimi, tiene, poi molla. E quanto spinge, cmH₂O.
+ */
+const COLPO_DI_TOSSE = { salita: 0.03, tenuta: 0.12, discesa: 0.14 }
+const TOSSE_PMUS = 80
+/**
+ * §674: oltre la soglia la tosse è in corso (Pmus negativa sotto questo valore, cmH₂O): la macchina che arriva al
+ * limite della pressione di picco taglia l'atto, e il ramo espiratorio diventa turbolento.
+ */
+const TOSSE_IN_CORSO = -5
+/**
+ * §674: la resistenza turbolenta del ramo espiratorio e della valvola ai flussi della tosse, cmH₂O/(l/s)² (Rohrer:
+ * ΔP = K₁·V̇ + K₂·V̇²). Ai flussi del respiro non conta; a due litri e mezzo al secondo fa trenta centimetri: è per
+ * questo che la tosse, anche in espirazione, fa suonare l'allarme di pressione.
+ */
+const K_TURBOLENTO = 8
+/**
+ * §674: arrivata al limite la valvola di sicurezza apre, ma non in un istante: la Paw passa il limite di poco.
+ */
+const SFORO_LIMITE = 1.5
 /** Il flusso massimo della turbina, l/s: oltre, con una perdita grande, la pressione non arriva. */
 const FLUSSO_MASSIMO = 3
 /**
@@ -161,6 +181,10 @@ export interface AttoMotore {
    * sopra la PEEP): la pausa espiratoria non vede gli alveoli e misura la PEEP.
    */
   vieChiuse: boolean
+  /** §674: la pressione più alta di tutto l'atto, espirazione compresa: la tosse. */
+  pMax: number
+  /** §674: la macchina ha tagliato l'atto al limite della pressione di picco. */
+  limitato: boolean
 }
 
 /** Uno sforzo del paziente: salita, tenuta, discesa. Ampiezza negativa = espirio attivo. */
@@ -225,6 +249,8 @@ interface Parametri {
   sighTi: number
   sforzi: Sforzo[]
   autoTrigger: number[]
+  /** §674: il limite alto della pressione di picco: lì la macchina, se il paziente tossisce, smette di spingere. */
+  pMax: number
 }
 
 /**
@@ -534,6 +560,19 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
   const E2 = quotaE2 / (C * vRif)
   const E1 = (1 - quotaE2) / C
 
+  // ## La tosse (§674)
+  //
+  // Un colpo di tosse col tubo è un espirio esplosivo: i muscoli espiratori spingono il torace (una Pmus negativa
+  // di 60-90 cmH₂O, McCool, *Chest* 2006) e l'aria esce dal tubo. Prima del primo colpo dell'accesso un'inspirazione
+  // breve; gli altri vengono di fila, senza respiro in mezzo.
+  for (const [i, c] of (stato.tossi ?? []).entries()) {
+    if (c.t < da - 2 || c.t > a + 1) continue
+    const primo = i === 0 || c.t - (stato.tossi![i - 1].t ?? -1e9) > 1
+    if (primo) sforzi.push({ t0: c.t - 0.3, salita: 0.18, tenuta: 0.02, discesa: 0.08, ampiezza: 7 * c.forza, muto: false })
+    sforzi.push({ t0: c.t - 0.02, ...COLPO_DI_TOSSE, ampiezza: -TOSSE_PMUS * c.forza, muto: true })
+  }
+  sforzi.sort((x, y) => x.t0 - y.t0)
+
   return {
     modalita,
     C,
@@ -576,6 +615,7 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
     sighTi: Math.min(Ttot * 0.7, 2.5),
     sforzi,
     autoTrigger,
+    pMax: stato.pressioneMassima ?? Number.POSITIVE_INFINITY,
   }
 }
 
@@ -726,6 +766,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
   let pawPrima = peep
   let fasePrima = 2
   let pawCiclo = peep
+  let ultimaTosse = Number.NEGATIVE_INFINITY
   // Lo stress index: la regressione di ln(Paw − Paw₀) su ln(t) nel tratto a
   // flusso costante, accumulata mentre passa.
   let si = { n: 0, x: 0, y: 0, xx: 0, xy: 0, paw0: 0, pulito: true }
@@ -911,6 +952,16 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         }
       }
     }
+    // §674: il paziente tossisce mentre la macchina spinge: la Paw arriva al limite alto e la macchina smette di
+    // insufflare, apre l'espirazione (e suona l'allarme di pressione)
+    const tossisce = pmus < TOSSE_IN_CORSO
+    if (tossisce) ultimaTosse = t
+    if ((fase === 0 || fase === 1) && tossisce && paw >= p.pMax) {
+      paw = p.pMax + SFORO_LIMITE
+      fase = 2
+      fineInsp = t
+      if (attoCorrente) attoCorrente.limitato = true
+    }
     if (fase === 2) {
       if (fineInsp === t) pawCiclo = pawPrima
       // L'espirazione: la valvola porta la Paw alla PEEP in poche decine di
@@ -924,14 +975,19 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         const chiuso =
           attivo?.muto === true ||
           (controllata && !p.triggerControllata && modalita !== 'SIMV' && attivo?.apre !== true)
-        const rc = inAttesa !== null ? R_IN_ATTESA : chiuso ? R_CHIUSO : R_FLUSSO_CONTINUO
+        // §674: svuotato dalla tosse sotto la capacità funzionale, il polmone si riempie dalla macchina che tiene la
+        // PEEP: col trigger chiuso la Paw restava sotto zero per secondi
+        const svuotato = V < -50 && t - ultimaTosse < 4
+        const rc = inAttesa !== null ? R_IN_ATTESA : chiuso && !svuotato ? R_CHIUSO : R_FLUSSO_CONTINUO
         Q = giu / (R + rc)
         paw = valvola - rc * Q
       } else {
         // Il freno della glottide: chi «trattiene» in espirazione — il
         // grugnito, la PEEP fatta da sé — mette una resistenza in più all'inizio
         // dell'espirio, che si scioglie in mezzo secondo.
-        const Re = R + R_VALVOLA + (p.freno > 0 ? R * 3 * p.freno * Math.exp(-te / 0.5) : 0)
+        // §674: con la tosse il ramo espiratorio è turbolento (dal flusso del passo prima)
+        const turbolenta = tossisce ? K_TURBOLENTO * Math.abs(flussoPrima / 60) : 0
+        const Re = R + R_VALVOLA + turbolenta + (p.freno > 0 ? R * 3 * p.freno * Math.exp(-te / 0.5) : 0)
         // Resistore di Starling: a valle comanda la più alta fra Paw e Pcrit.
         const valle = Math.max(valvola, p.pCrit)
         const libero = (valvola - palv) / Re
@@ -947,7 +1003,9 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         // piccole vie si chiudono e il gas resta dentro, alla pressione di
         // apertura (Chen, *AJRCCM* 2018). Non è una scodella: è un muro.
         if (p.aop > valvola) Q = Math.max(Q, palv > p.aop ? (p.aop - palv) / Re : 0)
-        paw = valvola - R_VALVOLA * Q
+        paw = valvola - (R_VALVOLA + turbolenta) * Q
+        // oltre il limite la valvola di sicurezza scarica
+        if (paw > p.pMax + SFORO_LIMITE) paw = p.pMax + SFORO_LIMITE
       }
     }
     pawPrima = paw
@@ -962,7 +1020,9 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
     const dV = Q * 1000 * PASSO
     V += dV
     if (fase === 0 || fase === 1) volumeErogato += Math.max(0, dV)
-    vDisplay += dV
+    // §674: il polmone svuotato dalla tosse che si riempie fino alla capacità funzionale non è un volume corrente:
+    // contato, la curva del volume saliva in cima e ci restava fino all'atto dopo
+    if (!(V - dV < 0 && t - ultimaTosse < 4)) vDisplay += dV
     if (modalita === 'CPAP') {
       if (flussoPrima <= 0 && Q > 0) {
         vDisplay = Math.max(0, dV)
@@ -980,6 +1040,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         if (fase !== 2) attoCorrente.vPersoInsp += qPerso * 1000 * PASSO
       }
       if (fase !== 2) attoCorrente.pip = Math.max(attoCorrente.pip, paw)
+      attoCorrente.pMax = Math.max(attoCorrente.pMax, paw)
       if (fase === 1) attoCorrente.pplat = paw
       if (fase !== 2) attoCorrente.palvFineInsp = peep + ritorno(V)
       if (fase === 2 && fineInsp === t) attoCorrente.fineInsp = t
@@ -1030,6 +1091,8 @@ function nuovoAtto(t: number, innescato: boolean, peep: number, palv: number): A
     vti: 0,
     vte: 0,
     pip: peep,
+    pMax: peep,
+    limitato: false,
     pplat: null,
     peepTotale: palv,
     palvFineInsp: palv,
@@ -1090,6 +1153,12 @@ function chiave(stato: StatoVentilatore, inizio: number): string {
     stato.seme,
     stato.sfasamentoSpontaneo ?? 0,
     stato.paziente.heartRate ?? 80,
+    stato.pressioneMassima ?? '-',
+    // §674: solo i colpi che cadono nel blocco o nel suo riscaldamento
+    (stato.tossi ?? [])
+      .filter((c) => c.t >= inizio - CALDO_SEC - 2 && c.t <= inizio + BLOCCO_SEC + 1)
+      .map((c) => `${c.t.toFixed(3)}:${c.forza.toFixed(2)}`)
+      .join(','),
   ].join('|')
 }
 

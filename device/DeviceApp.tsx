@@ -20,6 +20,7 @@ import {
   applica,
   batti,
   battiFino,
+  conTosse,
   istantaneaIniziale,
   orologio,
   statoDa,
@@ -218,6 +219,7 @@ export const DeviceApp: React.FC<DeviceAppProps> = ({
     if (cmd.drive) ist = { ...ist, drive: { ...ist.drive, ...cmd.drive } }
     if (cmd.asincronia !== undefined) ist = { ...ist, asincronia: cmd.asincronia }
     if (cmd.vitali) ist = { ...ist, paziente: { ...ist.paziente, ...cmd.vitali } }
+    if (cmd.tosse) ist = conTosse(ist, { n: cmd.tosse.n, colpi: cmd.tosse.colpi }, Date.now())
     if (cmd.rampaFrequenza) {
       const t = orologio(ist)
       rampaRef.current = { da: ist.drive.frequenza, a: cmd.rampaFrequenza.a, inizioSec: t, durataSec: cmd.rampaFrequenza.durataSec }
