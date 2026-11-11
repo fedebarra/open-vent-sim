@@ -1,11 +1,8 @@
 /**
- * Steps of the guided familiarization tour, for the device UI under device/
- * (the ventilator ported from the Scenario Creator).
+ * Steps of the guided familiarization tour, for the device UI under device/.
  *
- * Ported from the Scenario Creator "familiarizzazione/passi/ventilatore.ts":
- * same order (prepare it in standby, start it, set it, read it, gases, alarms,
- * manoeuvres, stop it), same targets (the `data-fam` hooks that came with the
- * ventilator), same texts. In front of them, the Open Vent Sim start-up:
+ * Order: prepare it in standby, start it, set it, read it, gases, alarms,
+ * manoeuvres, stop it. The targets are the `data-fam` hooks of the ventilator. In front of them, the Open Vent Sim start-up:
  * choose the device, the ICU interface, the patient.
  *
  * ## An open drawer covers everything else

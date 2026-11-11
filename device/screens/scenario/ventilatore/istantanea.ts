@@ -3,7 +3,7 @@
  *
  * ## Un produttore solo, anche qui
  *
- * L'istantanea la scrive la regia, sempre intera, mai a pezzi (§118). Il
+ * L'istantanea la scrive la regia, sempre intera, mai a pezzi. Il
  * ventilatore non fa eccezione, e anzi è il caso in cui la regola pesa di più:
  * un apparecchio ha decine di manopole, e se ogni device applicasse le proprie
  * due schermi dello stesso ventilatore mostrerebbero due macchine diverse dopo
@@ -140,7 +140,7 @@ export interface VentIstantanea {
    * soglie: si fissa premendo e si butta lasciando (`motivoInterruzione`).
    */
   baseManovra: BaseManovra | null
-  /** §674: i colpi di tosse del paziente intubato, nel tempo del ventilatore (`conTosse`). */
+  /** i colpi di tosse del paziente intubato, nel tempo del ventilatore (`conTosse`). */
   tossi?: TosseVentilatore[]
   /**
    * Quando è stato completato l'ultimo autotest, nel tempo del ventilatore,
@@ -162,7 +162,7 @@ export interface VentIstantanea {
    */
   umidificatore: StatoUmidificatore | null
   /**
-   * Come è montata la linea (§602): `hme` o `umidificatore` in terapia intensiva, `bitubo`
+   * Come è montata la linea: `hme` o `umidificatore` in terapia intensiva, `bitubo`
    * o `monotubo` in NIV, niente dove non si sceglie. Parte da quello del setup; si cambia
    * solo in standby, e dopo l'autotest va rifatto. Assente in un'istantanea di prima.
    */
@@ -221,7 +221,7 @@ export interface VentIstantanea {
   accesoDa: number
 }
 
-/** I circuiti che si scelgono in quell'ambiente, il predefinito per primo (§602). */
+/** I circuiti che si scelgono in quell'ambiente, il predefinito per primo. */
 export const CIRCUITI_PER_AMBIENTE: Record<Ambiente, Circuito[]> = {
   invasiva: ['hme', 'umidificatore'],
   niv: ['bitubo', 'monotubo'],
@@ -289,7 +289,7 @@ export function statoDa(istantanea: VentIstantanea): StatoVentilatore {
 const TOSSI_TENUTE_SEC = CALDO_SEC + BLOCCO_SEC + 5
 
 /**
- * §674: il paziente tossisce col tubo: i colpi (uno, o un accesso) entrano nell'istantanea nel tempo del ventilatore.
+ * il paziente tossisce col tubo: i colpi (uno, o un accesso) entrano nell'istantanea nel tempo del ventilatore.
  * Lo scoppio è quello della clip del paziente (`scoppiTosse`), con la forza che cala lungo l'accesso.
  */
 export function conTosse(
@@ -323,7 +323,7 @@ export function istantaneaIniziale(
   return {
     ambiente,
     modalita: MODALITA_PER_AMBIENTE[ambiente][0],
-    // §665 (l'utente: «deve partire in VC e non in manuale»): anche la macchina d'anestesia nasce sul
+    // L'utente: «deve partire in VC e non in manuale»: anche la macchina d'anestesia nasce sul
     // selettore meccanico, in standby; il pallone la porta in manuale da sé al primo atto
     respiro: 'meccanica',
     ventilando: false,
@@ -343,7 +343,7 @@ export function istantaneaIniziale(
         : null,
     // L'umidificatore c'è sui tre ventilatori e non in anestesia: là il
     // circuito è chiuso e l'umidità la fa la calce.
-    // Col filtro HME l'umidificatore resta spento: tutti e due sono un errore (§602).
+    // Col filtro HME l'umidificatore resta spento: tutti e due sono un errore.
     umidificatore: anestesia ? null : { ...STATO_UMIDIFICATORE_INIZIALE, acceso: circuito !== 'hme' },
     circuito,
     riempimentoDa: null,
@@ -519,7 +519,7 @@ export function batti(istantanea: VentIstantanea, tSec: number, dtSec: number): 
   }
 
   // Le istantanee di prima della 3.3 non hanno il limite d'apnea, o ce l'hanno senza tempo
-  // (l'interruttore del §668): si completa con quello di fabbrica.
+  // (il vecchio interruttore): si completa con quello di fabbrica.
   const salvati = prossima.limiti
   const limiti = conLimiteDellAgente(
     salvati.apnea?.alto != null
@@ -848,7 +848,7 @@ export function applica(
 
     case 'circuito': {
       // Si cambia da fermi, e il circuito nuovo va riprovato: la compliance e la perdita
-      // dell'autotest erano di quello di prima (§602, decisione dell'utente).
+      // dell'autotest erano di quello di prima (decisione dell'utente).
       if (istantanea.ventilando || istantanea.circuito === azione.circuito) return { istantanea }
       if (!(CIRCUITI_PER_AMBIENTE[istantanea.ambiente] ?? []).includes(azione.circuito)) return { istantanea }
       return { istantanea: { ...istantanea, circuito: azione.circuito, autotestA: null } }
@@ -928,7 +928,7 @@ export function modalitaDaScenario(testo: string | null | undefined): Modalita |
 }
 
 /**
- * La macchina regolata come la sezione 2 dice che va all'avvio (§388):
+ * La macchina regolata come la sezione 2 dice che va all'avvio:
  * modalità, volume corrente, frequenza, PEEP e FiO₂.
  *
  * Lo scenario proponeva solo l'ambiente e la macchina partiva coi valori di
@@ -966,7 +966,7 @@ export function conVentilazioneDelloScenario(
 }
 
 /**
- * Il polmone che lo scenario descrive, sulla macchina appena allestita (§392).
+ * Il polmone che lo scenario descrive, sulla macchina appena allestita.
  *
  * La sessione d'aula su una paziente con ARDS è partita su «Normale», con la
  * compliance di un sano: il plateau che il caso dice di tenere sotto i 27 non
@@ -995,7 +995,7 @@ export function conPolmoneDelloScenario(
 
 /**
  * La MAC obiettivo e l'Et obiettivo sono lo stesso bersaglio scritto in due
- * unità (§402): girata una, l'altra la segue. Prima restavano separate — MAC
+ * unità: girata una, l'altra la segue. Prima restavano separate — MAC
  * 0,7 accanto a «Et 5,5%» — e l'Et non muoveva niente, perché la macchina
  * lavora sulla MAC.
  */

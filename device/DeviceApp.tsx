@@ -1,9 +1,8 @@
 /**
  * Open Vent Sim device host: start screen → (ICU: invasive / NIV) → patient →
- * the Scenario Creator ventilator, with its engine running locally.
+ * the ventilator, with its engine running locally.
  *
- * In the Scenario Creator the director console owns the snapshot and the
- * device only emits actions. Here the device is its own "director of one":
+ * The device is its own "director of one":
  * it holds the VentIstantanea, ticks it with `battiFino` every
  * PASSO_BATTITO_SEC and applies every tap with `applica`. A classroom layer
  * can still observe it (`onSnapshot`, `onEvent`) and drive it
@@ -164,7 +163,7 @@ export const DeviceApp: React.FC<DeviceAppProps> = ({
     if (esito.registro) say(esito.registro, 'device')
   }, [say, lang])
 
-  // Alarms switching on/off end up in the log, like in the Scenario Creator.
+  // Alarms switching on/off end up in the log.
   const allarmiVisti = useRef<VentIstantanea['allarmi']>([])
   useEffect(() => {
     if (!vent) { allarmiVisti.current = []; return }

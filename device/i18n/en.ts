@@ -1,4 +1,4 @@
-/** English dictionary for the ventilator, from the Scenario Creator (only the keys used). */
+/** English dictionary for the ventilator (only the keys used). */
 import type { TranslationKey } from './it'
 
 export const en: Record<TranslationKey, string> = {

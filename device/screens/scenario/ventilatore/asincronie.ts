@@ -78,7 +78,7 @@ export interface Drive {
   /**
    * Quanto della sua forza il diaframma ha ancora, da 0 a 1; manca = intera.
    *
-   * È la parte che il curaro non ha tolto (`respiroTolto` del motore, §399), e
+   * È la parte che il curaro non ha tolto (`respiroTolto` del motore), e
    * sta accanto al drive invece di riscriverlo: il paziente **vuole** ancora
    * respirare a quella frequenza, e quando il blocco passa riprende da lì. Chi
    * legge il drive per farne fisica passa da `driveEfficace`.

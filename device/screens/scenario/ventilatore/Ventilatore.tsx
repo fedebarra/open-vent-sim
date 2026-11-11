@@ -9,8 +9,8 @@
  * stanno sempre dove stanno; quello che cambia è che cosa ci compare dentro, e
  * lo decide `visibile()` in `parametri.ts`, non un `if` in questo file.
  *
- * La ragione è la decisione «un solo layout», presa aprendo il ventilatore
- * (HANDOVER §148-§151): chi in aula passa dall'anestesia alla terapia intensiva non deve
+ * La ragione è la decisione «un solo layout», presa aprendo il ventilatore:
+ * chi in aula passa dall'anestesia alla terapia intensiva non deve
  * reimparare dove sono le cose. E dal lato di chi scrive il codice, quattro
  * markup diversi vogliono dire che una correzione si fa quattro volte e la
  * quarta si dimentica.
@@ -163,7 +163,7 @@ export interface VentilatoreProps {
    */
   operabile: boolean
   onAzione: (azione: AzioneVentilatore) => void
-  /** L'uscita in testa. Chi non ha telaio attorno se la porta (§standalone). */
+  /** L'uscita in testa. Chi non ha telaio attorno se la porta. */
   onEsci?: () => void
   /** Classi in più sulla radice: oggi la riserva d'angolo per la X di Safari. */
   riserva?: string
@@ -796,7 +796,7 @@ export function Ventilatore({
             {stato.gas && (
               <div>
                 <h3>{t('vent.group.consumabili')}</h3>
-                {/* Disegnati e non in percentuale (§402, dall'utente): sulla
+                {/* Disegnati e non in percentuale (dall'utente): sulla
                     macchina vera si guarda il barattolo e la finestrella del
                     vaporizzatore, non un numero. */}
                 <div className="simvent__tessere">
@@ -1007,7 +1007,7 @@ const PASSI_AUTOTEST = [
   'vent.autotest.allarmi',
 ] as const
 
-/** I passaggi con quel circuito: col monotubo la macchina calibra anche la perdita del whisper (§602). */
+/** I passaggi con quel circuito: col monotubo la macchina calibra anche la perdita del whisper. */
 function passiAutotest(circuito: Circuito | null | undefined): TranslationKey[] {
   if (circuito !== 'monotubo') return [...PASSI_AUTOTEST]
   return [...PASSI_AUTOTEST.slice(0, 4), 'vent.autotest.whisper', ...PASSI_AUTOTEST.slice(4)]
@@ -1092,7 +1092,7 @@ function CassettoVentilazione({
         </section>
       )}
 
-      {/* ## Il circuito montato (§602)
+      {/* ## Il circuito montato
           Si sceglie da fermi, come si monta: cambiarlo azzera l'autotest, che va
           rifatto qui sotto. Ventilando si legge e basta. */}
       {circuiti.length > 0 && (
@@ -1689,7 +1689,7 @@ function CassettoUmidificatore({
 const DISINFEZIONE_SECONDI = 20
 
 /**
- * Il colore dell'agente sulle sue misure (§402, dall'utente): giallo il sevo,
+ * Il colore dell'agente sulle sue misure (dall'utente): giallo il sevo,
  * blu il desflurano, viola l'isoflurano — i colori delle bottiglie e dei
  * vaporizzatori, che in sala si riconoscono prima di leggere.
  */

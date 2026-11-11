@@ -102,7 +102,7 @@ describe('Il motore contro RTMaven: paziente che respira (Pmus 8, FR 20)', () =>
     expect(Math.abs(m.rr - 22)).toBeLessThan(0.5);
     expect(m.innescati).toBe(m.atti.length);
   });
-  it('VC col trigger chiuso (§325): la macchina tiene la sua cadenza e gli sforzi scavano la Paw', () => {
+  it('VC col trigger chiuso: la macchina tiene la sua cadenza e gli sforzi scavano la Paw', () => {
     const m = misura(stato('VC', { volume: 500, frequency: 14, peep: 5, ratio: '1:2' }, { compliance: 50, resistenza: 10 }, { frequenza: 22, intensita: 0.6 }));
     expect(Math.abs(m.rr - 14)).toBeLessThan(0.5);
     expect(m.innescati).toBe(0);

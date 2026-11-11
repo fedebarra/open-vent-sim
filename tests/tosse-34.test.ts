@@ -1,5 +1,5 @@
 /**
- * OVS 3.4 — la tosse sulla macchina dalla regia (dal Scenario Creator, §674): il colpo spinge la Paw, la macchina la
+ * OVS 3.4 — la tosse sulla macchina dalla regia: il colpo spinge la Paw, la macchina la
  * taglia al limite alto della pressione di picco e suona l'allarme; finito l'accesso la Paw torna alla PEEP.
  */
 import { describe, it, expect } from 'vitest';

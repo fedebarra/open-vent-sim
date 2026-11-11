@@ -227,7 +227,7 @@ The log survives closing and reopening the console.
 
 ### 3.4.0 — 11 November 2026
 
-- **Cough on the machine** from the console (*Asynchronies* tab): **Single cough** or **Coughing fit** (four coughs in a row, each weaker). Paw rises to the high peak-pressure limit, the machine stops the insufflation, the pressure alarm sounds; a sharp expiratory flow, then the lung refills. Same engine as Sim Scenario Creator.
+- **Cough on the machine** from the console (*Asynchronies* tab): **Single cough** or **Coughing fit** (four coughs in a row, each weaker). Paw rises to the high peak-pressure limit, the machine stops the insufflation, the pressure alarm sounds; a sharp expiratory flow, then the lung refills.
 
 ### 3.3.0 — 10 November 2026
 
@@ -275,8 +275,8 @@ From the first classroom test:
 ### 3.0 — 8 November 2026
 
 - **Instructor console over the local network**: built-in server, QR, PIN, automatic discovery, automatic reconnection, many ventilators at once, console on a tablet.
-- **New screens and engine** from Sim Scenario Creator: one layout for anaesthesia, invasive ICU and NIV, plus high flow. PEEP-dependent compliance, auto-PEEP, patient effort and seven asynchronies, recruitment manoeuvre, consumables, humidifier.
-- **Session log** in the Scenario Creator style, started from the console, printable to PDF.
+- **New screens and engine**: one layout for anaesthesia, invasive ICU and NIV, plus high flow. PEEP-dependent compliance, auto-PEEP, patient effort and seven asynchronies, recruitment manoeuvre, consumables, humidifier.
+- **Session log** started from the console, printable to PDF.
 - **Guided tour** (familiarisation), English and Italian.
 - **Desktop app** for Windows and Mac; works **offline** (React and Tailwind used to come from external CDNs).
 - Redesigned start screen with original icons.
@@ -297,7 +297,7 @@ npm run screenshots    # regenerate every image in this README
 npm run dist:mac       # .dmg installer   (npm run dist:win for Windows)
 ```
 
-- `device/`: ventilator engine and screens (from Sim Scenario Creator; original names kept so they stay diff-able).
+- `device/`: ventilator engine and screens (Italian names kept on purpose).
 - `remote/`: console, link, session log. `server/ovs-server.mjs`: HTTP + WebSocket server and UDP beacon on the LAN. `electron/`: desktop app. `tour/`: guided tour.
 - Releases build themselves on GitHub Actions when a `v*` tag is pushed.
 

@@ -17,8 +17,8 @@
  * ## Il componente non applica niente
  *
  * `<Ventilatore>` emette e basta: non tocca lo stato, non muove un parametro,
- * non silenzia un allarme. La regia è l'unico produttore dell'istantanea
- * (§118), e un device che si aggiustasse da solo mostrerebbe una macchina
+ * non silenzia un allarme. La regia è l'unico produttore dell'istantanea,
+ * e un device che si aggiustasse da solo mostrerebbe una macchina
  * diversa da quella che vede chi conduce — che è il difetto che quella regola
  * esiste per impedire.
  */
@@ -87,7 +87,7 @@ export type AzioneVentilatore =
    * niente.
    */
   | { tipo: 'disinfezione' }
-  /** Il circuito montato (§602): solo in standby, e l'autotest torna da rifare. */
+  /** Il circuito montato: solo in standby, e l'autotest torna da rifare. */
   | { tipo: 'circuito'; circuito: Circuito }
 
 /** Il nome con cui l'azione finisce nel registro. */

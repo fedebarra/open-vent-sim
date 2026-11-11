@@ -1,6 +1,6 @@
 # Guided tour (familiarization)
 
-This is a port of the Scenario Creator's `familiarizzazione`, adapted to the device UI under `device/`. Each step shows a card in Italian and English and highlights the part of the screen it talks about. Where a step has a "Try it" box, it ticks by itself when the learner does the action. "Next" always works, even if the action was not done.
+The guided tour of the device UI under `device/`. Each step shows a card in Italian and English and highlights the part of the screen it talks about. Where a step has a "Try it" box, it ticks by itself when the learner does the action. "Next" always works, even if the action was not done.
 
 The tour only watches the app and never changes it. It reads the app state through `context`, finds the parts of the screen through CSS selectors, and listens for clicks.
 

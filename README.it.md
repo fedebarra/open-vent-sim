@@ -227,7 +227,7 @@ Il registro resta salvato anche se chiudi e riapri la regia.
 
 ### 3.4.0 — 11 novembre 2026
 
-- **Tosse sulla macchina** dalla regia (scheda *Asincronie*): **Colpo di tosse** o **Accesso di tosse** (quattro colpi di fila, sempre più deboli). La Paw sale fino al limite alto della pressione di picco, la macchina interrompe l'insufflazione, suona l'allarme di pressione; un flusso espiratorio brusco, poi il polmone si riempie. Stesso motore del Sim Scenario Creator.
+- **Tosse sulla macchina** dalla regia (scheda *Asincronie*): **Colpo di tosse** o **Accesso di tosse** (quattro colpi di fila, sempre più deboli). La Paw sale fino al limite alto della pressione di picco, la macchina interrompe l'insufflazione, suona l'allarme di pressione; un flusso espiratorio brusco, poi il polmone si riempie.
 
 ### 3.3.0 — 10 novembre 2026
 
@@ -275,8 +275,8 @@ Dal primo collaudo in aula:
 ### 3.0 — 8 novembre 2026
 
 - **Regia sulla rete locale**: server integrato nell'app, QR, PIN, ricerca automatica della regia, riconnessione automatica, più ventilatori insieme, regia anche da tablet.
-- **Nuove schermate e nuovo motore** presi dal Sim Scenario Creator: un solo layout per anestesia, intensiva invasiva e NIV, alti flussi. Polmone con compliance dipendente dalla PEEP, auto-PEEP, sforzo del paziente e sette asincronie, manovra di reclutamento, consumabili, umidificatore.
-- **Registro della sessione** nello stile dello Scenario Creator, avviato dalla regia, con stampa in PDF.
+- **Nuove schermate e nuovo motore**: un solo layout per anestesia, intensiva invasiva e NIV, alti flussi. Polmone con compliance dipendente dalla PEEP, auto-PEEP, sforzo del paziente e sette asincronie, manovra di reclutamento, consumabili, umidificatore.
+- **Registro della sessione** avviato dalla regia, con stampa in PDF.
 - **Guida passo passo** (familiarizzazione), in italiano e inglese.
 - **App desktop** per Windows e Mac; funziona **senza internet** (prima React e Tailwind arrivavano da CDN esterni).
 - Nuova grafica della schermata iniziale, con icone originali.
@@ -297,7 +297,7 @@ npm run screenshots    # rigenera tutte le immagini di questo README
 npm run dist:mac       # installer .dmg   (npm run dist:win per Windows)
 ```
 
-- `device/`: motore e schermate del ventilatore (dal Sim Scenario Creator, nomi originali per poterli confrontare).
+- `device/`: motore e schermate del ventilatore.
 - `remote/`: regia, collegamento, registro. `server/ovs-server.mjs`: server HTTP + WebSocket + annuncio UDP sulla rete locale. `electron/`: app desktop. `tour/`: guida passo passo.
 - Le release si costruiscono da sole con GitHub Actions quando si pubblica un tag `v*`.
 

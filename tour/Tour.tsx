@@ -1,7 +1,6 @@
 /**
  * Guided familiarization tour over the live simulator.
  *
- * Ported from the Scenario Creator ("familiarizzazione/Guida.tsx"):
  *  - one card per step with "Step n of N" and progress dots;
  *  - the part being discussed lights up and the rest dims, but everything
  *    stays touchable — the light is a hint, not a gate;

@@ -175,7 +175,7 @@ export function gruppiMonitoraggio(
   agentiMontati = 1,
 ): { titolo: TranslationKey; chiavi: ChiaveMisura[] }[] {
   const visibili = misureVisibili(ctx)
-  // Il secondo agente solo quando ce n'è uno (§402, dall'utente): due tessere
+  // Il secondo agente solo quando ce n'è uno (dall'utente): due tessere
   // a 0,0 occupano il posto delle misure che si guardano.
   const nascoste: ChiaveMisura[] =
     agentiMontati >= 2 ? [] : ['etSecondaryAgentConcentration', 'fiSecondaryAgentConcentration']
