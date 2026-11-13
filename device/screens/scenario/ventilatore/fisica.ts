@@ -1187,6 +1187,23 @@ export function misura(
       m.p01 = p01 === null ? null : parseFloat(p01.toFixed(1))
       const si = ultimi(recenti.map((a) => a.stressIndex))
       m.stressIndex = si === null ? null : parseFloat(si.toFixed(2))
+      // ## La compliance che mente quando il paziente tira
+      //
+      // Sugli atti che il paziente apre il ventilatore non sa la compliance:
+      // scrive quella dinamica, `VTi / (Ppicco − PEEP)`, e al denominatore c'è
+      // solo la pressione che ha messo lui. Il volume che il diaframma aggiunge
+      // finisce tutto al numeratore: con uno sforzo forte una PS di 5 fa 500 ml
+      // e la «compliance» passa 100 su un polmone che ne ha 40. Il display la
+      // segna con l'asterisco; quella vera la dà solo la pausa inspiratoria.
+      const cdyn = ultimi(
+        recenti.map((a) => {
+          if (!a.innescato) return null
+          const dp = a.pip - imp.peep
+          return dp >= 2 ? Math.min(250, a.vti / dp) : null
+        }),
+      )
+      // (l'asterisco lo mette il display quando c'è la P0.1: gli stessi atti)
+      if (cdyn !== null) m.compliance = Math.round(cdyn)
     }
     // la tosse: la macchina vede la Paw del colpo appena succede (non a fine atto), la scrive come picco e sopra
     // il limite suona l'allarme di pressione; il numero resta per `PICCO_TOSSE_SEC`, poi torna quello dell'atto.

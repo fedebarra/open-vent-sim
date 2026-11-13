@@ -785,7 +785,11 @@ export function Ventilatore({
                     <div key={k} className="simvent__tessera">
                       <span className="simvent__etichetta">{t(PARAMETRI[k].etichetta)}</span>
                       <span className="simvent__valore">
-                        <b style={coloreDellAgente(k, stato.gas?.agenti)}>{scriviValore(k, misure[k])}</b>
+                        <b style={coloreDellAgente(k, stato.gas?.agenti)}>
+                          {scriviValore(k, misure[k])}
+                          {/* compliance dinamica: sugli atti del paziente, quelli che hanno la P0.1 */}
+                          {k === 'compliance' && misure.p01 !== null && misure.compliance !== null ? '*' : ''}
+                        </b>
                         <em>{t(PARAMETRI[k].unita)}</em>
                       </span>
                     </div>
