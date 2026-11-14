@@ -33,7 +33,8 @@
 - **Three machines in one**: anaesthesia workstation, ICU ventilator (invasive and non-invasive) and high-flow oxygen.
 - **Real waveforms**: pressure, flow and volume come from a lung model with PEEP-dependent compliance, auto-PEEP, patient effort and asynchronies.
 - **Pressure–volume and flow–volume loops**, **alveolar pressure (Palv)** and **patient effort (Pmus)** traces, **PRVC** mode.
-- A **breathing engine** that integrates the equation of motion: auto-PEEP, triggers, cycling and asynchronies happen instead of being drawn. **PAV+**, assist-control (A/C), **decelerating flow**, **Pes and PL** traces, **P0.1** and **stress index**, **EIT** with PEEP trial and pendelluft, **low-flow P/V curve** (airway opening pressure), **R/I ratio**, the **occlusion test**.
+- A **breathing engine** that integrates the equation of motion: auto-PEEP, triggers, cycling and asynchronies happen instead of being drawn. **PAV+**, assist-control (A/C), **decelerating flow**, **Pes and PL** traces, **P0.1**, **stress index**, **flow index**, **RSBI**, **RCexp**, **PMI**, **EIT** with PEEP trial and pendelluft, **low-flow P/V curve** (airway opening pressure), **R/I ratio**, the **occlusion test**.
+- **Gas exchange**: SpO₂, EtCO₂ and the **blood gas** (pH, PaCO₂, PaO₂, HCO₃⁻, lactate) come from a model with shunt, low V/Q, dead space, diffusion, hypoxic vasoconstriction, O₂ stores and recruitment hysteresis.
 - **Instructor console**: from one computer (or tablet) you see every learner's ventilator live and change the patient: clinical picture, mechanics, vital signs, asynchronies, timed events.
 - **Session log** for the debriefing: who did what and when, with parameter trends. Prints to PDF.
 - **Guided tour** for people who have never touched a ventilator.
@@ -180,6 +181,7 @@ At the top choose **where commands go**: *this ventilator* (selected on the left
 | **Patient** | One-click clinical pictures (Normal, COPD, ARDS, COVID, Anaphylaxis, Pulmonary oedema, Pneumonia, Fibroscopy); compliance, resistance, effort, secretions; SpO₂, EtCO₂, heart rate, mean arterial pressure. With **"Change over"** the change happens gradually (30 s – 5 min) instead of at once. |
 | **Asynchronies** | Ineffective effort, double cycling, reverse triggering, flow starvation, premature/delayed cycling, auto-triggering, with the share of breaths affected. Learners only see the **waveforms**, never the name: spotting it is their job. Below, **Single cough** and **Coughing fit**: Paw to the high limit and the pressure alarm. |
 | **Lung** | Recruitability and chest-wall compliance: compliance now depends on PEEP. Start the **recruitment manoeuvre**. |
+| **Gas exchange** | Fixed shunt, low V/Q, alveolar dead space, diffusion, Hb, temperature, metabolism, bicarbonate, cardiac output, BMI, vasodilators, inhaled NO, CO and methaemoglobin; **one-lung ventilation**. Live PaO₂, PaCO₂, pH, P/F, Qs/Qt, VD/VT, safe apnoea time. **Live arterial blood gas** as a reference for the instructor (the ventilator does not show it), with the derived indices. |
 | **Machine** | Mode, settings, start/standby, silence alarms, inspiratory and expiratory holds: applied as if the learner touched them (logged as instructor actions). |
 | **Alarms** | The ventilator's alarm limits (low/high, on/off), as in its own Alarms drawer; **Reset to the start-up limits**. In PS, CPAP and PAV there is the **apnoea** time (default 20 s). |
 | **Events** | Ready-made events (bronchospasm, mucus plug, pneumothorax, desaturation, hypercapnia, induction, waking up, NMB reversal…). Fire now or build a timed **sequence**; save it to a file for next time. |
@@ -224,6 +226,26 @@ The log survives closing and reopening the console.
 | I want the old (2.x) interface | In the browser, add `?legacy=1` to the address (stand-alone only). |
 
 ## 9. What's new
+
+### 3.5.0 — 14 November 2026
+
+**Gas exchange.** SpO₂ and EtCO₂ are no longer written numbers: they come from the patient.
+- **CO₂**: production from weight, temperature and metabolism; anatomical, apparatus (HME, mask) and alveolar dead space; alveolar ventilation counted on the delivered breaths, so rapid shallow breathing raises CO₂ even at the same minute volume. Two stores (blood and tissues): in apnoea PaCO₂ rises about 10 mmHg in the first minute, then 3–4 per minute. EtCO₂ separates from PaCO₂ with alveolar dead space (embolism, overdistension, low output).
+- **Acid-base**: pH from Henderson-Hasselbalch, acute buffering, slow renal compensation, BE, lactate when O₂ delivery falls short.
+- **Oxygenation**: three compartments (ideal, low V/Q, shunt) fed by the sliced EIT lung. Shunt does not respond to FiO₂, low V/Q does; PEEP reduces shunt only if the lung is recruitable. Diffusion along the capillary: with a reduced capacity, desaturation appears as output and consumption rise. Contents, mixed venous blood, dissociation curve shifted by pH, temperature and CO₂.
+- **Hypoxic pulmonary vasoconstriction** in two phases (minutes and tens of minutes), blunted by volatile agents above 1 MAC, vasodilators and alkalosis; **inhaled NO** shifts flow towards the ventilated lung.
+- **One-lung ventilation** from the console: compliance halved, shunt from the excluded lung, SpO₂ that falls and then recovers by itself as vasoconstriction works.
+- **O₂ stores and apnoea**: FRC (weight, BMI, PEEP, collapse) and venous blood. A pre-oxygenated adult lasts about 7 minutes to 90%, on air less than one, an obese patient much less; apnoeic oxygenation through an open airway holds saturation while CO₂ rises.
+- **Recruitment hysteresis**: after a recruitment the lung stays open until PEEP drops below the closing pressure; with high FiO₂ and low PEEP absorption atelectasis appears. The same state moves compliance, EIT and shunt.
+- **CO and methaemoglobin**: a pulse oximeter that is wrong the way real ones are (near-normal SpO₂ with CO, towards 85% with methaemoglobin).
+- **Calibration on scenarios**: the written SpO₂ and EtCO₂ stay the targets; when they change the model recalibrates within half a minute, and from there adds the consequences of actions (FiO₂, PEEP, standby, recruitment).
+- **Console**: *Gas exchange* tab, live arterial blood gas as a reference for the instructor, new events (one-lung, embolism, metabolic acidosis, fever, shivering, CO, methaemoglobin). A saved scenario carries the gas exchange parameters.
+
+Four new indices, read on the engine's own curves:
+- **RSBI** (f/VT, Yang and Tobin) in PS, CPAP and PAV, only while the patient breathes (blank on apnoea backup breaths). Above 105, weaning tends to fail.
+- **Flow index** in PS (Albani, *Crit Care* 2021): the exponent of `Q = a + b·tᶜ` from peak inspiratory flow to cycling. One is a linear fall; it rises with effort and falls as support goes up. The simulator's range is narrower than in patients (≈1 passive, ≈2 strong effort): read the direction, not the clinical cut-offs 2.6 and 4.5.
+- **RCexp**, the expiratory time constant measured at 75% of the exhaled volume (volume left / flow): R·C in a normal lung, longer when obstructed.
+- **PMI** on the inspiratory hold in PS (Foti 2009): Pplat − (PEEP + PS). Above zero the diaphragm added volume too.
 
 ### 3.4.1 — 13 November 2026
 

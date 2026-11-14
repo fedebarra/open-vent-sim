@@ -185,6 +185,26 @@ export interface AttoMotore {
   pMax: number
   /** la macchina ha tagliato l'atto al limite della pressione di picco. */
   limitato: boolean
+  /**
+   * Il flow index dell'atto di supporto (Albani, *Crit Care* 2021): l'esponente
+   * di `Qpicco − Q(t) = a·tᴵ` dal picco del flusso al ciclaggio. Un polmone
+   * passivo scarica come un esponenziale e il flusso cade subito (indice basso);
+   * un diaframma che tira tiene il flusso alto e poi lo lascia cadere tutto in
+   * fondo (indice alto). Uno è il flusso che scende in linea retta.
+   *
+   * Nei pazienti le soglie sono 2,6 (sforzo basso sotto) e 4,5 (alto sopra)
+   * (Albani, *Crit Care* 2021, 25:427). Qui la Pmus cala già dentro
+   * l'inspirazione e la scala è più stretta: circa 1 da passivo, 2 con uno
+   * sforzo forte. Conta il verso, non la soglia. Null fuori dagli atti di supporto.
+   */
+  flowIndex: number | null
+  /**
+   * La costante di tempo espiratoria misurata, secondi: il volume che resta da
+   * uscire diviso il flusso, nell'istante in cui è uscito il 75% del corrente.
+   * In un polmone a un compartimento è R·C; con la limitazione al flusso si
+   * allunga, ed è il numero che dice quanto tempo serve all'espirazione.
+   */
+  rcEsp: number | null
 }
 
 /** Uno sforzo del paziente: salita, tenuta, discesa. Ampiezza negativa = espirio attivo. */
@@ -555,7 +575,8 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
   const pplatAtteso = imp.peep + vRif / C
   const sovra = Math.min(0.5, (0.35 * Math.max(0, pplatAtteso - 25)) / 10)
   const r = Math.min(1, Math.max(0, fis.reclutabilita ?? 0))
-  const recluta = (0.6 * Math.max(0, r - 0.2)) / 0.8 * Math.exp(-Math.max(0, imp.peep - 5) / 5)
+  const tenuta = Math.max(imp.peep, fis.peepMemoria ?? imp.peep)
+  const recluta = (0.6 * Math.max(0, r - 0.2)) / 0.8 * Math.exp(-Math.max(0, tenuta - 5) / 5)
   const quotaE2 = Math.min(0.5, Math.max(-0.4, sovra - recluta))
   const E2 = quotaE2 / (C * vRif)
   const E1 = (1 - quotaE2) / C
@@ -770,6 +791,9 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
   // Lo stress index: la regressione di ln(Paw − Paw₀) su ln(t) nel tratto a
   // flusso costante, accumulata mentre passa.
   let si = { n: 0, x: 0, y: 0, xx: 0, xy: 0, paw0: 0, pulito: true }
+  // Il flow index: i campioni del flusso inspiratorio dell'atto di supporto.
+  let fiT: number[] = []
+  let fiQ: number[] = []
 
   const passi = Math.round((t1 - t0) / PASSO)
   for (let s = 0; s <= passi; s++) {
@@ -864,6 +888,8 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         // che è cominciato. È quella che la macchina misura occludendo.
         if (innescato && sforzoInnesco) attoCorrente.p01 = sforzoInnesco.ampiezza * formaA(sforzoInnesco, 0.1)
         si = { n: 0, x: 0, y: 0, xx: 0, xy: 0, paw0: 0, pulito: true }
+        fiT = []
+        fiQ = []
         // Il tratto dello sforzo che ha aperto l'atto si colora, all'indietro.
         if (innescato && s * PASSO >= CALDO_SEC) {
           const da = Math.max(sforzoInnesco ? sforzoInnesco.t0 : t - 0.1, t - 0.4)
@@ -940,6 +966,8 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         const visto = Q + RESIDUO_PERDITA_INSP * p.perdita * fluttua(t) * Math.sqrt(Math.max(0, paw))
         flussoPicco = Math.max(flussoPicco, visto)
         if (tipoAtto === 'supporto') {
+          fiT.push(dentro)
+          fiQ.push(Q)
           const ciclaFlusso = dentro > p.salita && visto <= flussoPicco * p.ciclaggio
           const ciclaPressione = palv > paw + CICLAGGIO_PRESSIONE
           if (ciclaFlusso || ciclaPressione || dentro > TI_MASSIMO_PS) {
@@ -1043,7 +1071,14 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
       attoCorrente.pMax = Math.max(attoCorrente.pMax, paw)
       if (fase === 1) attoCorrente.pplat = paw
       if (fase !== 2) attoCorrente.palvFineInsp = peep + ritorno(V)
-      if (fase === 2 && fineInsp === t) attoCorrente.fineInsp = t
+      if (fase === 2 && fineInsp === t) {
+        attoCorrente.fineInsp = t
+        if (tipoAtto === 'supporto') attoCorrente.flowIndex = flowIndex(fiT, fiQ)
+      }
+      // RCexp: al 75% del corrente uscito, il volume che resta diviso il flusso.
+      if (fase === 2 && Q < -0.01 && attoCorrente.rcEsp === null && attoCorrente.vti > 50 && attoCorrente.vte >= 0.75 * attoCorrente.vti) {
+        attoCorrente.rcEsp = Math.max(0, attoCorrente.vti - attoCorrente.vte) / 1000 / -Q
+      }
       if (fase !== 0 && fasePrima === 0 && tipoAtto === 'volume' && !p.decelerante && si.pulito && si.n >= 8) {
         const den = si.n * si.xx - si.x * si.x
         if (den > 1e-9) attoCorrente.stressIndex = (si.n * si.xy - si.x * si.y) / den
@@ -1073,6 +1108,36 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
 }
 
 /**
+ * Il flow index (Albani, *Crit Care* 2021): dal picco del flusso inspiratorio
+ * al ciclaggio, `Q(t) = a + b·tᴵ` (b negativo, t dal picco), con `I` stimato dalla retta dei
+ * logaritmi. Servono almeno dieci campioni dopo il picco, o non c'è una forma
+ * da leggere.
+ */
+export function flowIndex(t: number[], q: number[]): number | null {
+  if (q.length < 12) return null
+  let k = 0
+  for (let i = 1; i < q.length; i++) if (q[i] > q[k]) k = i
+  const qp = q[k]
+  if (qp <= 0.02) return null
+  let n = 0, sx = 0, sy = 0, sxx = 0, sxy = 0
+  for (let i = k + 1; i < q.length; i++) {
+    const dt = t[i] - t[k]
+    const dq = qp - q[i]
+    if (dt <= 0 || dq <= qp * 0.002) continue
+    const x = Math.log(dt)
+    const y = Math.log(dq)
+    n++
+    sx += x
+    sy += y
+    sxx += x * x
+    sxy += x * y
+  }
+  if (n < 10) return null
+  const den = n * sxx - sx * sx
+  return den > 1e-9 ? (n * sxy - sx * sy) / den : null
+}
+
+/**
  * Un atto si chiude quando parte il successivo, e appartiene al blocco in cui
  * **finisce**: così due blocchi vicini — che si sovrappongono nel riscaldamento
  * — non lo contano due volte.
@@ -1099,6 +1164,8 @@ function nuovoAtto(t: number, innescato: boolean, peep: number, palv: number): A
     fineInsp: t,
     p01: null,
     stressIndex: null,
+    flowIndex: null,
+    rcEsp: null,
     vieChiuse: false,
     vPerso: 0,
     vPersoInsp: 0,
@@ -1141,6 +1208,9 @@ function chiave(stato: StatoVentilatore, inizio: number): string {
     f.aperturaVie ?? 0,
     f.pesBasale ?? 0,
     f.perditaMaschera ?? -1,
+    Math.round((f.peepMemoria ?? 0) * 2) / 2,
+    Math.round((f.atelettasia ?? 0) * 20) / 20,
+    f.monopolmonare ?? '-',
     stato.ambiente,
     d.frequenza,
     d.intensita,

@@ -89,6 +89,12 @@ export const REGIA_STEPS: TourStep[] = [
     en: { title: 'The lung and PEEP', body: 'Recruitability decides whether raising PEEP makes compliance rise (it reopens) or fall (it overdistends); the chest wall decides how much pressure reaches the circulation. The sustained recruitment is started from here too.', tryIt: 'open the Lung tab.' },
   },
   {
+    id: 'regia-gas',
+    ...tab('gas'),
+    it: { title: 'Lo scambio dei gas', body: 'SpO₂ ed EtCO₂ escono dal modello: shunt, basso V/Q, spazio morto, diffusione, vasocostrizione ipossica e riserve di O₂. I valori scritti nella scheda Paziente restano i bersagli su cui il modello si tara. Da qui la ventilazione monopolmonare, Hb, metabolismo, bicarbonato, CO e metaemoglobina, e l’emogas in tempo reale: è il riferimento fisiologico per chi conduce, il ventilatore non lo mostra.', tryIt: 'apri la scheda Scambio dei gas.' },
+    en: { title: 'Gas exchange', body: 'SpO₂ and EtCO₂ come from the model: shunt, low V/Q, dead space, diffusion, hypoxic vasoconstriction and O₂ stores. The values on the Patient tab stay the targets the model calibrates on. From here: one-lung ventilation, Hb, metabolism, bicarbonate, CO and methaemoglobin, and the live blood gas: a physiological reference for the instructor, the ventilator does not show it.', tryIt: 'open the Gas exchange tab.' },
+  },
+  {
     id: 'regia-machine',
     ...tab('machine'),
     it: { title: 'La macchina', body: 'Le manopole del ventilatore, se in sala c’è una macchina vera da ricopiare; le pause, la curva P/V lenta e il rapporto R/I; «Mostra le tracce didattiche» accende Palv·Pmus e Pes·PL sui ventilatori. Qui salvi e carichi uno scenario: paziente e macchina in un file.', tryIt: 'apri la scheda Macchina.' },

@@ -207,6 +207,20 @@ export interface Misure {
    * ogni atto, sopra si sovradistende. Solo in volume a flusso quadro.
    */
   stressIndex: number | null
+  /**
+   * L'indice di respiro rapido e superficiale (Yang e Tobin, *NEJM* 1991): la
+   * frequenza divisa il corrente in litri. Sopra 105 il paziente regge male lo
+   * svezzamento; si legge in respiro spontaneo, dove frequenza e corrente sono
+   * del paziente.
+   */
+  rsbi: number | null
+  /**
+   * Il flow index (Albani, *Crit Care* 2021): la forma del flusso inspiratorio
+   * dell'atto di supporto, cioè lo sforzo letto senza catetere esofageo.
+   */
+  flowIndex: number | null
+  /** La costante di tempo espiratoria misurata al 75% del corrente, secondi. */
+  rcExp: number | null
 }
 
 export type ChiaveImpostazione = keyof Impostazioni
@@ -669,6 +683,27 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     regolabile: false,
     visibile: (c) => c.ambiente === 'niv',
   },
+  rsbi: {
+    etichetta: 'vent.param.rsbi',
+    decimali: 0,
+    unita: 'vent.unit.perMinL',
+    regolabile: false,
+    visibile: (c) => c.ambiente === 'invasiva' && (c.modalita === 'PS' || c.modalita === 'CPAP' || c.modalita === 'PAV'),
+  },
+  flowIndex: {
+    etichetta: 'vent.param.flowIndex',
+    decimali: 1,
+    unita: 'vent.unit.none',
+    regolabile: false,
+    visibile: (c) => c.ambiente === 'invasiva' && c.modalita === 'PS',
+  },
+  rcExp: {
+    etichetta: 'vent.param.rcExp',
+    decimali: 2,
+    unita: 'vent.unit.seconds',
+    regolabile: false,
+    visibile: (c) => c.ambiente === 'invasiva' && c.modalita !== 'AF',
+  },
   stressIndex: {
     etichetta: 'vent.param.stressIndex',
     decimali: 2,
@@ -814,6 +849,9 @@ export const MISURE_VUOTE: Misure = {
   p01: null,
   leakFlow: null,
   stressIndex: null,
+  rsbi: null,
+  flowIndex: null,
+  rcExp: null,
 }
 
 /**

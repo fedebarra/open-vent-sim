@@ -139,12 +139,13 @@ export function giraParametro(
  * «PRESSIONI» sopra il niente è peggio che non averla.
  */
 export const GRUPPI: { titolo: TranslationKey; chiavi: ChiaveMisura[] }[] = [
-  { titolo: 'vent.group.pressioni', chiavi: ['pPeak', 'pMean', 'pPlateau', 'p01', 'stressIndex'] },
+  { titolo: 'vent.group.pressioni', chiavi: ['pPeak', 'pMean', 'pPlateau', 'p01', 'flowIndex', 'stressIndex'] },
   {
     titolo: 'vent.group.ventilazione',
     chiavi: [
       'measuredFrequency',
       'spontaneousRate',
+      'rsbi',
       'volumeExpired',
       'volumeMinute',
       'mlPerKg',
@@ -153,6 +154,7 @@ export const GRUPPI: { titolo: TranslationKey; chiavi: ChiaveMisura[] }[] = [
       'leakFlow',
       'compliance',
       'resistance',
+      'rcExp',
     ],
   },
   {

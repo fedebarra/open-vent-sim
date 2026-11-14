@@ -18,7 +18,17 @@ export const EVENT_LIBRARY: EventDef[] = [
   { id: 'tachy', labelKey: 'ev_tachycardia', patch: { vitali: { heartRate: 135, map: 55 } }, rampSec: 30 },
   { id: 'maskleak', labelKey: 'ev_maskleak', patch: { fisiologia: { perditaMaschera: 90 } }, rampSec: 0 },
   { id: 'maskseal', labelKey: 'ev_maskseal', patch: { fisiologia: { perditaMaschera: 10 } }, rampSec: 0 },
-  { id: 'normal', labelKey: 'ev_normal', patch: { preset: 'normale', asincronia: null, vitali: { spo2: 98, etco2: 38, heartRate: 75, map: 85 } }, rampSec: 0 },
+  // 3.5: gas exchange. These change the patient, not the numbers: the model makes the SpO₂ and the EtCO₂.
+  { id: 'olv-left', labelKey: 'ev_olv_left', patch: { fisiologia: { monopolmonare: 'sinistro' } }, rampSec: 0 },
+  { id: 'olv-right', labelKey: 'ev_olv_right', patch: { fisiologia: { monopolmonare: 'destro' } }, rampSec: 0 },
+  { id: 'olv-off', labelKey: 'ev_olv_off', patch: { fisiologia: { monopolmonare: null } }, rampSec: 0 },
+  { id: 'embolism', labelKey: 'ev_embolism', patch: { scambio: { spazioMortoAlv: 0.35, portata: 3.2 }, vitali: { heartRate: 120 } }, rampSec: 0 },
+  { id: 'metacidosis', labelKey: 'ev_metacidosis', patch: { scambio: { hco3: 14 } }, rampSec: 0 },
+  { id: 'fever', labelKey: 'ev_fever', patch: { scambio: { temperatura: 39.5, metabolismo: 1.3 }, vitali: { heartRate: 110 } }, rampSec: 0 },
+  { id: 'shivering', labelKey: 'ev_shivering', patch: { scambio: { metabolismo: 2.2 } }, rampSec: 0 },
+  { id: 'co', labelKey: 'ev_co', patch: { scambio: { cohb: 0.3 } }, rampSec: 0 },
+  { id: 'methb', labelKey: 'ev_methb', patch: { scambio: { methb: 0.3 } }, rampSec: 0 },
+  { id: 'normal', labelKey: 'ev_normal', patch: { preset: 'normale', asincronia: null, fisiologia: { monopolmonare: null }, scambio: 'predefiniti', vitali: { spo2: 98, etco2: 38, heartRate: 75, map: 85 } }, rampSec: 0 },
 ];
 
 export interface SequenceStep { eventId: string; afterSec: number }

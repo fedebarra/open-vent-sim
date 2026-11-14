@@ -138,6 +138,8 @@ export const NOME_ESITO: Record<string, TranslationKey> = {
   pmusStimata: 'vent.esito.pmusStimata',
   plDinamica: 'vent.esito.plDinamica',
   rapportoOcclusione: 'vent.esito.rapportoOcclusione',
+  // La pausa inspiratoria in supporto.
+  pmi: 'vent.esito.pmi',
   // La curva lenta.
   aperturaVie: 'vent.esito.aperturaVie',
   complianceLenta: 'vent.esito.complianceLenta',

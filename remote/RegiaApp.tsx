@@ -14,6 +14,7 @@ import { comandiScenario, parseScenario, scenarioDa } from './scenario';
 import { Tour } from '../tour/Tour';
 import { REGIA_STEPS } from '../tour/regia';
 import { RegistroView } from './RegistroView';
+import { ScambioTab } from './ScambioTab';
 import { Categoria, Registro, nuovoRegistro, vociAllarmi, PASSO_CAMPIONE_MS, leggiJson } from './registro';
 import { useLanguage } from '../src/contexts/LanguageContext';
 import { translate } from '../device/i18n';
@@ -50,7 +51,7 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
   const [log, setLog] = useState<LogLine[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [sendAll, setSendAll] = useState(false);
-  const [tab, setTab] = useState<'patient' | 'async' | 'mechanics' | 'lung' | 'machine' | 'alarms' | 'events'>('patient');
+  const [tab, setTab] = useState<'patient' | 'async' | 'mechanics' | 'lung' | 'gas' | 'machine' | 'alarms' | 'events'>('patient');
   const [flash, setFlash] = useState<string | null>(null);
   const [ramps, setRamps] = useState<Ramp[]>([]);
   const [info, setInfo] = useState<{ addresses: string[]; port: number } | null>(null);
@@ -82,7 +83,7 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
       const at = Date.now();
       const samples = (Object.entries(snapsRef.current) as [string, VentSnapshot][]).filter(([, sn]) => sn.ventilatore).map(([vent, sn]) => {
         const v = sn.ventilatore!; const m = v.misure as any;
-        return { at, vent, v: Object.fromEntries(Object.entries({ spo2: v.paziente.spo2, etco2: m.etco2 ?? v.paziente.etco2, pPeak: m.pPeak, peep: v.impostazioni.peep, vte: m.volumeExpired, f: m.measuredFrequency, fio2: v.impostazioni.fio2, hr: v.paziente.heartRate }).filter(([, x]) => x !== null && x !== undefined && Number.isFinite(Number(x))).map(([k, x]) => [k, Number(x)])) };
+        return { at, vent, v: Object.fromEntries(Object.entries({ spo2: m.spo2 ?? v.paziente.spo2, etco2: m.etco2 ?? v.paziente.etco2, pPeak: m.pPeak, peep: v.impostazioni.peep, vte: m.volumeExpired, f: m.measuredFrequency, fio2: v.impostazioni.fio2, hr: v.paziente.heartRate }).filter(([, x]) => x !== null && x !== undefined && Number.isFinite(Number(x))).map(([k, x]) => [k, Number(x)])) };
       });
       if (samples.length) setRegistro((r) => r ? { ...r, campioni: [...r.campioni, ...samples] } : r);
     }, PASSO_CAMPIONE_MS);
@@ -319,9 +320,9 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
 
           <Card title="" pad={false}>
             <div className="flex flex-wrap items-center gap-1 border-b border-slate-800 px-2 pt-2">
-              {(['patient', 'async', 'mechanics', 'lung', 'machine', 'alarms', 'events'] as const).map((k) => (
+              {(['patient', 'async', 'mechanics', 'lung', 'gas', 'machine', 'alarms', 'events'] as const).map((k) => (
                 <button key={k} data-testid={`tab-${k}`} onClick={() => setTab(k)} className={`px-3 py-2 rounded-t-lg ${tab === k ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-white'}`}>
-                  {{ patient: s.tabPatient, async: s.tabAsync, mechanics: s.tabMechanics, lung: s.tabLung, machine: s.tabMachine, alarms: s.tabAlarms, events: s.tabEvents }[k]}
+                  {{ patient: s.tabPatient, async: s.tabAsync, mechanics: s.tabMechanics, lung: s.tabLung, gas: s.tabGas, machine: s.tabMachine, alarms: s.tabAlarms, events: s.tabEvents }[k]}
                 </button>
               ))}
               <label className="ml-auto flex items-center gap-2 text-slate-300 pb-1 pr-2">{s.sendTo}:
@@ -336,6 +337,7 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
                 {tab === 'async' && ist && <AsyncTab key={selected!} s={s} tr={tr} ist={ist} onApply={paziente} />}
                 {tab === 'mechanics' && ist && <MechanicsTab key={selected!} s={s} tr={tr} ist={ist} onApply={paziente} />}
                 {tab === 'lung' && ist && <LungTab key={selected!} s={s} ist={ist} onApply={paziente} onRecruit={() => azione({ tipo: 'manovra', manovra: 'reclutamento' }, s.recruitmentStart)} />}
+                {tab === 'gas' && ist && <ScambioTab key={selected!} s={s} ist={ist} onApply={paziente} />}
                 {tab === 'machine' && ist && <MachineTab s={s} tr={tr} ist={ist} azione={azione} onPaziente={paziente} opzioni={(on) => { targets().forEach((id) => sendRaw(id, { type: 'opzioni', pressioniDidattiche: on })); setFlash(`${s.applied}: ${s.teachingTraces} ${on ? 'ON' : 'OFF'}`); }} />}
                 {tab === 'alarms' && ist && <AlarmsTab s={s} tr={tr} ist={ist} azione={azione} />}
               </>}
@@ -463,7 +465,7 @@ const Numbers: React.FC<{ ist: VentIstantanea }> = ({ ist }) => {
   const items: [string, unknown, number, string][] = [
     ['Ppeak', m.pPeak, 0, 'cmH₂O'], ['Pplat', m.pPlateau, 0, 'cmH₂O'], ['PEEP', i.peep, 0, 'cmH₂O'],
     ['VTe', m.volumeExpired, 0, 'mL'], ['MV', m.volumeMinute, 1, 'L/min'], ['f', m.measuredFrequency, 0, '/min'],
-    ['FiO₂', i.fio2, 0, '%'], ['SpO₂', p.spo2 ?? m.spo2, 0, '%'], ['EtCO₂', m.etco2 ?? p.etco2, 0, 'mmHg'],
+    ['FiO₂', i.fio2, 0, '%'], ['SpO₂', m.spo2 ?? p.spo2, 0, '%'], ['EtCO₂', m.etco2 ?? p.etco2, 0, 'mmHg'],
     ['C', m.compliance, 0, 'mL/cmH₂O'], ['R', m.resistance, 0, 'cmH₂O/L/s'], ['HR', p.heartRate, 0, '/min'],
   ];
   return (
