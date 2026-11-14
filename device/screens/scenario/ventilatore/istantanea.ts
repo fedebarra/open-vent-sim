@@ -683,7 +683,7 @@ export function motivoInterruzione(
   }
   if (p.heartRate !== null && p.heartRate < 50) return 'vent.stop.bradicardia'
   // la saturazione che la macchina legge: quella dello scambio dei gas, se c'è
-  const sat = misure.spo2 ?? p.spo2
+  const sat = istantanea.scambio ? (misure.spo2 ?? p.spo2) : p.spo2
   if (sat !== null && (sat < 85 || (base?.spo2 != null && base.spo2 - sat > 5))) {
     return 'vent.stop.saturazione'
   }
@@ -796,7 +796,7 @@ export function applica(
           manovra: azione.manovra,
           manovraDa: tSec,
           // Il basale si fissa **premendo**: da qui si misurano le cadute.
-          baseManovra: { map: istantanea.paziente.map, spo2: istantanea.misure.spo2 ?? istantanea.paziente.spo2 },
+          baseManovra: { map: istantanea.paziente.map, spo2: istantanea.scambio ? (istantanea.misure.spo2 ?? istantanea.paziente.spo2) : istantanea.paziente.spo2 },
         },
       }
     }
