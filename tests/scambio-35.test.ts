@@ -195,6 +195,14 @@ describe('taratura e ventilatore', () => {
     expect(ist.scambio!.pco2Sangue).toBeGreaterThan(50);
     expect(statoDa(ist).fisiologia.peepMemoria).toBe(0);
   });
+  it('macchina d’anestesia con il paziente che respira: nessun allarme all’avvio, EtCO₂ normale', () => {
+    let ist = istantaneaIniziale('anestesia', 0, { pesoKg: 70, etco2: null, spo2: null, heartRate: 78, map: 85 });
+    ist = { ...ist, scambioAttivo: true, fisiologia: fis('normale'), drive: { ...PRESET_FISIOLOGIA.normale.drive } };
+    for (let t = 2; t <= 10; t += 2) ist = batti(ist, t, 2);
+    ist = applica(ist, { tipo: 'standby', ventilando: true }, 10).istantanea;
+    for (let t = 12; t <= 120; t += 2) { ist = batti(ist, t, 2); expect(ist.allarmi).toEqual([]); }
+    expect(ist.misure.etco2!).toBeGreaterThan(32); expect(ist.misure.etco2!).toBeLessThan(45);
+  });
   it('deterministico', () => {
     const i = ing({ fio2: 0.5, spo2Bersaglio: 90 });
     const a = corri(scambioIniziale(i), i, 120); const b = corri(scambioIniziale(i), i, 120);

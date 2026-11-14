@@ -25,7 +25,7 @@
  */
 
 import { regioni } from './eit'
-import { autoPeep, volumeSpontaneo, type Fisiologia, type StatoVentilatore } from './fisica'
+import { autoPeep, type Fisiologia, type StatoVentilatore } from './fisica'
 import { driveEfficace } from './asincronie'
 import type { Misure } from './parametri'
 
@@ -862,7 +862,12 @@ function ingressiGrezzi(
   const kg = stato.paziente.pesoKg && stato.paziente.pesoKg > 0 ? stato.paziente.pesoKg : 70
   const imp = stato.impostazioni
   const drive = driveEfficace(stato.drive)
-  const spontaneo = drive.frequenza > 0 ? volumeSpontaneo(stato) : 0
+  // Il respiro libero, senza una macchina che spinge: sette ml/kg allo sforzo
+  // ordinario, di più o di meno con lo sforzo (fra 4,5 e 10 ml/kg). Non dalla
+  // compliance: chi respira da solo regola il corrente col drive, e la
+  // compliance del ventilato (quella del preset) lo farebbe crollare.
+  // (`volumeSpontaneo` è l'atto supportato, e da staccato faceva iperventilare.)
+  const spontaneo = drive.frequenza > 0 ? kg * 7 * clamp(drive.intensita / 0.7, 0.65, 1.4) : 0
   const comune = {
     pesoKg: kg,
     fisiologia: stato.fisiologia,
