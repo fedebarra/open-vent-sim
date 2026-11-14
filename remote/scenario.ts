@@ -11,6 +11,7 @@
  */
 import type { AzioneVentilatore, ComandoPaziente, VentIstantanea } from '../device/remoteTypes';
 import { PARAMETRI, type Ambiente, type ChiaveImpostazione, type Modalita, MODALITA_PER_AMBIENTE } from '../device/screens/scenario/ventilatore/parametri';
+import { PARAMETRI_SCAMBIO, type ParametriScambio } from '../device/screens/scenario/ventilatore/scambio';
 
 export interface ScenarioFile {
   app: 'open-vent-sim';
@@ -24,6 +25,8 @@ export interface ScenarioFile {
   drive: Record<string, unknown>;
   asincronia: VentIstantanea['asincronia'];
   vitali: { spo2: number | null; etco2: number | null; heartRate: number | null; map: number | null };
+  /** Gas exchange parameters (3.5); absent in older files. */
+  scambio?: Partial<ParametriScambio>;
 }
 
 export function scenarioDa(ist: VentIstantanea, name: string): ScenarioFile {
@@ -40,6 +43,7 @@ export function scenarioDa(ist: VentIstantanea, name: string): ScenarioFile {
     drive: { ...ist.drive },
     asincronia: ist.asincronia,
     vitali: { spo2: ist.paziente.spo2, etco2: ist.paziente.etco2, heartRate: ist.paziente.heartRate, map: ist.paziente.map },
+    scambio: { ...(ist.scambio?.parametri ?? ist.parametriScambio ?? PARAMETRI_SCAMBIO) },
   };
 }
 
@@ -63,6 +67,12 @@ export function parseScenario(text: string): ScenarioFile {
   }
   const fisiologia: Record<string, unknown> = {};
   for (const k of FIS_NUMERI) if (finito(d.fisiologia?.[k])) fisiologia[k] = d.fisiologia[k];
+  if (d.fisiologia?.monopolmonare === 'sinistro' || d.fisiologia?.monopolmonare === 'destro') fisiologia.monopolmonare = d.fisiologia.monopolmonare;
+  const scambio: Partial<ParametriScambio> = {};
+  for (const k of Object.keys(PARAMETRI_SCAMBIO) as (keyof ParametriScambio)[]) {
+    const x = d.scambio?.[k];
+    if (finito(x)) (scambio as Record<string, number>)[k] = x;
+  }
   const drive: Record<string, unknown> = {};
   for (const k of DRIVE_NUMERI) if (finito(d.drive?.[k])) drive[k] = d.drive[k];
   if (typeof d.drive?.responsivo === 'boolean') drive.responsivo = d.drive.responsivo;
@@ -84,6 +94,7 @@ export function parseScenario(text: string): ScenarioFile {
     drive,
     asincronia: asincronia as ScenarioFile['asincronia'],
     vitali: { spo2: vit(v.spo2), etco2: vit(v.etco2), heartRate: vit(v.heartRate), map: vit(v.map) },
+    ...(Object.keys(scambio).length ? { scambio } : {}),
   };
 }
 
@@ -108,6 +119,7 @@ export function comandiScenario(sc: ScenarioFile, ist: VentIstantanea): { azioni
       drive: sc.drive as ComandoPaziente['drive'],
       asincronia: sc.asincronia,
       vitali: sc.vitali,
+      scambio: sc.scambio ? { ...PARAMETRI_SCAMBIO, ...sc.scambio } : 'predefiniti',
     },
     ambienteDiverso,
   };

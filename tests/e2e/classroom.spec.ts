@@ -93,6 +93,16 @@ test('director drives a learner ventilator end to end, and records the session',
   await regia.getByTestId('patient-apply').click();
   await expectNum(regia, 'SpO₂', (n) => n < 96, 'SpO2 falls during the ramp');
 
+  // 3.5: gas exchange — one-lung ventilation and a blood gas that lands in the log
+  await regia.getByTestId('tab-gas').click();
+  await expect(regia.getByTestId('gas-live')).toContainText('PaO₂');
+  await regia.getByTestId('olv-sinistro').click();
+  await expect(regia.getByTestId('regia-log')).toContainText('Ventila solo il sinistro');
+  await regia.getByTestId('abg-delay').selectOption('0');
+  await regia.getByTestId('abg-request').click();
+  await expect(regia.getByTestId('regia-log')).toContainText('Emogas: pH', { timeout: 5_000 });
+  await regia.getByTestId('olv-off').click();
+
   // 3.2: mechanics pictures — on, recognised from the snapshot, off again
   await regia.getByTestId('tab-mechanics').click();
   await regia.getByTestId('quadro-obesita').click();

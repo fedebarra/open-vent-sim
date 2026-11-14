@@ -151,6 +151,22 @@ export interface Fisiologia {
    * trigger parte da solo; oltre il flusso massimo la pressione non arriva.
    */
   perditaMaschera?: number | null
+  /**
+   * La memoria del reclutamento, cmH₂O: la PEEP alla quale il polmone si
+   * comporta **adesso**, che dopo un reclutamento resta sopra quella impostata
+   * finché la PEEP non scende sotto la pressione di chiusura. È lo stato che
+   * avanza nel ventilatore (`avanzaIsteresi`, `scambio.ts`); assente vuol dire
+   * «quella impostata», come prima.
+   */
+  peepMemoria?: number
+  /** Le atelettasie da assorbimento con la FiO₂ alta, 0–1 (`avanzaIsteresi`). */
+  atelettasia?: number
+  /**
+   * La ventilazione monopolmonare: il polmone **ventilato**. L'altro resta
+   * perfuso e non ventilato: la compliance si dimezza e lo scambio ha uno shunt
+   * che la vasocostrizione ipossica riduce col tempo.
+   */
+  monopolmonare?: 'sinistro' | 'destro' | null
 }
 
 export type PresetFisiologia =
@@ -727,12 +743,23 @@ export function fattorePvrDaVolume(peepTotale: number, peepRiferimento = PEEP_RI
  */
 export function complianceA(f: Fisiologia, peepTotale: number): number {
   const d = peepTotale - PEEP_RIFERIMENTO
+  // L'isteresi: quello che è aperto lo tiene aperto la memoria del
+  // reclutamento, la sovradistensione la fa la PEEP vera.
+  const dAperto = Math.max(peepTotale, f.peepMemoria ?? peepTotale) - PEEP_RIFERIMENTO
   const r = Math.max(0, Math.min(1, f.reclutabilita))
-  const guadagno = r * (1 - Math.exp(-Math.max(0, d) / 5))
+  const guadagno = r * (1 - Math.exp(-Math.max(0, dAperto) / 5))
   const perdita = (Math.max(0, d) / 22) ** 2
-  const collasso = r * Math.min(1, Math.max(0, -d) / PEEP_RIFERIMENTO) * 0.6
-  return Math.max(3, (f.compliance * (1 + guadagno - collasso)) / (1 + perdita))
+  const collasso = r * Math.min(1, Math.max(0, -dAperto) / PEEP_RIFERIMENTO) * 0.6
+  const assorbimento = 1 - 0.12 * Math.max(0, Math.min(1, f.atelettasia ?? 0))
+  const mono = f.monopolmonare ? QUOTA_MONOPOLMONARE[f.monopolmonare] : 1
+  return Math.max(3, (f.compliance * mono * assorbimento * (1 + guadagno - collasso)) / (1 + perdita))
 }
+
+/**
+ * La quota della compliance che resta ventilando un polmone solo: il destro
+ * ha tre lobi e pesa un po' di più.
+ */
+export const QUOTA_MONOPOLMONARE = { sinistro: 0.45, destro: 0.55 } as const
 
 /**
  * Il polmone **com'è adesso**: lo stesso, con la compliance alla PEEP di adesso.
@@ -754,9 +781,11 @@ export function complianceA(f: Fisiologia, peepTotale: number): number {
 export function polmoneOra<T extends PerPressioni>(stato: T): T {
   const f = stato.fisiologia
   const peep = stato.impostazioni.peep
-  const primo = { ...stato, fisiologia: { ...f, compliance: complianceA(f, peep) } }
+  // Un polmone solo: metà dei bronchi, la resistenza sale (Cohen, tubo a doppio lume).
+  const resistenza = f.monopolmonare ? f.resistenza * 1.35 : f.resistenza
+  const primo = { ...stato, fisiologia: { ...f, resistenza, compliance: complianceA(f, peep) } }
   const intrinseca = autoPeepDi(primo)
-  return { ...stato, fisiologia: { ...f, compliance: complianceA(f, peep + intrinseca) } }
+  return { ...stato, fisiologia: { ...f, resistenza, compliance: complianceA(f, peep + intrinseca) } }
 }
 
 /**

@@ -34,6 +34,7 @@
 - **Curve vere**: pressione, flusso e volume calcolati dal modello del polmone, con compliance che cambia con la PEEP, auto-PEEP, sforzi del paziente e asincronie.
 - **Loop pressione–volume e flusso–volume**, tracce di **pressione alveolare (Palv)** e **sforzo del paziente (Pmus)**, modalità **PRVC**.
 - Un **motore del respiro** che integra l'equazione del moto: auto-PEEP, trigger, ciclaggio e asincronie succedono invece di essere disegnati. **PAV+**, assistita-controllata (A/C), **flusso decelerante**, tracce **Pes e PL**, **P0.1**, **stress index**, **flow index**, **RSBI**, **RCexp**, **PMI**, **EIT** con PEEP trial e pendelluft, **curva P/V lenta** (pressione di apertura delle vie aeree), **rapporto R/I**, il **test di occlusione**.
+- Lo **scambio dei gas**: SpO₂, EtCO₂ ed **emogas** (pH, PaCO₂, PaO₂, HCO₃⁻, lattato) escono da un modello con shunt, basso V/Q, spazio morto, diffusione, vasocostrizione ipossica, riserve di O₂ e isteresi del reclutamento.
 - **Regia dell'istruttore**: da un computer (o da un tablet) vedi in diretta il ventilatore di ogni studente e cambi il paziente: quadro clinico, meccanica, parametri vitali, asincronie, eventi programmati.
 - **Registro della sessione** per il debriefing: chi ha fatto cosa e quando, con l'andamento dei parametri. Si stampa in PDF.
 - **Guida passo passo** per chi non ha mai visto un ventilatore.
@@ -180,6 +181,7 @@ In alto scegli **a chi mandare** i comandi: *questo ventilatore* (quello selezio
 | **Paziente** | Quadri clinici con un clic (Normale, BPCO, ARDS, COVID, Anafilassi, Edema, Polmonite, Fibroscopia); compliance, resistenza, sforzo, secrezioni; SpO₂, EtCO₂, frequenza cardiaca, pressione media. Con **«Cambia in»** il cambiamento avviene gradualmente (30 s – 5 min) invece che di colpo. |
 | **Asincronie** | Sforzo inefficace, doppio ciclo, reverse triggering, fame di flusso, ciclaggio precoce/ritardato, auto-trigger, con la quota degli atti coinvolti. Lo studente vede **solo le curve**, mai il nome: riconoscerla è il suo compito. Sotto, **Colpo di tosse** e **Accesso di tosse**: la Paw al limite alto e l'allarme di pressione. |
 | **Polmone** | Reclutabilità e compliance della parete: la compliance cambia con la PEEP. Avvio della **manovra di reclutamento**. |
+| **Scambio dei gas** | Shunt fisso, basso V/Q, spazio morto alveolare, diffusione, Hb, temperatura, metabolismo, bicarbonato, portata, BMI, vasodilatatori, NO inalatorio, CO e metaemoglobina; **ventilazione monopolmonare**. In tempo reale PaO₂, PaCO₂, pH, P/F, Qs/Qt, VD/VT, apnea sicura. **Emogas arterioso** con il risultato dopo il tempo che scegli, scritto nel registro. |
 | **Macchina** | Modalità, parametri, avvio/standby, silenzio allarmi, pause inspiratoria ed espiratoria: come se li toccasse lo studente (nel registro risultano fatti dalla regia). |
 | **Allarmi** | I limiti d'allarme del ventilatore (basso/alto, acceso/spento), come dal suo pannello Allarmi; **Ripristina i limiti d'avvio**. In PS, CPAP e PAV c'è il tempo di **apnea** (20 s di serie). |
 | **Eventi** | Eventi pronti (broncospasmo, tappo di muco, pneumotorace, desaturazione, ipercapnia, induzione, risveglio, decurarizzazione…). Si lanciano subito oppure si mettono in **sequenza** con i tempi, e la sequenza si salva su file per la prossima volta. |
@@ -226,6 +228,18 @@ Il registro resta salvato anche se chiudi e riapri la regia.
 ## 9. Novità
 
 ### 3.5.0 — 14 novembre 2026
+
+**Lo scambio dei gas.** SpO₂ ed EtCO₂ non sono più numeri scritti: escono dal paziente.
+- **CO₂**: produzione dal peso, dalla temperatura e dal metabolismo; spazio morto anatomico, strumentale (HME, maschera) e alveolare; ventilazione alveolare contata sugli atti erogati, quindi il respiro rapido e superficiale fa salire la CO₂ anche a parità di volume minuto. Due depositi (sangue e tessuti): in apnea la PaCO₂ sale di circa 10 mmHg il primo minuto, poi 3–4 al minuto. L'EtCO₂ si stacca dalla PaCO₂ con lo spazio morto alveolare (embolia, sovradistensione, portata bassa).
+- **Acido-base**: pH da Henderson-Hasselbalch, tamponamento acuto, compenso renale lento, BE, lattato quando il trasporto di O₂ non basta.
+- **Ossigenazione**: tre compartimenti (ideale, basso V/Q, shunt) alimentati dal polmone a fette dell'EIT. Lo shunt non risponde alla FiO₂, il basso V/Q sì; la PEEP riduce lo shunt solo se il polmone è reclutabile. Diffusione lungo il capillare: con la capacità ridotta la desaturazione compare quando salgono portata e consumo. Contenuti, sangue venoso misto, curva di dissociazione spostata da pH, temperatura e CO₂.
+- **Vasocostrizione polmonare ipossica** in due fasi (minuti e decine di minuti), ridotta dagli alogenati sopra 1 MAC, dai vasodilatatori e dall'alcalosi; l'**NO inalatorio** sposta il flusso verso il polmone ventilato.
+- **Ventilazione monopolmonare** dalla regia: compliance dimezzata, shunt dal polmone escluso, SpO₂ che scende e poi risale da sola mentre la vasocostrizione lavora.
+- **Riserve di O₂ e apnea**: CFR (peso, BMI, PEEP, collasso) e sangue venoso. Preossigenato un adulto regge circa 7 minuti al 90%, in aria meno di uno, l'obeso molto meno; l'ossigenazione apneica a vie aperte tiene la saturazione mentre la CO₂ sale.
+- **Isteresi del reclutamento**: dopo un reclutamento il polmone resta aperto finché la PEEP non scende sotto la pressione di chiusura; con FiO₂ alta e PEEP bassa compaiono atelettasie da assorbimento. Lo stesso stato muove compliance, EIT e shunt.
+- **CO e metaemoglobina**: saturimetro che sbaglia come quello vero (SpO₂ quasi normale con la CO, verso 85% con la metaemoglobina).
+- **Taratura sugli scenari**: la SpO₂ e l'EtCO₂ scritte restano i bersagli; quando cambiano il modello si ritara in mezzo minuto, e da lì aggiunge le conseguenze delle azioni (FiO₂, PEEP, standby, reclutamento).
+- **Regia**: scheda *Scambio dei gas*, emogas arterioso con ritardo e voce nel registro, eventi nuovi (monopolmonare, embolia, acidosi metabolica, febbre, brivido, CO, metaemoglobina). Lo scenario salvato porta con sé i parametri dello scambio.
 
 Quattro indici nuovi, letti sulle curve del motore:
 - **RSBI** (f/VT, Yang e Tobin) in PS, CPAP e PAV, solo quando respira il paziente (in apnea, sugli atti di backup, resta vuoto). Sopra 105 lo svezzamento regge male.

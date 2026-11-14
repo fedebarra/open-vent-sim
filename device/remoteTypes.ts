@@ -7,8 +7,9 @@ import type { Fisiologia, PresetFisiologia } from './screens/scenario/ventilator
 import type { Drive, ImpostazioniAsincronia } from './screens/scenario/ventilatore/asincronie'
 import type { VentIstantanea } from './screens/scenario/ventilatore/istantanea'
 import type { Ambiente } from './screens/scenario/ventilatore/parametri'
+import type { ParametriScambio } from './screens/scenario/ventilatore/scambio'
 
-export type { AzioneVentilatore, Fisiologia, PresetFisiologia, Drive, ImpostazioniAsincronia, VentIstantanea, Ambiente }
+export type { AzioneVentilatore, Fisiologia, PresetFisiologia, Drive, ImpostazioniAsincronia, VentIstantanea, Ambiente, ParametriScambio }
 
 /** A machine command, applied exactly as if the learner had touched the screen. */
 export interface ComandoAzione {
@@ -40,6 +41,13 @@ export interface ComandoPaziente {
    * little weaker). `n` seeds the spacing of the fit, so every screen sees the same coughs (`conTosse`).
    */
   tosse?: { n: number; colpi: number }
+  /**
+   * Gas exchange parameters (shunt, low V/Q, diffusion, Hb, metabolism, HCO₃⁻,
+   * dyshaemoglobins, iNO…), merged over the current ones. `null` fields reset
+   * to the defaults. SpO₂ and EtCO₂ in `vitali` stay the targets the model is
+   * calibrated on when they change.
+   */
+  scambio?: Partial<ParametriScambio> | 'predefiniti'
 }
 
 /** Display options decided by the director (teaching traces). */

@@ -26,10 +26,11 @@
  * tiene la compliance migliore, e a ogni gradino la perdita rispetto alla
  * migliore si conta come **collasso** se la PEEP è sotto quella della fetta e
  * come **sovradistensione** se è sopra (Costa, *Intensive Care Med* 2009).
- * L'incrocio delle due curve è la PEEP che le bilancia. Il modello non ha
- * isteresi: la discesa e la salita danno la stessa curva, e su un paziente vero
- * non è così — è il motivo per cui il trial si fa **dopo** un reclutamento e
- * **scendendo**.
+ * L'incrocio delle due curve è la PEEP che le bilancia. Il trial è una
+ * discesa da un polmone aperto. Fuori dal trial il polmone ha isteresi (3.5):
+ * la memoria del reclutamento (`peepMemoria`, `avanzaIsteresi` in
+ * `scambio.ts`) tiene aperte le fette finché la PEEP non scende sotto la
+ * pressione di chiusura.
  *
  * ## Il pendelluft
  *
@@ -72,14 +73,15 @@ function aperta(pDistensione: number): number {
 }
 
 /** Quanto la fetta rende ancora, 0–1, con quella pressione di fine inspirazione. */
-function resa(pFine: number): number {
+export function resa(pFine: number): number {
   const x = Math.max(0, (pFine - 26) / 8)
   return 1 / (1 + x * x)
 }
 
 /** La compliance tidalica di una fetta, in unità di fetta (si scala dopo). */
-function complianceFetta(sopra: number, peepTotale: number, pFine: number): number {
-  const ee = aperta(peepTotale - sopra)
+function complianceFetta(sopra: number, peepTotale: number, pFine: number, memoria = peepTotale): number {
+  // Quello che il reclutamento ha aperto resta aperto finché la memoria lo tiene (isteresi).
+  const ee = aperta(Math.max(peepTotale, memoria) - sopra)
   const ei = aperta(pFine - sopra)
   // Il tessuto aperto a fine espirazione rende quanto la sovradistensione gli
   // lascia; quello che si apre durante l'atto rende meno — si apre tardi, e si
@@ -97,6 +99,8 @@ export interface Regioni {
   quote: number[]
   /** Quanto di ogni fetta è aperto a fine espirazione, 0–1. */
   aperte: number[]
+  /** Quanto ogni fetta rende ancora a fine inspirazione, 0–1: sotto 1 si sovradistende. */
+  rese: number[]
   /** Il centro della ventilazione, % dal ventrale (0) al dorsale (100). */
   centro: number
   /** Quota del corrente nella metà ventrale, %. */
@@ -106,12 +110,15 @@ export interface Regioni {
 /** Dove va il corrente, a questa PEEP totale e con questa pressione di fine inspirazione. */
 export function regioni(f: Fisiologia, peepTotale: number, pFine: number): Regioni {
   const G = gradiente(f)
-  const c = Array.from({ length: STRATI }, (_, i) => complianceFetta(sopraDi(G, i), peepTotale, pFine))
+  const memoria = f.peepMemoria ?? peepTotale
+  const c = Array.from({ length: STRATI }, (_, i) => complianceFetta(sopraDi(G, i), peepTotale, pFine, memoria))
   const somma = c.reduce((a, b) => a + b, 0) || 1
   const quote = c.map((x) => x / somma)
   const centro = quote.reduce((a, q, i) => a + q * ((i + 0.5) / STRATI), 0) * 100
   const ventrale = quote.slice(0, STRATI / 2).reduce((a, b) => a + b, 0) * 100
-  return { quote, aperte: Array.from({ length: STRATI }, (_, i) => aperta(peepTotale - sopraDi(G, i))), centro, ventrale }
+  const aperte = Array.from({ length: STRATI }, (_, i) => aperta(Math.max(peepTotale, memoria) - sopraDi(G, i)))
+  const rese = Array.from({ length: STRATI }, (_, i) => resa(pFine - sopraDi(G, i)))
+  return { quote, aperte, rese, centro, ventrale }
 }
 
 export interface PassoPeep {

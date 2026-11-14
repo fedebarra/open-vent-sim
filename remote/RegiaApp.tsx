@@ -14,6 +14,7 @@ import { comandiScenario, parseScenario, scenarioDa } from './scenario';
 import { Tour } from '../tour/Tour';
 import { REGIA_STEPS } from '../tour/regia';
 import { RegistroView } from './RegistroView';
+import { ScambioTab, emogasDi, rigaEmogas, type Emogas } from './ScambioTab';
 import { Categoria, Registro, nuovoRegistro, vociAllarmi, PASSO_CAMPIONE_MS, leggiJson } from './registro';
 import { useLanguage } from '../src/contexts/LanguageContext';
 import { translate } from '../device/i18n';
@@ -50,7 +51,8 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
   const [log, setLog] = useState<LogLine[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [sendAll, setSendAll] = useState(false);
-  const [tab, setTab] = useState<'patient' | 'async' | 'mechanics' | 'lung' | 'machine' | 'alarms' | 'events'>('patient');
+  const [tab, setTab] = useState<'patient' | 'async' | 'mechanics' | 'lung' | 'gas' | 'machine' | 'alarms' | 'events'>('patient');
+  const [emogas, setEmogas] = useState<Record<string, (Emogas & { scritto?: boolean })[]>>({});
   const [flash, setFlash] = useState<string | null>(null);
   const [ramps, setRamps] = useState<Ramp[]>([]);
   const [info, setInfo] = useState<{ addresses: string[]; port: number } | null>(null);
@@ -246,6 +248,25 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
     return () => clearInterval(id);
   }, [s.eventsDone]);
 
+  // The blood gas goes to the log when its result is ready, as the lab would send it.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const now = Date.now();
+      setEmogas((x) => {
+        let cambiato = false;
+        const y: typeof x = {};
+        for (const v of Object.keys(x)) y[v] = x[v].map((e) => {
+          if (e.scritto || e.prontoAt > now) return e;
+          cambiato = true;
+          addLog({ at: now, vent: v, text: rigaEmogas(e.lettura, s), source: 'device', kind: 'emogas' });
+          return { ...e, scritto: true };
+        });
+        return cambiato ? y : x;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [addLog, s]);
+
   // ------------------------------------------------------------- derived --
   const snap = selected ? snaps[selected] ?? null : null;
   const ist = snap?.ventilatore ?? null;
@@ -319,9 +340,9 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
 
           <Card title="" pad={false}>
             <div className="flex flex-wrap items-center gap-1 border-b border-slate-800 px-2 pt-2">
-              {(['patient', 'async', 'mechanics', 'lung', 'machine', 'alarms', 'events'] as const).map((k) => (
+              {(['patient', 'async', 'mechanics', 'lung', 'gas', 'machine', 'alarms', 'events'] as const).map((k) => (
                 <button key={k} data-testid={`tab-${k}`} onClick={() => setTab(k)} className={`px-3 py-2 rounded-t-lg ${tab === k ? 'bg-slate-800 text-white font-semibold' : 'text-slate-400 hover:text-white'}`}>
-                  {{ patient: s.tabPatient, async: s.tabAsync, mechanics: s.tabMechanics, lung: s.tabLung, machine: s.tabMachine, alarms: s.tabAlarms, events: s.tabEvents }[k]}
+                  {{ patient: s.tabPatient, async: s.tabAsync, mechanics: s.tabMechanics, lung: s.tabLung, gas: s.tabGas, machine: s.tabMachine, alarms: s.tabAlarms, events: s.tabEvents }[k]}
                 </button>
               ))}
               <label className="ml-auto flex items-center gap-2 text-slate-300 pb-1 pr-2">{s.sendTo}:
@@ -336,6 +357,12 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
                 {tab === 'async' && ist && <AsyncTab key={selected!} s={s} tr={tr} ist={ist} onApply={paziente} />}
                 {tab === 'mechanics' && ist && <MechanicsTab key={selected!} s={s} tr={tr} ist={ist} onApply={paziente} />}
                 {tab === 'lung' && ist && <LungTab key={selected!} s={s} ist={ist} onApply={paziente} onRecruit={() => azione({ tipo: 'manovra', manovra: 'reclutamento' }, s.recruitmentStart)} />}
+                {tab === 'gas' && ist && <ScambioTab key={selected!} s={s} ist={ist} onApply={paziente} emogas={emogas[selected!] ?? []} onEmogas={(ritardo) => {
+                  const l = emogasDi(ist); if (!l || !selected) return;
+                  const at = Date.now();
+                  setEmogas((x) => ({ ...x, [selected]: [...(x[selected] ?? []).slice(-9), { at, prontoAt: at + ritardo * 1000, lettura: l }] }));
+                  addLog({ at, vent: selected, text: s.abgRequested, source: 'director', kind: 'emogas' });
+                }} />}
                 {tab === 'machine' && ist && <MachineTab s={s} tr={tr} ist={ist} azione={azione} onPaziente={paziente} opzioni={(on) => { targets().forEach((id) => sendRaw(id, { type: 'opzioni', pressioniDidattiche: on })); setFlash(`${s.applied}: ${s.teachingTraces} ${on ? 'ON' : 'OFF'}`); }} />}
                 {tab === 'alarms' && ist && <AlarmsTab s={s} tr={tr} ist={ist} azione={azione} />}
               </>}
@@ -463,7 +490,7 @@ const Numbers: React.FC<{ ist: VentIstantanea }> = ({ ist }) => {
   const items: [string, unknown, number, string][] = [
     ['Ppeak', m.pPeak, 0, 'cmH₂O'], ['Pplat', m.pPlateau, 0, 'cmH₂O'], ['PEEP', i.peep, 0, 'cmH₂O'],
     ['VTe', m.volumeExpired, 0, 'mL'], ['MV', m.volumeMinute, 1, 'L/min'], ['f', m.measuredFrequency, 0, '/min'],
-    ['FiO₂', i.fio2, 0, '%'], ['SpO₂', p.spo2 ?? m.spo2, 0, '%'], ['EtCO₂', m.etco2 ?? p.etco2, 0, 'mmHg'],
+    ['FiO₂', i.fio2, 0, '%'], ['SpO₂', m.spo2 ?? p.spo2, 0, '%'], ['EtCO₂', m.etco2 ?? p.etco2, 0, 'mmHg'],
     ['C', m.compliance, 0, 'mL/cmH₂O'], ['R', m.resistance, 0, 'cmH₂O/L/s'], ['HR', p.heartRate, 0, '/min'],
   ];
   return (

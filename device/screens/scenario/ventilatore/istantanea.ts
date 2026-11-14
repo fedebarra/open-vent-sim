@@ -39,6 +39,17 @@ import type { AzioneVentilatore } from './azioni'
 import { regolaPrvc, PRVC_PROVA } from './prvc'
 import { attiRecenti, motoreCopre, BLOCCO_SEC, CALDO_SEC } from './motore'
 import { forzaColpo, RITARDO_TOSSE_SEC, scoppiTosse } from './tosse'
+import {
+  avanzaIsteresi,
+  avanzaScambio,
+  ingressiDaVentilatore,
+  letturaScambio,
+  scambioIniziale,
+  PARAMETRI_SCAMBIO,
+  type ParametriScambio,
+  type StatoIsteresi,
+  type StatoScambio,
+} from './scambio'
 import type { Circuito } from '../../paziente/presidiFigura'
 import { DRIVE_ASSENTE, driveEfficace, type Drive, type ImpostazioniAsincronia } from './asincronie'
 import type { TranslationKey } from '../../../i18n/it'
@@ -205,6 +216,21 @@ export interface VentIstantanea {
   apneaDa?: { chiave: string; sec: number } | null
   /** OVS 3.1: frazione d'atto non ancora contata dal regolatore PRVC. */
   prvcAtti?: number
+  /**
+   * La memoria del reclutamento e le atelettasie da assorbimento: meccanica del
+   * polmone, la tiene il ventilatore (`avanzaIsteresi`). Assente = nessuna storia.
+   */
+  isteresi?: StatoIsteresi | null
+  /**
+   * Lo scambio dei gas, quando lo tiene il ventilatore (Open Vent Sim, dove non
+   * c'è un monitor che lo faccia). `scambioAttivo` lo accende; lo stato parte al
+   * primo battito in cui il paziente respira o è ventilato, tarato su SpO₂ ed
+   * EtCO₂ scritte. Dove lo scambio lo tiene il monitor resta spento.
+   */
+  scambioAttivo?: boolean
+  scambio?: StatoScambio | null
+  /** I parametri dello scambio scritti dalla regia, finché lo stato non parte. */
+  parametriScambio?: ParametriScambio
   misure: Misure
   allarmi: AllarmeAttivo[]
   limiti: LimitiAllarme
@@ -267,7 +293,9 @@ export function statoDa(istantanea: VentIstantanea): StatoVentilatore {
     respiro: istantanea.respiro,
     ventilando: istantanea.ventilando,
     impostazioni: istantanea.impostazioni,
-    fisiologia: istantanea.fisiologia,
+    fisiologia: istantanea.isteresi
+      ? { ...istantanea.fisiologia, peepMemoria: istantanea.isteresi.peepMemoria, atelettasia: istantanea.isteresi.atelettasia }
+      : istantanea.fisiologia,
     drive: istantanea.drive,
     asincronia: istantanea.asincronia,
     manovra: istantanea.manovra,
@@ -428,8 +456,26 @@ export function batti(istantanea: VentIstantanea, tSec: number, dtSec: number): 
   istantanea = riallineaFase(istantanea, tSec)
   istantanea = regolaPrvc(istantanea, dtSec)
   const stato = statoDa(istantanea)
-  const misure = misura(stato, tSec, dtSec, istantanea.misure)
+  let misure = misura(stato, tSec, dtSec, istantanea.misure)
   const consumati = avanza(stato, dtSec, tSec)
+
+  // ## Il polmone ricorda, e il paziente scambia
+  //
+  // La memoria del reclutamento avanza sempre (è meccanica). Lo scambio dei gas
+  // solo dove lo tiene il ventilatore: parte quando c'è un respiro da contare,
+  // e da lì SpO₂ ed EtCO₂ sono le sue.
+  const bersagli = { spo2: istantanea.paziente.spo2, etco2: istantanea.paziente.etco2 }
+  const ing = ingressiDaVentilatore(stato, misure, bersagli)
+  const isteresi = avanzaIsteresi(istantanea.isteresi, ing.peepTotale, ing.fio2, ing.reclutamento, ing.scollegato, dtSec)
+  let scambio = istantanea.scambio ?? null
+  if (istantanea.scambioAttivo) {
+    if (!scambio && ing.vaTotaleStimata > 0) scambio = scambioIniziale(ing, istantanea.parametriScambio ?? PARAMETRI_SCAMBIO)
+    else if (scambio) scambio = avanzaScambio(scambio, ing, dtSec)
+    if (scambio) {
+      const l = letturaScambio(scambio, ing)
+      misure = { ...misure, spo2: Math.round(l.spo2), etco2: stato.ventilando ? Math.round(l.etco2) : misure.etco2 }
+    }
+  }
 
   // Il flush d'ossigeno finisce da sé: trenta secondi e la FiO₂ torna dov'era.
   // Non è un'azione di nessuno, quindi non passa da `applica()` — succede.
@@ -438,6 +484,8 @@ export function batti(istantanea: VentIstantanea, tSec: number, dtSec: number): 
 
   let prossima: VentIstantanea = {
     ...istantanea,
+    isteresi,
+    scambio,
     gas,
     altoFlusso: consumati.altoFlusso,
     umidificatore: consumati.umidificatore,

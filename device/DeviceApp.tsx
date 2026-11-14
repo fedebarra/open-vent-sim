@@ -31,6 +31,7 @@ import { cambiamenti } from './screens/scenario/ventilatore/allarmi'
 import { PRESET_FISIOLOGIA, type PresetFisiologia } from './screens/scenario/ventilatore/fisica'
 import { DRIVE_ASSENTE, valoreRampa, type Rampa } from './screens/scenario/ventilatore/asincronie'
 import type { Ambiente } from './screens/scenario/ventilatore/parametri'
+import { PARAMETRI_SCAMBIO } from './screens/scenario/ventilatore/scambio'
 import { translate } from './i18n'
 import type { DeviceRemoteActions, DeviceRemoteCommand, DeviceScreen, DeviceSnapshot, EventSource } from './remoteTypes'
 import { Tour } from '../tour/Tour'
@@ -219,6 +220,11 @@ export const DeviceApp: React.FC<DeviceAppProps> = ({
     if (cmd.asincronia !== undefined) ist = { ...ist, asincronia: cmd.asincronia }
     if (cmd.vitali) ist = { ...ist, paziente: { ...ist.paziente, ...cmd.vitali } }
     if (cmd.tosse) ist = conTosse(ist, { n: cmd.tosse.n, colpi: cmd.tosse.colpi }, Date.now())
+    if (cmd.scambio) {
+      const prima = ist.scambio?.parametri ?? ist.parametriScambio ?? PARAMETRI_SCAMBIO
+      const parametri = cmd.scambio === 'predefiniti' ? { ...PARAMETRI_SCAMBIO } : { ...prima, ...cmd.scambio }
+      ist = { ...ist, parametriScambio: parametri, scambio: ist.scambio ? { ...ist.scambio, parametri } : ist.scambio }
+    }
     if (cmd.rampaFrequenza) {
       const t = orologio(ist)
       rampaRef.current = { da: ist.drive.frequenza, a: cmd.rampaFrequenza.a, inizioSec: t, durataSec: cmd.rampaFrequenza.durataSec }
@@ -247,6 +253,8 @@ export const DeviceApp: React.FC<DeviceAppProps> = ({
     // A patient on invasive ventilation is sedated (no drive); the others breathe.
     const respira = ambiente !== 'invasiva'
     let ist = istantaneaIniziale(ambiente, Date.now(), { pesoKg: peso, ...VITALI_BASE })
+    // Lo scambio dei gas lo tiene il ventilatore: SpO₂ ed EtCO₂ escono dal modello.
+    ist = { ...ist, scambioAttivo: true }
     ist = { ...ist, fisiologia: { ...p.fisiologia, preset }, drive: respira ? { ...p.drive } : { ...DRIVE_ASSENTE } }
     // High flow starts at a clinical flow, not at the anaesthesia fresh-gas default (2 l/min would alarm at once).
     if (ambiente === 'alto-flusso') ist = applica(ist, { tipo: 'parametro', chiave: 'fgf', valore: 40 }, 0).istantanea

@@ -575,7 +575,8 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
   const pplatAtteso = imp.peep + vRif / C
   const sovra = Math.min(0.5, (0.35 * Math.max(0, pplatAtteso - 25)) / 10)
   const r = Math.min(1, Math.max(0, fis.reclutabilita ?? 0))
-  const recluta = (0.6 * Math.max(0, r - 0.2)) / 0.8 * Math.exp(-Math.max(0, imp.peep - 5) / 5)
+  const tenuta = Math.max(imp.peep, fis.peepMemoria ?? imp.peep)
+  const recluta = (0.6 * Math.max(0, r - 0.2)) / 0.8 * Math.exp(-Math.max(0, tenuta - 5) / 5)
   const quotaE2 = Math.min(0.5, Math.max(-0.4, sovra - recluta))
   const E2 = quotaE2 / (C * vRif)
   const E1 = (1 - quotaE2) / C
@@ -1207,6 +1208,9 @@ function chiave(stato: StatoVentilatore, inizio: number): string {
     f.aperturaVie ?? 0,
     f.pesBasale ?? 0,
     f.perditaMaschera ?? -1,
+    Math.round((f.peepMemoria ?? 0) * 2) / 2,
+    Math.round((f.atelettasia ?? 0) * 20) / 20,
+    f.monopolmonare ?? '-',
     stato.ambiente,
     d.frequenza,
     d.intensita,
