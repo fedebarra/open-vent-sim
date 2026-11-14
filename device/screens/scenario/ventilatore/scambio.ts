@@ -873,7 +873,8 @@ function ingressiGrezzi(
     reclutamento: stato.manovra === 'reclutamento',
   }
   // ## Staccato dalla macchina: aria, vie aperte, polmone che si richiude
-  if (!stato.ventilando) {
+  // (anche col circuito aperto verso la stanza, dove l'host lo sa: `staccato`)
+  if (!stato.ventilando || (stato as { staccato?: boolean }).staccato === true) {
     return {
       ...comune,
       fio2: 0.21,
