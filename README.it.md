@@ -33,7 +33,7 @@
 - **Tre apparecchi in uno**: macchina d'anestesia, ventilatore di terapia intensiva (invasiva e non invasiva) e alti flussi.
 - **Curve vere**: pressione, flusso e volume calcolati dal modello del polmone, con compliance che cambia con la PEEP, auto-PEEP, sforzi del paziente e asincronie.
 - **Loop pressione–volume e flusso–volume**, tracce di **pressione alveolare (Palv)** e **sforzo del paziente (Pmus)**, modalità **PRVC**.
-- Un **motore del respiro** che integra l'equazione del moto: auto-PEEP, trigger, ciclaggio e asincronie succedono invece di essere disegnati. **PAV+**, assistita-controllata (A/C), **flusso decelerante**, tracce **Pes e PL**, **P0.1** e **stress index**, **EIT** con PEEP trial e pendelluft, **curva P/V lenta** (pressione di apertura delle vie aeree), **rapporto R/I**, il **test di occlusione**.
+- Un **motore del respiro** che integra l'equazione del moto: auto-PEEP, trigger, ciclaggio e asincronie succedono invece di essere disegnati. **PAV+**, assistita-controllata (A/C), **flusso decelerante**, tracce **Pes e PL**, **P0.1**, **stress index**, **flow index**, **RSBI**, **RCexp**, **PMI**, **EIT** con PEEP trial e pendelluft, **curva P/V lenta** (pressione di apertura delle vie aeree), **rapporto R/I**, il **test di occlusione**.
 - **Regia dell'istruttore**: da un computer (o da un tablet) vedi in diretta il ventilatore di ogni studente e cambi il paziente: quadro clinico, meccanica, parametri vitali, asincronie, eventi programmati.
 - **Registro della sessione** per il debriefing: chi ha fatto cosa e quando, con l'andamento dei parametri. Si stampa in PDF.
 - **Guida passo passo** per chi non ha mai visto un ventilatore.
@@ -224,6 +224,14 @@ Il registro resta salvato anche se chiudi e riapri la regia.
 | Voglio l'interfaccia vecchia (2.x) | Nel browser aggiungi `?legacy=1` all'indirizzo, da soli. |
 
 ## 9. Novità
+
+### 3.5.0 — 14 novembre 2026
+
+Quattro indici nuovi, letti sulle curve del motore:
+- **RSBI** (f/VT, Yang e Tobin) in PS, CPAP e PAV, solo quando respira il paziente (in apnea, sugli atti di backup, resta vuoto). Sopra 105 lo svezzamento regge male.
+- **Flow index** in PS (Albani, *Crit Care* 2021): l'esponente di `Q = a + b·tᶜ` dal picco del flusso al ciclaggio. Uno è il flusso che scende in linea retta; sale con lo sforzo e scende alzando il supporto. Nel simulatore la scala è più stretta che nei pazienti (≈1 passivo, ≈2 sforzo forte): conta il verso, non le soglie cliniche 2,6 e 4,5.
+- **RCexp**, la costante di tempo espiratoria misurata al 75% del corrente esalato (volume che resta / flusso): R·C nel polmone sano, più lunga nell'ostruito.
+- **PMI** nella pausa inspiratoria in PS (Foti 2009): Pplat − (PEEP + PS). Sopra zero il volume l'ha messo anche il diaframma.
 
 ### 3.4.1 — 13 novembre 2026
 

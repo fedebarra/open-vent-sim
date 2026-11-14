@@ -33,7 +33,7 @@
 - **Three machines in one**: anaesthesia workstation, ICU ventilator (invasive and non-invasive) and high-flow oxygen.
 - **Real waveforms**: pressure, flow and volume come from a lung model with PEEP-dependent compliance, auto-PEEP, patient effort and asynchronies.
 - **Pressure–volume and flow–volume loops**, **alveolar pressure (Palv)** and **patient effort (Pmus)** traces, **PRVC** mode.
-- A **breathing engine** that integrates the equation of motion: auto-PEEP, triggers, cycling and asynchronies happen instead of being drawn. **PAV+**, assist-control (A/C), **decelerating flow**, **Pes and PL** traces, **P0.1** and **stress index**, **EIT** with PEEP trial and pendelluft, **low-flow P/V curve** (airway opening pressure), **R/I ratio**, the **occlusion test**.
+- A **breathing engine** that integrates the equation of motion: auto-PEEP, triggers, cycling and asynchronies happen instead of being drawn. **PAV+**, assist-control (A/C), **decelerating flow**, **Pes and PL** traces, **P0.1**, **stress index**, **flow index**, **RSBI**, **RCexp**, **PMI**, **EIT** with PEEP trial and pendelluft, **low-flow P/V curve** (airway opening pressure), **R/I ratio**, the **occlusion test**.
 - **Instructor console**: from one computer (or tablet) you see every learner's ventilator live and change the patient: clinical picture, mechanics, vital signs, asynchronies, timed events.
 - **Session log** for the debriefing: who did what and when, with parameter trends. Prints to PDF.
 - **Guided tour** for people who have never touched a ventilator.
@@ -224,6 +224,14 @@ The log survives closing and reopening the console.
 | I want the old (2.x) interface | In the browser, add `?legacy=1` to the address (stand-alone only). |
 
 ## 9. What's new
+
+### 3.5.0 — 14 November 2026
+
+Four new indices, read on the engine's own curves:
+- **RSBI** (f/VT, Yang and Tobin) in PS, CPAP and PAV, only while the patient breathes (blank on apnoea backup breaths). Above 105, weaning tends to fail.
+- **Flow index** in PS (Albani, *Crit Care* 2021): the exponent of `Q = a + b·tᶜ` from peak inspiratory flow to cycling. One is a linear fall; it rises with effort and falls as support goes up. The simulator's range is narrower than in patients (≈1 passive, ≈2 strong effort): read the direction, not the clinical cut-offs 2.6 and 4.5.
+- **RCexp**, the expiratory time constant measured at 75% of the exhaled volume (volume left / flow): R·C in a normal lung, longer when obstructed.
+- **PMI** on the inspiratory hold in PS (Foti 2009): Pplat − (PEEP + PS). Above zero the diaphragm added volume too.
 
 ### 3.4.1 — 13 November 2026
 

@@ -1187,6 +1187,12 @@ export function misura(
       m.p01 = p01 === null ? null : parseFloat(p01.toFixed(1))
       const si = ultimi(recenti.map((a) => a.stressIndex))
       m.stressIndex = si === null ? null : parseFloat(si.toFixed(2))
+      // Il flow index sugli atti di supporto che il paziente ha aperto, la
+      // costante di tempo espiratoria su tutti: la forma delle curve, contata.
+      const fi = ultimi(recenti.map((a) => (a.innescato ? a.flowIndex : null)))
+      m.flowIndex = fi === null ? null : parseFloat(fi.toFixed(1))
+      const rc = ultimi(recenti.map((a) => a.rcEsp))
+      m.rcExp = rc === null ? null : parseFloat(rc.toFixed(2))
       // ## La compliance che mente quando il paziente tira
       //
       // Sugli atti che il paziente apre il ventilatore non sa la compliance:
@@ -1209,6 +1215,17 @@ export function misura(
     // il limite suona l'allarme di pressione; il numero resta per `PICCO_TOSSE_SEC`, poi torna quello dell'atto.
     const piccoTosse = motoreCopre(statoMotore) ? piccoDellaTosse(statoMotore, tSec) : null
     if (piccoTosse !== null && piccoTosse > (m.pPeak ?? 0) + 2) m.pPeak = arrotonda(piccoTosse)
+    // ## L'RSBI: frequenza su corrente, in respiro spontaneo
+    //
+    // Con i numeri che il display ha appena scritto — la frequenza contata e il
+    // corrente espirato — perché è così che si calcola al letto, e un RSBI che
+    // non torna con i due numeri accanto sarebbe un terzo numero da spiegare.
+    // In apnea gli atti sono quelli di backup, della macchina: niente RSBI.
+    if ((modalita === 'PS' || modalita === 'CPAP' || modalita === 'PAV') && spontanea > 0) {
+      const f = m.measuredFrequency ?? 0
+      const vtL = (m.volumeExpired ?? 0) / 1000
+      m.rsbi = f > 0 && vtL > 0.02 ? Math.round(f / vtL) : null
+    }
     m.mlPerKg =
       stato.paziente.pesoKg && stato.paziente.pesoKg > 0
         ? parseFloat(((m.volumeExpired ?? 0) / stato.paziente.pesoKg).toFixed(1))
@@ -1319,6 +1336,16 @@ export function esitoManovra(
           compliance: motrice > 0 ? arrotonda(vt / motrice) : null,
           elastanza: motrice > 0 && vt > 0 ? arrotonda(motrice / (vt / 1000)) : null,
           resistenza: flussoLs > 0 ? arrotonda((ppeak - pplat) / flussoLs) : null,
+          // ## Il PMI: la pausa in supporto dice quanto ha tirato il paziente
+          //
+          // Fermando l'atto a fine inspirazione i muscoli si rilasciano e la Paw
+          // sale al ritorno elastico del volume che è entrato. Se il volume l'ha
+          // messo tutto la macchina il plateau è la pressione di supporto; quello
+          // che sta sopra l'ha messo il diaframma (Foti, *Intensive Care Med*
+          // 2009): PMI = Pplat − (PEEP + PS). Sotto zero il paziente spinge contro.
+          ...(stato.modalita === 'PS' && ultimo.innescato
+            ? { pmi: arrotonda(pplat - (imp.peep + imp.psLevel)) }
+            : {}),
         }
       }
       // Con le vie aeree chiuse la pausa vede il circuito, non gli alveoli.
