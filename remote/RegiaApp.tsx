@@ -14,7 +14,7 @@ import { comandiScenario, parseScenario, scenarioDa } from './scenario';
 import { Tour } from '../tour/Tour';
 import { REGIA_STEPS } from '../tour/regia';
 import { RegistroView } from './RegistroView';
-import { ScambioTab, emogasDi, rigaEmogas, type Emogas } from './ScambioTab';
+import { ScambioTab } from './ScambioTab';
 import { Categoria, Registro, nuovoRegistro, vociAllarmi, PASSO_CAMPIONE_MS, leggiJson } from './registro';
 import { useLanguage } from '../src/contexts/LanguageContext';
 import { translate } from '../device/i18n';
@@ -52,7 +52,6 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
   const [selected, setSelected] = useState<string | null>(null);
   const [sendAll, setSendAll] = useState(false);
   const [tab, setTab] = useState<'patient' | 'async' | 'mechanics' | 'lung' | 'gas' | 'machine' | 'alarms' | 'events'>('patient');
-  const [emogas, setEmogas] = useState<Record<string, (Emogas & { scritto?: boolean })[]>>({});
   const [flash, setFlash] = useState<string | null>(null);
   const [ramps, setRamps] = useState<Ramp[]>([]);
   const [info, setInfo] = useState<{ addresses: string[]; port: number } | null>(null);
@@ -84,7 +83,7 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
       const at = Date.now();
       const samples = (Object.entries(snapsRef.current) as [string, VentSnapshot][]).filter(([, sn]) => sn.ventilatore).map(([vent, sn]) => {
         const v = sn.ventilatore!; const m = v.misure as any;
-        return { at, vent, v: Object.fromEntries(Object.entries({ spo2: v.paziente.spo2, etco2: m.etco2 ?? v.paziente.etco2, pPeak: m.pPeak, peep: v.impostazioni.peep, vte: m.volumeExpired, f: m.measuredFrequency, fio2: v.impostazioni.fio2, hr: v.paziente.heartRate }).filter(([, x]) => x !== null && x !== undefined && Number.isFinite(Number(x))).map(([k, x]) => [k, Number(x)])) };
+        return { at, vent, v: Object.fromEntries(Object.entries({ spo2: m.spo2 ?? v.paziente.spo2, etco2: m.etco2 ?? v.paziente.etco2, pPeak: m.pPeak, peep: v.impostazioni.peep, vte: m.volumeExpired, f: m.measuredFrequency, fio2: v.impostazioni.fio2, hr: v.paziente.heartRate }).filter(([, x]) => x !== null && x !== undefined && Number.isFinite(Number(x))).map(([k, x]) => [k, Number(x)])) };
       });
       if (samples.length) setRegistro((r) => r ? { ...r, campioni: [...r.campioni, ...samples] } : r);
     }, PASSO_CAMPIONE_MS);
@@ -248,25 +247,6 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
     return () => clearInterval(id);
   }, [s.eventsDone]);
 
-  // The blood gas goes to the log when its result is ready, as the lab would send it.
-  useEffect(() => {
-    const id = setInterval(() => {
-      const now = Date.now();
-      setEmogas((x) => {
-        let cambiato = false;
-        const y: typeof x = {};
-        for (const v of Object.keys(x)) y[v] = x[v].map((e) => {
-          if (e.scritto || e.prontoAt > now) return e;
-          cambiato = true;
-          addLog({ at: now, vent: v, text: rigaEmogas(e.lettura, s), source: 'device', kind: 'emogas' });
-          return { ...e, scritto: true };
-        });
-        return cambiato ? y : x;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [addLog, s]);
-
   // ------------------------------------------------------------- derived --
   const snap = selected ? snaps[selected] ?? null : null;
   const ist = snap?.ventilatore ?? null;
@@ -357,12 +337,7 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
                 {tab === 'async' && ist && <AsyncTab key={selected!} s={s} tr={tr} ist={ist} onApply={paziente} />}
                 {tab === 'mechanics' && ist && <MechanicsTab key={selected!} s={s} tr={tr} ist={ist} onApply={paziente} />}
                 {tab === 'lung' && ist && <LungTab key={selected!} s={s} ist={ist} onApply={paziente} onRecruit={() => azione({ tipo: 'manovra', manovra: 'reclutamento' }, s.recruitmentStart)} />}
-                {tab === 'gas' && ist && <ScambioTab key={selected!} s={s} ist={ist} onApply={paziente} emogas={emogas[selected!] ?? []} onEmogas={(ritardo) => {
-                  const l = emogasDi(ist); if (!l || !selected) return;
-                  const at = Date.now();
-                  setEmogas((x) => ({ ...x, [selected]: [...(x[selected] ?? []).slice(-9), { at, prontoAt: at + ritardo * 1000, lettura: l }] }));
-                  addLog({ at, vent: selected, text: s.abgRequested, source: 'director', kind: 'emogas' });
-                }} />}
+                {tab === 'gas' && ist && <ScambioTab key={selected!} s={s} ist={ist} onApply={paziente} />}
                 {tab === 'machine' && ist && <MachineTab s={s} tr={tr} ist={ist} azione={azione} onPaziente={paziente} opzioni={(on) => { targets().forEach((id) => sendRaw(id, { type: 'opzioni', pressioniDidattiche: on })); setFlash(`${s.applied}: ${s.teachingTraces} ${on ? 'ON' : 'OFF'}`); }} />}
                 {tab === 'alarms' && ist && <AlarmsTab s={s} tr={tr} ist={ist} azione={azione} />}
               </>}

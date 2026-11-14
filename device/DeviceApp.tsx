@@ -107,7 +107,8 @@ const S = {
 }
 
 const PRESETS = Object.keys(PRESET_FISIOLOGIA) as PresetFisiologia[]
-const VITALI_BASE = { spo2: 97, heartRate: 78, map: 85, etco2: null as number | null }
+// SpO₂ ed EtCO₂ non scritte: le fa lo scambio dei gas finché la regia non ne scrive una.
+const VITALI_BASE = { spo2: null as number | null, heartRate: 78, map: 85, etco2: null as number | null }
 
 export const DeviceApp: React.FC<DeviceAppProps> = ({
   onSnapshot, onEvent, remoteActions, linked = false,

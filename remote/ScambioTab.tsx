@@ -1,7 +1,8 @@
 /**
  * Director console, "Gas exchange" tab: the patient's gas exchange parameters,
- * one-lung ventilation, the live picture (shunt, dead space, HPV tone, safe
- * apnoea time) and the blood gas, which arrives after a delay like a real one.
+ * one-lung ventilation, and the live picture for the instructor: the arterial
+ * blood gas as a physiological reference (nobody "draws" it, the ventilator
+ * sends it to no one), shunt, dead space, HPV tone, safe apnoea time.
  */
 import React, { useMemo, useState } from 'react';
 import type { RemoteStrings } from './strings';
@@ -23,14 +24,6 @@ export function emogasDi(ist: VentIstantanea): LetturaScambio | null {
   const ing = ingressiDaVentilatore(statoDa(ist), ist.misure, { spo2: ist.paziente.spo2, etco2: ist.paziente.etco2 });
   return letturaScambio(ist.scambio, ing);
 }
-
-/** One line for the session log. */
-export function rigaEmogas(l: LetturaScambio, s: RemoteStrings): string {
-  const f = (x: number | null, d = 0) => (x === null || !Number.isFinite(x) ? '–' : x.toFixed(d));
-  return `${s.abgTitle}: pH ${f(l.ph, 2)} · PaCO₂ ${f(l.paco2)} · PaO₂ ${f(l.pao2)} · HCO₃⁻ ${f(l.hco3, 1)} · BE ${f(l.be, 1)} · SaO₂ ${f(l.sao2)}% · Lac ${f(l.lattato, 1)} · FiO₂ ${f(l.fio2 * 100)}% · P/F ${f(l.pf)}`;
-}
-
-export interface Emogas { at: number; prontoAt: number; lettura: LetturaScambio }
 
 type Campo = { k: keyof ParametriScambio; label: keyof RemoteStrings; min: number; max: number; step: number; unit?: string; digits?: number; perc?: boolean };
 const CAMPI: Campo[] = [
@@ -55,18 +48,14 @@ export const ScambioTab: React.FC<{
   s: RemoteStrings;
   ist: VentIstantanea;
   onApply: (p: Patch, label: string, rampSec: number) => void;
-  emogas: Emogas[];
-  onEmogas: (ritardoSec: number) => void;
-}> = ({ s, ist, onApply, emogas, onEmogas }) => {
+}> = ({ s, ist, onApply }) => {
   const attuali = ist.scambio?.parametri ?? ist.parametriScambio ?? PARAMETRI_SCAMBIO;
   const [vals, setVals] = useState<ParametriScambio>({ ...attuali });
   const [portataAuto, setPortataAuto] = useState(attuali.portata === null);
-  const [ritardo, setRitardo] = useState(120);
   const lettura = useMemo(() => emogasDi(ist), [ist]);
   const kg = ist.paziente.pesoKg ?? 70;
   const portata = vals.portata ?? Math.round(0.07 * kg * 10) / 10;
   const mono = ist.fisiologia.monopolmonare ?? null;
-  const ora = Date.now();
 
   const applica = () => {
     const patch: Partial<ParametriScambio> = {};
@@ -87,17 +76,29 @@ export const ScambioTab: React.FC<{
     <div className="space-y-3" data-testid="gas-tab">
       <p className="text-slate-400 text-xs">{s.gasIntro}</p>
 
-      <div className="grid grid-cols-5 gap-1 text-xs" data-testid="gas-live">
-        <Box k="PaO₂" v={`${fmt(lettura?.pao2)} mmHg`} />
-        <Box k="PaCO₂" v={`${fmt(lettura?.paco2)} mmHg`} />
+      <div className="text-slate-400 text-xs">{s.abgTitle}</div>
+      <div className="grid grid-cols-6 gap-1 text-xs" data-testid="gas-live">
         <Box k="pH" v={fmt(lettura?.ph, 2)} />
-        <Box k="P/F" v={fmt(lettura?.pf)} />
+        <Box k="PaCO₂" v={`${fmt(lettura?.paco2)} mmHg`} />
+        <Box k="PaO₂" v={`${fmt(lettura?.pao2)} mmHg`} />
+        <Box k="HCO₃⁻" v={`${fmt(lettura?.hco3, 1)} mmol/L`} />
+        <Box k="BE" v={fmt(lettura?.be, 1)} />
+        <Box k="SaO₂" v={`${fmt(lettura?.sao2)} %`} />
+        <Box k={s.gasLactate} v={`${fmt(lettura?.lattato, 1)} mmol/L`} />
+        <Box k="Hb" v={`${fmt(lettura?.hb, 1)} g/dL`} />
+        <Box k="COHb · MetHb" v={lettura ? `${fmt(lettura.cohb * 100, 1)} · ${fmt(lettura.methb * 100, 1)} %` : '–'} />
         <Box k="SvO₂" v={`${fmt(lettura?.svo2)} %`} />
+        <Box k="P/F" v={fmt(lettura?.pf)} />
+        <Box k="A-a" v={`${fmt(lettura?.aa)} mmHg`} />
+      </div>
+      <div className="text-slate-400 text-xs">{s.gasDerived}</div>
+      <div className="grid grid-cols-6 gap-1 text-xs" data-testid="gas-derived">
         <Box k="Qs/Qt" v={lettura ? `${Math.round(lettura.qsqt * 100)} %` : '–'} />
         <Box k="VD/VT" v={lettura?.vdvt != null ? `${Math.round(lettura.vdvt * 100)} %` : '–'} />
+        <Box k="OI" v={fmt(lettura?.oi, 1)} />
+        <Box k={s.gasVentRatio} v={fmt(lettura?.rapportoVentilatorio, 2)} />
         <Box k={s.gasHpvTone} v={lettura ? `${Math.round(lettura.tono * 100)} %` : '–'} />
         <Box k={s.gasSafeApnoea} v={lettura ? `${fmt(lettura.apneaSicuraMin, 1)} min` : '–'} />
-        <Box k={s.gasLactate} v={`${fmt(lettura?.lattato, 1)} mmol/L`} />
       </div>
       {!ist.scambio && <p className="text-amber-300 text-xs">{s.gasNotStarted}</p>}
       {lettura?.taraturaAlLimite && <p className="text-amber-300 text-xs" data-testid="gas-calib-limit">{s.gasCalibLimit}</p>}
@@ -136,31 +137,6 @@ export const ScambioTab: React.FC<{
         <button data-testid="gas-defaults" onClick={() => { setVals({ ...PARAMETRI_SCAMBIO }); setPortataAuto(true); onApply({ scambio: 'predefiniti' }, s.gasDefaults, 0); }} className="px-4 py-2 rounded-lg bg-slate-700">{s.gasDefaults}</button>
       </div>
 
-      <div className="border-t border-slate-800 pt-3 space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <button data-testid="abg-request" disabled={!ist.scambio} onClick={() => onEmogas(ritardo)} className="px-4 py-2 rounded-lg bg-rose-700 disabled:bg-slate-700 font-semibold">{s.abgButton}</button>
-          <label className="flex items-center gap-2 text-xs">{s.abgDelay}
-            <select data-testid="abg-delay" value={ritardo} onChange={(e) => setRitardo(Number(e.target.value))} className="bg-slate-800 border border-slate-700 rounded px-2 py-1">
-              <option value={0}>{s.rampNow}</option><option value={60}>1 min</option><option value={120}>2 min</option><option value={300}>5 min</option>
-            </select>
-          </label>
-        </div>
-        {[...emogas].reverse().slice(0, 4).map((e) => (
-          <div key={e.at} className="bg-slate-800 rounded px-3 py-2 text-xs" data-testid="abg-result">
-            <div className="text-slate-400">{s.abgTitle} · {new Date(e.at).toLocaleTimeString()}{e.prontoAt > ora ? ` · ${s.abgPending} ${Math.ceil((e.prontoAt - ora) / 1000)} s` : ''}</div>
-            {e.prontoAt <= ora && (
-              <div className="grid grid-cols-6 gap-1 mt-1 font-mono">
-                <span>pH {fmt(e.lettura.ph, 2)}</span><span>PaCO₂ {fmt(e.lettura.paco2)}</span><span>PaO₂ {fmt(e.lettura.pao2)}</span>
-                <span>HCO₃⁻ {fmt(e.lettura.hco3, 1)}</span><span>BE {fmt(e.lettura.be, 1)}</span><span>SaO₂ {fmt(e.lettura.sao2)}%</span>
-                <span>Lac {fmt(e.lettura.lattato, 1)}</span><span>Hb {fmt(e.lettura.hb, 1)}</span><span>COHb {fmt(e.lettura.cohb * 100, 1)}%</span>
-                <span>MetHb {fmt(e.lettura.methb * 100, 1)}%</span><span>FiO₂ {fmt(e.lettura.fio2 * 100)}%</span><span>P/F {fmt(e.lettura.pf)}</span>
-                <span>A-a {fmt(e.lettura.aa)}</span><span>SvO₂ {fmt(e.lettura.svo2)}%</span><span>OI {fmt(e.lettura.oi, 1)}</span>
-                <span>VR {fmt(e.lettura.rapportoVentilatorio, 2)}</span>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
     </div>
   );
 };

@@ -181,7 +181,7 @@ At the top choose **where commands go**: *this ventilator* (selected on the left
 | **Patient** | One-click clinical pictures (Normal, COPD, ARDS, COVID, Anaphylaxis, Pulmonary oedema, Pneumonia, Fibroscopy); compliance, resistance, effort, secretions; SpO₂, EtCO₂, heart rate, mean arterial pressure. With **"Change over"** the change happens gradually (30 s – 5 min) instead of at once. |
 | **Asynchronies** | Ineffective effort, double cycling, reverse triggering, flow starvation, premature/delayed cycling, auto-triggering, with the share of breaths affected. Learners only see the **waveforms**, never the name: spotting it is their job. Below, **Single cough** and **Coughing fit**: Paw to the high limit and the pressure alarm. |
 | **Lung** | Recruitability and chest-wall compliance: compliance now depends on PEEP. Start the **recruitment manoeuvre**. |
-| **Gas exchange** | Fixed shunt, low V/Q, alveolar dead space, diffusion, Hb, temperature, metabolism, bicarbonate, cardiac output, BMI, vasodilators, inhaled NO, CO and methaemoglobin; **one-lung ventilation**. Live PaO₂, PaCO₂, pH, P/F, Qs/Qt, VD/VT, safe apnoea time. **Arterial blood gas** with the result after the delay you choose, written to the log. |
+| **Gas exchange** | Fixed shunt, low V/Q, alveolar dead space, diffusion, Hb, temperature, metabolism, bicarbonate, cardiac output, BMI, vasodilators, inhaled NO, CO and methaemoglobin; **one-lung ventilation**. Live PaO₂, PaCO₂, pH, P/F, Qs/Qt, VD/VT, safe apnoea time. **Live arterial blood gas** as a reference for the instructor (the ventilator does not show it), with the derived indices. |
 | **Machine** | Mode, settings, start/standby, silence alarms, inspiratory and expiratory holds: applied as if the learner touched them (logged as instructor actions). |
 | **Alarms** | The ventilator's alarm limits (low/high, on/off), as in its own Alarms drawer; **Reset to the start-up limits**. In PS, CPAP and PAV there is the **apnoea** time (default 20 s). |
 | **Events** | Ready-made events (bronchospasm, mucus plug, pneumothorax, desaturation, hypercapnia, induction, waking up, NMB reversal…). Fire now or build a timed **sequence**; save it to a file for next time. |
@@ -239,7 +239,7 @@ The log survives closing and reopening the console.
 - **Recruitment hysteresis**: after a recruitment the lung stays open until PEEP drops below the closing pressure; with high FiO₂ and low PEEP absorption atelectasis appears. The same state moves compliance, EIT and shunt.
 - **CO and methaemoglobin**: a pulse oximeter that is wrong the way real ones are (near-normal SpO₂ with CO, towards 85% with methaemoglobin).
 - **Calibration on scenarios**: the written SpO₂ and EtCO₂ stay the targets; when they change the model recalibrates within half a minute, and from there adds the consequences of actions (FiO₂, PEEP, standby, recruitment).
-- **Console**: *Gas exchange* tab, arterial blood gas with a delay and a log entry, new events (one-lung, embolism, metabolic acidosis, fever, shivering, CO, methaemoglobin). A saved scenario carries the gas exchange parameters.
+- **Console**: *Gas exchange* tab, live arterial blood gas as a reference for the instructor, new events (one-lung, embolism, metabolic acidosis, fever, shivering, CO, methaemoglobin). A saved scenario carries the gas exchange parameters.
 
 Four new indices, read on the engine's own curves:
 - **RSBI** (f/VT, Yang and Tobin) in PS, CPAP and PAV, only while the patient breathes (blank on apnoea backup breaths). Above 105, weaning tends to fail.
