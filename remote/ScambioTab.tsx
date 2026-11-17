@@ -42,6 +42,27 @@ const CAMPI: Campo[] = [
   { k: 'methb', label: 'gasMethb', min: 0, max: 0.6, step: 0.01, unit: '%', perc: true },
 ];
 
+/**
+ * Gas exchange pictures: each one sets a few parameters, and switching it off
+ * puts those back to the defaults. The other choices stay where they are, as
+ * with the mechanics pictures.
+ */
+export const QUADRI_SCAMBIO = {
+  embolia: { spazioMortoAlv: 0.4 },
+  consolidamento: { shuntFisso: 0.25 },
+  anemia: { hb: 7 },
+  febbre: { temperatura: 39.5, metabolismo: 1.3 },
+  sepsi: { metabolismo: 1.5, hco3: 18, inibizioneHpv: 0.5 },
+  acidosi: { hco3: 14 },
+  co: { cohb: 0.25 },
+  methb: { methb: 0.2 },
+  no: { noPpm: 20 },
+} as const satisfies Record<string, Partial<ParametriScambio>>;
+export type QuadroScambio = keyof typeof QUADRI_SCAMBIO;
+
+const quadroScambioAcceso = (p: ParametriScambio, q: QuadroScambio) =>
+  Object.entries(QUADRI_SCAMBIO[q]).every(([k, v]) => Math.abs((p as any)[k] - (v as number)) < 1e-6);
+
 const fmt = (v: number | null | undefined, d = 0) => (v === null || v === undefined || !Number.isFinite(v) ? '–' : v.toFixed(d));
 
 export const ScambioTab: React.FC<{
@@ -72,43 +93,54 @@ export const ScambioTab: React.FC<{
     onApply({ scambio: patch }, nomi.join(', '), 0);
   };
 
+  const toggle = (q: QuadroScambio) => {
+    const on = quadroScambioAcceso(attuali, q);
+    const patch: Partial<ParametriScambio> = {};
+    for (const [k, v] of Object.entries(QUADRI_SCAMBIO[q])) (patch as Record<string, number>)[k] = on ? (PARAMETRI_SCAMBIO as any)[k] : (v as number);
+    setVals((x) => ({ ...x, ...patch }));
+    onApply({ scambio: patch }, `${s[`gq_${q}`]} ${on ? 'OFF' : 'ON'}`, 0);
+  };
+  const accesi = (Object.keys(QUADRI_SCAMBIO) as QuadroScambio[]).filter((q) => quadroScambioAcceso(attuali, q));
+
   return (
     <div className="space-y-3" data-testid="gas-tab">
-      <p className="text-slate-400 text-xs">{s.gasIntro}</p>
+      <p className="text-slate-400 text-xs">{s.gasIntroShort}</p>
 
-      <div className="text-slate-400 text-xs">{s.abgTitle}</div>
+      <div className="flex flex-wrap gap-1 items-center">
+        <span className="text-slate-400 mr-1">{s.gasPictures}:</span>
+        {(Object.keys(QUADRI_SCAMBIO) as QuadroScambio[]).map((q) => (
+          <button key={q} data-testid={`gq-${q}`} onClick={() => toggle(q)}
+            className={`px-2.5 py-1 rounded border ${accesi.includes(q) ? 'bg-sky-700 border-sky-400 text-white' : 'bg-slate-800 border-slate-700 hover:border-sky-500'}`}>{s[`gq_${q}`]}</button>
+        ))}
+      </div>
+      {accesi.length > 0 && (
+        <ul className="text-slate-300 text-xs list-disc pl-5 space-y-0.5" data-testid="gas-picture-hints">
+          {accesi.map((q) => <li key={q}><b>{s[`gq_${q}`]}</b>: {s[`gqHint_${q}`]}</li>)}
+        </ul>
+      )}
+      <div className="flex flex-wrap items-center gap-1">
+        <span className="text-slate-400 mr-1">{s.gasOlv}:</span>
+        {(['sinistro', 'destro', null] as const).map((m) => (
+          <button key={String(m)} data-testid={`olv-${m ?? 'off'}`} onClick={() => onApply({ fisiologia: { monopolmonare: m } }, m === null ? s.gasOlvOff : m === 'sinistro' ? s.gasOlvLeft : s.gasOlvRight, 0)}
+            className={`px-2.5 py-1 rounded border ${mono === m ? 'bg-sky-900 border-sky-500' : 'bg-slate-800 border-slate-700 hover:border-sky-500'}`}>
+            {m === null ? s.gasOlvOff : m === 'sinistro' ? s.gasOlvLeft : s.gasOlvRight}
+          </button>
+        ))}
+      </div>
+
+      <div className="text-slate-400 text-xs border-t border-slate-800 pt-3">{s.abgTitleShort}</div>
       <div className="grid grid-cols-6 gap-1 text-xs" data-testid="gas-live">
         <Box k="pH" v={fmt(lettura?.ph, 2)} />
         <Box k="PaCO₂" v={`${fmt(lettura?.paco2)} mmHg`} />
         <Box k="PaO₂" v={`${fmt(lettura?.pao2)} mmHg`} />
-        <Box k="HCO₃⁻" v={`${fmt(lettura?.hco3, 1)} mmol/L`} />
-        <Box k="BE" v={fmt(lettura?.be, 1)} />
-        <Box k="SaO₂" v={`${fmt(lettura?.sao2)} %`} />
-        <Box k={s.gasLactate} v={`${fmt(lettura?.lattato, 1)} mmol/L`} />
-        <Box k="Hb" v={`${fmt(lettura?.hb, 1)} g/dL`} />
-        <Box k="COHb · MetHb" v={lettura ? `${fmt(lettura.cohb * 100, 1)} · ${fmt(lettura.methb * 100, 1)} %` : '–'} />
-        <Box k="SvO₂" v={`${fmt(lettura?.svo2)} %`} />
         <Box k="P/F" v={fmt(lettura?.pf)} />
-        <Box k="A-a" v={`${fmt(lettura?.aa)} mmHg`} />
-      </div>
-      <div className="text-slate-400 text-xs">{s.gasDerived}</div>
-      <div className="grid grid-cols-6 gap-1 text-xs" data-testid="gas-derived">
         <Box k="Qs/Qt" v={lettura ? `${Math.round(lettura.qsqt * 100)} %` : '–'} />
-        <Box k="OI" v={fmt(lettura?.oi, 1)} />
-        <Box k={s.gasHpvTone} v={lettura ? `${Math.round(lettura.tono * 100)} %` : '–'} />
-        <Box k={s.gasSafeApnoea} v={lettura ? `${fmt(lettura.apneaSicuraMin, 1)} min` : '–'} />
+        <Box k="SaO₂" v={`${fmt(lettura?.sao2)} %`} />
       </div>
-      <div className="text-slate-400 text-xs">{s.gasDeadSpaceTitle}</div>
       <div className="grid grid-cols-6 gap-1 text-xs" data-testid="gas-deadspace">
         <Box k={s.gasVdAlv} v={fmt(lettura?.vdAlveolare, 2)} />
-        <Box k={s.gasVdPhys} v={fmt(lettura?.vdFisiologico, 2)} />
-        <Box k={s.gasVdAnat} v={fmt(lettura?.vdAnatomico, 2)} />
         <Box k={s.gasGradient} v={`${fmt(lettura?.gradienteCo2)} mmHg`} />
         <Box k={s.gasEtPa} v={fmt(lettura?.rapportoEtPa, 2)} />
-        <Box k="PECO₂" v={`${fmt(lettura?.peco2)} mmHg`} />
-        <Box k={s.gasVentRatio} v={fmt(lettura?.rapportoVentilatorio, 2)} />
-        <Box k={s.gasStdVe} v={`${fmt(lettura?.ventilazioneStandardizzata, 1)} L/min`} />
-        <Box k={s.gasPaco2Alv} v={`${fmt(lettura?.pAco2)} mmHg`} />
       </div>
       {lettura && lettura.vdAlveolare !== null && lettura.vdAlveolare < 0 && <p className="text-amber-300 text-xs" data-testid="gas-vd-negative">{s.gasNegativeVd}</p>}
       {lettura && lettura.qsqt > 0.4 && lettura.vdAlveolare !== null && <p className="text-amber-300 text-xs" data-testid="gas-vd-shunt">{s.gasShuntVd}</p>}
@@ -116,40 +148,62 @@ export const ScambioTab: React.FC<{
       {!ist.scambio && <p className="text-amber-300 text-xs">{s.gasNotStarted}</p>}
       {lettura?.taraturaAlLimite && <p className="text-amber-300 text-xs" data-testid="gas-calib-limit">{s.gasCalibLimit}</p>}
 
-      <div className="flex flex-wrap items-center gap-2 border-t border-slate-800 pt-3">
-        <span className="text-slate-400">{s.gasOlv}:</span>
-        {(['sinistro', 'destro', null] as const).map((m) => (
-          <button key={String(m)} data-testid={`olv-${m ?? 'off'}`} onClick={() => onApply({ fisiologia: { monopolmonare: m } }, m === null ? s.gasOlvOff : m === 'sinistro' ? s.gasOlvLeft : s.gasOlvRight, 0)}
-            className={`px-3 py-1.5 rounded border ${mono === m ? 'bg-sky-900 border-sky-500' : 'bg-slate-800 border-slate-700 hover:border-sky-500'}`}>
-            {m === null ? s.gasOlvOff : m === 'sinistro' ? s.gasOlvLeft : s.gasOlvRight}
-          </button>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-2 gap-x-6 gap-y-2 border-t border-slate-800 pt-3">
-        {CAMPI.map((c) => {
-          const v = vals[c.k] as number;
-          const mostra = c.perc ? Math.round(v * 100) : v;
-          return (
-            <label key={c.k} className="block">
-              <div className="flex justify-between text-slate-300 text-xs"><span>{s[c.label] as string}</span><span><b className="text-white font-mono">{c.perc ? mostra : fmt(v, c.digits ?? 0)}</b> {c.unit} <span className="text-slate-500">({s.now} {c.perc ? Math.round((attuali[c.k] as number) * 100) : fmt(attuali[c.k] as number, c.digits ?? 0)})</span></span></div>
-              <input data-testid={`gas-${c.k}`} type="range" min={c.min} max={c.max} step={c.step} value={v} onChange={(e) => setVals((x) => ({ ...x, [c.k]: Number(e.target.value) }))} className="w-full accent-sky-500" />
-            </label>
-          );
-        })}
-        <label className="block">
-          <div className="flex justify-between text-slate-300 text-xs"><span>{s.gasCardiacOutput}</span><span><b className="text-white font-mono">{portataAuto ? s.gasAuto : portata.toFixed(1)}</b> L/min</span></div>
-          <div className="flex items-center gap-2">
-            <input type="checkbox" checked={portataAuto} onChange={(e) => setPortataAuto(e.target.checked)} /><span className="text-xs text-slate-400">{s.gasAuto}</span>
-            <input data-testid="gas-portata" type="range" min={0.5} max={15} step={0.5} disabled={portataAuto} value={portata} onChange={(e) => setVals((x) => ({ ...x, portata: Number(e.target.value) }))} className="w-full accent-sky-500" />
+      <details data-testid="gas-all" className="bg-slate-900/60 rounded-lg border border-slate-800">
+        <summary className="cursor-pointer px-3 py-2 text-slate-300">{s.gasAllValues}</summary>
+        <div className="p-3 space-y-2">
+          <div className="grid grid-cols-6 gap-1 text-xs">
+            <Box k="HCO₃⁻" v={`${fmt(lettura?.hco3, 1)} mmol/L`} />
+            <Box k="BE" v={fmt(lettura?.be, 1)} />
+            <Box k={s.gasLactate} v={`${fmt(lettura?.lattato, 1)} mmol/L`} />
+            <Box k="Hb" v={`${fmt(lettura?.hb, 1)} g/dL`} />
+            <Box k="COHb · MetHb" v={lettura ? `${fmt(lettura.cohb * 100, 1)} · ${fmt(lettura.methb * 100, 1)} %` : '–'} />
+            <Box k="SvO₂" v={`${fmt(lettura?.svo2)} %`} />
+            <Box k="A-a" v={`${fmt(lettura?.aa)} mmHg`} />
+            <Box k="OI" v={fmt(lettura?.oi, 1)} />
+            <Box k={s.gasHpvTone} v={lettura ? `${Math.round(lettura.tono * 100)} %` : '–'} />
+            <Box k={s.gasSafeApnoea} v={lettura ? `${fmt(lettura.apneaSicuraMin, 1)} min` : '–'} />
           </div>
-        </label>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <button data-testid="gas-apply" onClick={applica} className="px-5 py-2 rounded-lg bg-sky-600 font-semibold">{s.apply}</button>
-        <button data-testid="gas-defaults" onClick={() => { setVals({ ...PARAMETRI_SCAMBIO }); setPortataAuto(true); onApply({ scambio: 'predefiniti' }, s.gasDefaults, 0); }} className="px-4 py-2 rounded-lg bg-slate-700">{s.gasDefaults}</button>
-      </div>
+          <div className="text-slate-400 text-xs">{s.gasDeadSpaceTitle}</div>
+          <div className="grid grid-cols-6 gap-1 text-xs">
+            <Box k={s.gasVdPhys} v={fmt(lettura?.vdFisiologico, 2)} />
+            <Box k={s.gasVdAnat} v={fmt(lettura?.vdAnatomico, 2)} />
+            <Box k="PECO₂" v={`${fmt(lettura?.peco2)} mmHg`} />
+            <Box k={s.gasPaco2Alv} v={`${fmt(lettura?.pAco2)} mmHg`} />
+            <Box k={s.gasVentRatio} v={fmt(lettura?.rapportoVentilatorio, 2)} />
+            <Box k={s.gasStdVe} v={`${fmt(lettura?.ventilazioneStandardizzata, 1)} L/min`} />
+          </div>
+        </div>
+      </details>
 
+      <details data-testid="gas-fine" className="bg-slate-900/60 rounded-lg border border-slate-800">
+        <summary className="cursor-pointer px-3 py-2 text-slate-300">{s.fineTuning}</summary>
+        <div className="p-3 space-y-3">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+            {CAMPI.map((c) => {
+              const v = vals[c.k] as number;
+              const mostra = c.perc ? Math.round(v * 100) : v;
+              return (
+                <label key={c.k} className="block">
+                  <div className="flex justify-between text-slate-300 text-xs"><span>{s[c.label] as string}</span><span><b className="text-white font-mono">{c.perc ? mostra : fmt(v, c.digits ?? 0)}</b> {c.unit} <span className="text-slate-500">({s.now} {c.perc ? Math.round((attuali[c.k] as number) * 100) : fmt(attuali[c.k] as number, c.digits ?? 0)})</span></span></div>
+                  <input data-testid={`gas-${c.k}`} type="range" min={c.min} max={c.max} step={c.step} value={v} onChange={(e) => setVals((x) => ({ ...x, [c.k]: Number(e.target.value) }))} className="w-full accent-sky-500" />
+                </label>
+              );
+            })}
+            <label className="block">
+              <div className="flex justify-between text-slate-300 text-xs"><span>{s.gasCardiacOutput}</span><span><b className="text-white font-mono">{portataAuto ? s.gasAuto : portata.toFixed(1)}</b> L/min</span></div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" checked={portataAuto} onChange={(e) => setPortataAuto(e.target.checked)} /><span className="text-xs text-slate-400">{s.gasAuto}</span>
+                <input data-testid="gas-portata" type="range" min={0.5} max={15} step={0.5} disabled={portataAuto} value={portata} onChange={(e) => setVals((x) => ({ ...x, portata: Number(e.target.value) }))} className="w-full accent-sky-500" />
+              </div>
+            </label>
+          </div>
+          <p className="text-slate-500 text-xs">{s.gasIntro}</p>
+          <div className="flex flex-wrap gap-2">
+            <button data-testid="gas-apply" onClick={applica} className="px-5 py-2 rounded-lg bg-sky-600 font-semibold">{s.apply}</button>
+            <button data-testid="gas-defaults" onClick={() => { setVals({ ...PARAMETRI_SCAMBIO }); setPortataAuto(true); onApply({ scambio: 'predefiniti' }, s.gasDefaults, 0); }} className="px-4 py-2 rounded-lg bg-slate-700">{s.gasDefaults}</button>
+          </div>
+        </div>
+      </details>
     </div>
   );
 };

@@ -159,6 +159,16 @@ export interface Fisiologia {
    * «quella impostata», come prima.
    */
   peepMemoria?: number
+  /**
+   * Di quanto la PEEP può scendere sotto la memoria prima che il polmone
+   * cominci a dereclutarsi, cmH₂O (`isteresiDi`, `scambio.ts`).
+   */
+  isteresi?: number
+  /**
+   * La PEEP a cui la sovradistensione dimezza la compliance, cmH₂O
+   * (`sovradistensioneDi`). Assente: 27, come prima.
+   */
+  sovradistensione?: number
   /** Le atelettasie da assorbimento con la FiO₂ alta, 0–1 (`avanzaIsteresi`). */
   atelettasia?: number
   /**
@@ -741,6 +751,19 @@ export function fattorePvrDaVolume(peepTotale: number, peepRiferimento = PEEP_RI
  * PEEP 15, con la pressione motrice che sale. Sono due pazienti diversi con la
  * stessa diagnosi, ed è quello che la manovra di pausa deve far vedere.
  */
+/** La PEEP di base a cui la sovradistensione dimezza la compliance, cmH₂O. */
+export const SOVRADISTENSIONE_CMH2O = 27
+
+/**
+ * La PEEP a cui la sovradistensione dimezza la compliance del paziente, cmH₂O.
+ * Più bassa, la compliance cala prima salendo di PEEP e risale di più
+ * scendendo: un polmone piccolo e aerato solo in parte.
+ */
+export function sovradistensioneDi(f: Pick<Fisiologia, 'sovradistensione'>): number {
+  const v = f.sovradistensione
+  return typeof v === 'number' && Number.isFinite(v) && v > PEEP_RIFERIMENTO + 2 ? v : SOVRADISTENSIONE_CMH2O
+}
+
 export function complianceA(f: Fisiologia, peepTotale: number): number {
   const d = peepTotale - PEEP_RIFERIMENTO
   // L'isteresi: quello che è aperto lo tiene aperto la memoria del
@@ -748,7 +771,7 @@ export function complianceA(f: Fisiologia, peepTotale: number): number {
   const dAperto = Math.max(peepTotale, f.peepMemoria ?? peepTotale) - PEEP_RIFERIMENTO
   const r = Math.max(0, Math.min(1, f.reclutabilita))
   const guadagno = r * (1 - Math.exp(-Math.max(0, dAperto) / 5))
-  const perdita = (Math.max(0, d) / 22) ** 2
+  const perdita = (Math.max(0, d) / (sovradistensioneDi(f) - PEEP_RIFERIMENTO)) ** 2
   const collasso = r * Math.min(1, Math.max(0, -dAperto) / PEEP_RIFERIMENTO) * 0.6
   const assorbimento = 1 - 0.12 * Math.max(0, Math.min(1, f.atelettasia ?? 0))
   const mono = f.monopolmonare ? QUOTA_MONOPOLMONARE[f.monopolmonare] : 1

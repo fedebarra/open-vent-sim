@@ -44,6 +44,7 @@ import {
   avanzaScambio,
   ingressiDaVentilatore,
   letturaScambio,
+  isteresiDi,
   scambioIniziale,
   PARAMETRI_SCAMBIO,
   type ParametriScambio,
@@ -466,7 +467,7 @@ export function batti(istantanea: VentIstantanea, tSec: number, dtSec: number): 
   // e da lì SpO₂ ed EtCO₂ sono le sue.
   const bersagli = { spo2: istantanea.paziente.spo2, etco2: istantanea.paziente.etco2 }
   const ing = ingressiDaVentilatore(stato, misure, bersagli)
-  const isteresi = avanzaIsteresi(istantanea.isteresi, ing.peepTotale, ing.fio2, ing.reclutamento, ing.scollegato, dtSec)
+  const isteresi = avanzaIsteresi(istantanea.isteresi, ing.peepTotale, ing.fio2, ing.reclutamento, ing.scollegato, dtSec, isteresiDi(stato.fisiologia))
   let scambio = istantanea.scambio ?? null
   if (istantanea.scambioAttivo) {
     if (!scambio && ing.vaTotaleStimata > 0) scambio = scambioIniziale(ing, istantanea.parametriScambio ?? PARAMETRI_SCAMBIO)
