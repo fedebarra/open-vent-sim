@@ -91,7 +91,8 @@ import { creaOnde, nelTrigger, puntoOnda } from './onde'
 import { Loop } from './Loop'
 import { Eit } from './VistaEit'
 import { pressioneAlveolare, pressioneEsofagea, pressioneMuscolare, pressioneTranspolmonare } from './pressioni'
-import { PEEP_MINIMA_RI, RECLUTAMENTO_SECONDI, type Manovra, type StatoVentilatore } from './fisica'
+import { PEEP_MINIMA_RI, RECLUTAMENTO_SECONDI, autoPeep, type Manovra, type StatoVentilatore } from './fisica'
+import { pendenzaCapnogramma } from './scambio'
 import { CIRCUITI_PER_AMBIENTE, MANOVRA_SECONDI, type VentIstantanea } from './istantanea'
 import type { TranslationKey } from '../../../i18n/it'
 import type { Circuito } from '../../paziente/presidiFigura'
@@ -354,6 +355,8 @@ export function Ventilatore({
   misureOra.current = misure
   const attiOra = useRef(attiManuali)
   attiOra.current = attiManuali
+  const pendenzaOra = useRef(0)
+  pendenzaOra.current = pendenzaCapnogramma(stato.fisiologia, autoPeep(stato))
   const capno = useMemo(
     () =>
       createCapnoWaveform(
@@ -363,6 +366,7 @@ export function Ventilatore({
           respiratoryRate: misureOra.current.spontaneousRate ?? misureOra.current.measuredFrequency,
         }),
         () => attiOra.current,
+        () => pendenzaOra.current,
       ),
     [],
   )

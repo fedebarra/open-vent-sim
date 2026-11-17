@@ -20,10 +20,10 @@ const leggi = (s: StatoScambio, i: IngressiScambio) => letturaScambio(s, i);
 const con = (p: Partial<ParametriScambio>) => ({ ...PARAMETRI_SCAMBIO, ...p });
 
 describe('CO₂ e acido-base', () => {
-  it('polmone sano in aria: PaCO₂ 38-42, gradiente 2-5, PaO₂ 85-100, SpO₂ 96-98', () => {
-    const i = ing(); const l = leggi(scambioIniziale(i), i);
+  it('polmone sano in aria, 14 atti come il preset: PaCO₂ 38-43, gradiente 3-6, PaO₂ 85-100, SpO₂ 96-98', () => {
+    const i = ing({ frequenza: 14 }); const l = leggi(scambioIniziale(i), i);
     expect(l.paco2).toBeGreaterThan(38); expect(l.paco2).toBeLessThan(43);
-    expect(l.paco2 - l.etco2).toBeGreaterThan(0.5); expect(l.paco2 - l.etco2).toBeLessThan(5);
+    expect(l.paco2 - l.etco2).toBeGreaterThan(3); expect(l.paco2 - l.etco2).toBeLessThan(6);
     expect(l.pao2).toBeGreaterThan(85); expect(l.pao2).toBeLessThan(105);
     expect(l.spo2).toBeGreaterThan(95.5); expect(l.spo2).toBeLessThan(98.5);
     expect(l.ph).toBeGreaterThan(7.36); expect(l.ph).toBeLessThan(7.44);

@@ -97,6 +97,7 @@ test('director drives a learner ventilator end to end, and records the session',
   await regia.getByTestId('tab-gas').click();
   await expect(regia.getByTestId('gas-live')).toContainText('PaO₂');
   await expect(regia.getByTestId('gas-live')).toContainText('mmHg');
+  await expect(regia.getByTestId('gas-deadspace')).toContainText('EtCO₂/PaCO₂');
   await regia.getByTestId('olv-sinistro').click();
   await expect(regia.getByTestId('regia-log')).toContainText('Ventila solo il sinistro');
   await regia.getByTestId('olv-off').click();

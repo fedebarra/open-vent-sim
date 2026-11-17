@@ -14,6 +14,28 @@
  * depositi (sangue e tessuti), l'O₂ nella CFR e nel sangue venoso: è da qui che
  * escono i tempi dell'apnea e dell'ipoventilazione.
  *
+ * ## La CO₂ e lo spazio morto (3.6)
+ *
+ * Fonte: Cipulli F, Sanna A, Garberi R, Lassola S, Forcione M, Bellani G,
+ * Foti G, Rezoagli E. Dead space in critical care: a practical approach with
+ * clinical scenarios. *J Anesth Analg Crit Care* 2026;6:20,
+ * doi:10.1186/s44158-025-00320-4. Da lì:
+ *
+ * * la PACO₂ (alveolare, quella che il polmone elimina) e la PaCO₂ (arteriosa,
+ *   quella dell'emogas) non sono lo stesso numero: il sangue che passa dallo
+ *   shunt non scarica CO₂, la PaCO₂ sale e la PACO₂ scende, e lo spazio morto
+ *   di Bohr-Enghoff, che usa la PaCO₂, esce sovrastimato — poco sotto il 40% di
+ *   shunt, molto sopra;
+ * * a riposo il gradiente PaCO₂ − EtCO₂ è di circa 5 mmHg;
+ * * nell'ostruzione grave la CO₂ resta intrappolata negli alveoli che non si
+ *   svuotano, esce per ultima e l'EtCO₂ può superare la PaCO₂ (spazio morto
+ *   negativo); il capnogramma perde il plateau;
+ * * la VCO₂ a riposo è di 3–4 ml/kg/min;
+ * * gli indici: VD/VT alveolare (PaCO₂ − EtCO₂)/PaCO₂, fisiologico
+ *   (PaCO₂ − PECO₂)/PaCO₂, anatomico per differenza; EtCO₂/PaCO₂; rapporto
+ *   ventilatorio VE·PaCO₂/(100·kg·37,5); ventilazione minuto standardizzata
+ *   VE·PaCO₂/40.
+ *
  * ## La taratura
  *
  * Quello che lo scenario scrive (SpO₂, EtCO₂) è la verità alle condizioni del
@@ -45,7 +67,11 @@ export interface ParametriScambio {
   shuntFisso: number
   /** Perfusione in più verso zone a basso V/Q, 0–0,6. */
   bassoVQ: number
-  /** Quota della ventilazione alveolare verso zone non perfuse (embolia), 0–0,7. */
+  /**
+   * Quota della ventilazione alveolare verso zone non perfuse (embolia), 0–0,7.
+   * Il 10% di base dà a riposo il gradiente PaCO₂ − EtCO₂ di circa 4-5 mmHg
+   * (Cipulli 2026: «circa 5 mmHg»).
+   */
   spazioMortoAlv: number
   /** Portata cardiaca, l/min; null = da peso (70 ml/kg/min). */
   portata: number | null
@@ -71,7 +97,7 @@ export const PARAMETRI_SCAMBIO: ParametriScambio = {
   diffusione: 1,
   shuntFisso: 0.02,
   bassoVQ: 0,
-  spazioMortoAlv: 0.03,
+  spazioMortoAlv: 0.1,
   portata: null,
   hco3: 24,
   cohb: 0.01,
@@ -98,6 +124,11 @@ export interface IngressiScambio {
   /** FiO₂ della sorgente a vie aperte quando non si respira. */
   fonteO2: number
   peepTotale: number
+  /**
+   * L'auto-PEEP, cmH₂O: l'aria che non esce. È il segno misurabile della CO₂
+   * intrappolata negli alveoli ostruiti. Assente = 0.
+   */
+  autoPeep?: number
   /** Pressione di fine inspirazione e pressione media, cmH₂O. */
   pFine: number
   pMedia: number
@@ -122,7 +153,11 @@ export interface StatoScambio {
   parametri: ParametriScambio
   /** Il tempo interno, secondi. */
   t: number
-  /** CO₂: sangue/polmone (= PaCO₂) e tessuti, mmHg. */
+  /**
+   * CO₂: polmone e sangue di fine capillare (= PACO₂, l'alveolare) e tessuti
+   * (= venosa mista), mmHg. La PaCO₂ arteriosa ci aggiunge lo shunt
+   * (`paco2Arteriosa`).
+   */
   pco2Sangue: number
   pco2Tessuti: number
   /** FAO₂ dei compartimenti ventilati: ideale, basso V/Q. */
@@ -183,14 +218,33 @@ export interface LetturaScambio {
   svo2: number
   pvo2: number
   pvco2: number
+  /** PACO₂ alveolare media, mmHg: non si misura, la sa il modello. */
+  pAco2: number
+  /** PECO₂ mista espirata, mmHg (capnografia volumetrica). */
+  peco2: number
   etco2: number
+  /** PaCO₂ − EtCO₂, mmHg (normale circa 5; negativo nell'ostruzione grave). */
+  gradienteCo2: number | null
+  /** EtCO₂/PaCO₂ (sotto 0,8 compromissione ventilatoria grave). */
+  rapportoEtPa: number | null
+  /** VD/VT alveolare di Bohr-Enghoff, (PaCO₂ − EtCO₂)/PaCO₂: può essere negativo. */
+  vdAlveolare: number | null
+  /** VD/VT fisiologico di Bohr-Enghoff, (PaCO₂ − PECO₂)/PaCO₂. */
+  vdFisiologico: number | null
+  /** VD/VT anatomico, fisiologico − alveolare. */
+  vdAnatomico: number | null
+  /** VD/VT alveolare vero, con la PACO₂ (quello che l'Enghoff stima). */
+  vdAlveolareVero: number | null
   lattato: number
   pf: number
   aa: number
   oi: number | null
   qsqt: number
+  /** VD/VT fisiologico (= `vdFisiologico`, il nome di prima). */
   vdvt: number | null
   rapportoVentilatorio: number | null
+  /** Ventilazione minuto standardizzata VE·PaCO₂/40, l/min. */
+  ventilazioneStandardizzata: number | null
   do2: number
   vo2: number
   hb: number
@@ -209,6 +263,25 @@ type Quattro = [number, number, number, number]
 // --------------------------------------------------------- costanti --
 
 const PH2O = 47
+/** VO₂ di base, ml/kg/min. */
+const VO2_ML_KG = 3.5
+/**
+ * VCO₂ di base, ml/kg/min: 3–4 a riposo (Cipulli 2026), si prende il bordo basso
+ * (210 ml/min a 70 kg). Il quoziente respiratorio è quello che ne esce, 0,86.
+ */
+const VCO2_ML_KG = 3
+export const QUOZIENTE_RESPIRATORIO = VCO2_ML_KG / VO2_ML_KG
+/**
+ * Le capacità dei depositi rapidi della CO₂, ml/mmHg per kg. I depositi del corpo
+ * sono circa 120 l, l'89% nell'osso (il lento, che si muove in giorni e qui non
+ * c'è) e l'11% rapido: interstizio 8,5%, sangue 2,5% (Cipulli 2026). Il totale
+ * rapido (0,9 ml/mmHg/kg) dà i tempi dell'apnea; la ripartizione è quella.
+ */
+const CAP_CO2_RAPIDO = 0.9
+const CAP_CO2_SANGUE = CAP_CO2_RAPIDO * (2.5 / 11)
+const CAP_CO2_TESSUTI = CAP_CO2_RAPIDO * (8.5 / 11)
+/** Scambio tessuti-sangue della CO₂ a portata normale, ml/min/mmHg a 70 kg. */
+const G_CO2 = 33
 /** Pendenza e mezzo effetto della vasocostrizione ipossica (PO₂ di stimolo, mmHg). */
 const HPV_P50 = 35
 const HPV_K = 4
@@ -432,7 +505,7 @@ function sangueDi(s: StatoScambio, pco2: number): Sangue {
 }
 
 function vo2Domanda(s: StatoScambio, kg: number): number {
-  return 3.5 * kg * s.parametri.metabolismo * (1 + 0.1 * (s.parametri.temperatura - 37))
+  return VO2_ML_KG * kg * s.parametri.metabolismo * (1 + 0.1 * (s.parametri.temperatura - 37))
 }
 
 /** Lo stimolo della vasocostrizione: la PO₂ alveolare pesata con quella venosa (Marshall). */
@@ -460,6 +533,54 @@ function perfusioni(s: StatoScambio, ing: IngressiScambio, st: Struttura, tono: 
 
 function tonoAttuale(s: StatoScambio): number[] {
   return s.tonoRapido.map((t, i) => 0.7 * t + 0.3 * s.tonoLento[i])
+}
+
+// ------------------------------------------------------------ la CO₂ --
+
+/**
+ * Lo scambio di CO₂ fra tessuti e polmone, ml/min/mmHg: va con la portata, e
+ * solo il sangue che passa dagli alveoli scarica (quello dello shunt torna
+ * indietro com'era).
+ */
+function gCo2(Q: number, kg: number, shunt: number): number {
+  return G_CO2 * (Q / (0.07 * kg)) * (kg / 70) * Math.max(0.05, 1 - shunt)
+}
+
+/**
+ * La PaCO₂ arteriosa: il sangue di fine capillare (alla PACO₂) mescolato con
+ * quello dello shunt (alla venosa mista). È la ragione per cui l'Enghoff,
+ * che mette la PaCO₂ al posto della PACO₂, sovrastima lo spazio morto: poco
+ * con lo shunt basso, molto sopra il 40% (Cipulli 2026). Mescolare le pressioni
+ * invece dei contenuti va bene nel tratto quasi lineare della curva della CO₂.
+ */
+export function paco2Arteriosa(pAlv: number, pVen: number, shunt: number): number {
+  return pAlv + clamp(shunt, 0, 1) * (pVen - pAlv)
+}
+
+/**
+ * Quanta parte del gas di fine espirazione viene dagli alveoli che si
+ * svuotano per ultimi, 0–0,85. Nell'ostruzione grave quegli alveoli restano
+ * pieni (l'auto-PEEP è l'aria che non esce), la loro CO₂ va verso la venosa
+ * mista e alla fine dell'espirazione esce quella: l'EtCO₂ supera la PaCO₂
+ * (Cipulli 2026, caso 3: PEEPi 14, EtCO₂ 63 su PaCO₂ 57). Sotto i 2 cmH₂O
+ * non c'è.
+ */
+export function quotaIntrappolata(autoPeep: number): number {
+  return clamp((autoPeep - 2) / 14, 0, 0.85)
+}
+
+/**
+ * Quanto il capnogramma perde il plateau, 0–1: nell'ostruzione la salita
+ * della fase 2 si allunga e la fase 3 sale fino alla fine (la pinna di squalo).
+ */
+export function pendenzaCapnogramma(f: Pick<Fisiologia, 'resistenza' | 'limitazioneFlusso'>, autoPeep = 0): number {
+  const r = clamp(((f.resistenza ?? 8) - 10) / 25, 0, 1)
+  return clamp(Math.max(r, f.limitazioneFlusso ?? 0, quotaIntrappolata(autoPeep) / 0.85), 0, 1)
+}
+
+/** L'EtCO₂: il gas alveolare misto (con le zone non perfuse a zero) e la coda intrappolata. */
+function etco2Di(pAlv: number, pVen: number, fDalv: number, intrappolata: number): number {
+  return (1 - intrappolata) * pAlv * (1 - fDalv) + intrappolata * pVen
 }
 
 // ------------------------------------------------------- il passo --
@@ -517,15 +638,15 @@ function passo(s: StatoScambio, ing: IngressiScambio, st: Struttura, dt: number)
   const cv = Math.max(0, s.cv + ((Q * (ist.ca - s.cv) - ist.vo2) * minuti) / vv)
 
   // ## La CO₂: tessuti → sangue → polmone
-  const vco2 = 0.8 * ist.vo2 * s.vco2Fattore
-  const kT = 0.75 * kg
-  const kS = 0.15 * kg
-  const G = 33 * (Q / (0.07 * kg)) * (kg / 70)
+  const vco2 = QUOZIENTE_RESPIRATORIO * ist.vo2 * s.vco2Fattore
+  const kT = CAP_CO2_TESSUTI * kg
+  const kS = CAP_CO2_SANGUE * kg
+  const G = gCo2(Q, kg, ist.q[2] + ist.q[3])
   const elimina = (st.vaTotale * (1 - st.fDalv) * s.pco2Sangue) / 863
   let pt = s.pco2Tessuti + ((vco2 - G * (s.pco2Tessuti - s.pco2Sangue)) * minuti) / kT
   let pb = s.pco2Sangue + ((G * (s.pco2Tessuti - s.pco2Sangue) - elimina) * minuti) / kS
   if (s.t < s.co2TiraFino && st.vaTotale > 1) {
-    const eq = equilibrioCo2(s, st, ist.vo2, kg)
+    const eq = equilibrioCo2(s, st, ist.vo2, kg, ist.q[2] + ist.q[3])
     pb = segue(pb, eq.pa, dt, 20)
     pt = segue(pt, eq.pt, dt, 20)
   }
@@ -538,7 +659,7 @@ function passo(s: StatoScambio, ing: IngressiScambio, st: Struttura, dt: number)
   const tonoLento = s.tonoLento.map((t, i) => segue(t, verso[i], dt, TAU_HPV_LENTO)) as Quattro
 
   // ## Acido-base: il rene (ore) e il lattato
-  const compenso = segue(s.compenso, 0.25 * (pb - 40), dt, 8 * 3600)
+  const compenso = segue(s.compenso, 0.25 * (paco2Arteriosa(pb, pt, ist.q[2] + ist.q[3]) - 40), dt, 8 * 3600)
   const domanda = vo2Domanda(s, kg)
   const debito = clamp((domanda - ist.vo2) / Math.max(1, domanda), 0, 1)
   const lattato = clamp(s.lattato + (3 * debito - (s.lattato - 1) / 60) * minuti, 0.5, 25)
@@ -572,13 +693,15 @@ function letturaSaturimetro(satFunzionale: number, p: ParametriScambio): number 
   return conCo * (1 - m) + 85 * m
 }
 
-function equilibrioCo2(s: StatoScambio, st: Struttura, vo2: number, kg: number): { pa: number; pt: number } {
-  const vco2 = 0.8 * vo2 * s.vco2Fattore
+function equilibrioCo2(s: StatoScambio, st: Struttura, vo2: number, kg: number, shunt: number): { pa: number; pt: number } {
+  const vco2 = QUOZIENTE_RESPIRATORIO * vo2 * s.vco2Fattore
   const vaPerf = st.vaTotale * (1 - st.fDalv)
   const pa = vaPerf > 1 ? clamp((863 * vco2) / vaPerf, 8, 150) : s.pco2Sangue
-  const G = 33 * (st.portata / (0.07 * kg)) * (kg / 70)
-  return { pa, pt: pa + vco2 / Math.max(1, G) }
+  return { pa, pt: pa + vco2 / Math.max(1, gCo2(st.portata, kg, shunt)) }
 }
+
+/** Lo shunt della struttura, prima della vasocostrizione (per i conti di regime). */
+const shuntDi = (st: Struttura) => st.q0[2] + st.q0[3]
 
 // ------------------------------------------------- il regime e la taratura --
 
@@ -594,7 +717,7 @@ export function regime(s: StatoScambio, ing: IngressiScambio): StatoScambio {
   const pi = s.parametri.pb - PH2O
   let x: StatoScambio = { ...s }
   // la CO₂ prima: la curva dell'O₂ dipende dal pH
-  const eqC = equilibrioCo2(x, st, vo2Domanda(x, kg), kg)
+  const eqC = equilibrioCo2(x, st, vo2Domanda(x, kg), kg, shuntDi(st))
   if (st.vaTotale > 1) x = { ...x, pco2Sangue: eqC.pa, pco2Tessuti: eqC.pt }
   let cv = x.cv > 0 ? x.cv : contenuto(40, sangueDi(x, x.pco2Sangue))
   let tono = [...tonoAttuale(x)] as Quattro
@@ -668,9 +791,11 @@ function vco2Per(s: StatoScambio, ing: IngressiScambio, etco2: number): number |
   const vaPerf = st.vaTotale * (1 - st.fDalv)
   if (vaPerf < 50) return null
   const kg = Math.max(3, ing.pesoKg)
-  const pa = etco2 / Math.max(0.1, 1 - st.fDalv)
-  const vco2 = (pa * vaPerf) / 863
-  return clamp(vco2 / Math.max(1, 0.8 * vo2Domanda(s, kg)), 0.2, 5)
+  // L'EtCO₂ è lineare nella VCO₂: PACO₂ = 863·VCO₂/VA, venosa = PACO₂ + VCO₂/G.
+  const w = quotaIntrappolata(ing.autoPeep ?? 0)
+  const perUnita = (1 - w) * (1 - st.fDalv) * (863 / vaPerf) + w * (863 / vaPerf + 1 / Math.max(1, gCo2(st.portata, kg, shuntDi(st))))
+  const vco2 = etco2 / perUnita
+  return clamp(vco2 / Math.max(1, QUOZIENTE_RESPIRATORIO * vo2Domanda(s, kg)), 0.2, 5)
 }
 
 /** Lo stato nuovo, a regime con questi ingressi e tarato sui bersagli. */
@@ -749,13 +874,22 @@ export function letturaScambio(s: StatoScambio, ing: IngressiScambio): LetturaSc
   const ist = istante(s, ing, st)
   const kg = Math.max(3, ing.pesoKg)
   const pao2 = po2DaContenuto(ist.ca, ist.sangue)
-  const ab = acidoBase(s, s.pco2Sangue)
+  const shunt = ist.q[2] + ist.q[3]
+  const pAco2 = s.pco2Sangue
+  const paco2 = paco2Arteriosa(pAco2, s.pco2Tessuti, shunt)
+  const ab = acidoBase(s, paco2)
   const pi = s.parametri.pb - PH2O
   // L'equazione dei gas alveolari completa: PAO₂ = PiO₂ − PaCO₂·[FiO₂ + (1 − FiO₂)/R].
-  const pAlvEquazione = ing.fio2 * pi - s.pco2Sangue * (ing.fio2 + (1 - ing.fio2) / 0.8)
-  const etco2 = st.vaTotale > 1 ? s.pco2Sangue * (1 - st.fDalv) : 0
+  const pAlvEquazione = ing.fio2 * pi - paco2 * (ing.fio2 + (1 - ing.fio2) / QUOZIENTE_RESPIRATORIO)
+  const respira = st.vaTotale > 1
+  const etco2 = respira ? etco2Di(pAco2, s.pco2Tessuti, st.fDalv, quotaIntrappolata(ing.autoPeep ?? 0)) : 0
   const ve = ing.veMlMin
-  const vdvt = ve > 1 ? clamp(1 - ((1 - st.fDalv) * st.vaTotale) / ve, 0, 1) : null
+  // La PECO₂: tutta la CO₂ eliminata, diluita nel volume minuto espirato.
+  const peco2 = ve > 1 ? (st.vaTotale * (1 - st.fDalv) * pAco2) / ve : 0
+  const conCo2 = respira && ve > 1 && paco2 > 1
+  const vdAlveolare = conCo2 ? (paco2 - etco2) / paco2 : null
+  const vdFisiologico = conCo2 ? (paco2 - peco2) / paco2 : null
+  const vdvt = vdFisiologico
   const tono = tonoAttuale(s)
   // ## L'apnea sicura: quanto O₂ c'è nei due serbatoi sopra il 90%
   const sangue = ist.sangue
@@ -767,7 +901,7 @@ export function letturaScambio(s: StatoScambio, ing: IngressiScambio): LetturaSc
   const apneaSicuraMin = clamp((o2Alv + o2Ven * 0.5) / Math.max(1, ist.vo2), 0, 60)
   return {
     pao2,
-    paco2: s.pco2Sangue,
+    paco2,
     ph: ab.ph,
     hco3: ab.hco3,
     be: ab.be,
@@ -776,14 +910,25 @@ export function letturaScambio(s: StatoScambio, ing: IngressiScambio): LetturaSc
     svo2: saturazione(ist.pv, sangue) * 100,
     pvo2: ist.pv,
     pvco2: s.pco2Tessuti,
+    pAco2,
+    peco2,
     etco2,
+    gradienteCo2: conCo2 ? paco2 - etco2 : null,
+    rapportoEtPa: conCo2 ? etco2 / paco2 : null,
+    vdAlveolare,
+    vdFisiologico,
+    vdAnatomico: vdFisiologico !== null && vdAlveolare !== null ? vdFisiologico - vdAlveolare : null,
+    vdAlveolareVero: conCo2 && pAco2 > 1 ? (pAco2 - etco2) / pAco2 : null,
     lattato: s.lattato,
     pf: pao2 / Math.max(0.21, ing.fio2),
     aa: Math.max(0, pAlvEquazione - pao2),
     oi: ing.pMedia > 0 ? (ing.pMedia * ing.fio2 * 100) / Math.max(1, pao2) : null,
     qsqt: ist.q[2] + ist.q[3],
     vdvt,
-    rapportoVentilatorio: ve > 1 ? (ve * s.pco2Sangue) / (kg * 100 * 37.5) : null,
+    // Rapporto ventilatorio, VE·PaCO₂/(100·kg·37,5): sopra 1 inefficienza, sopra 2
+    // mortalità più alta nell'ARDS (Cipulli 2026). Il peso è quello del paziente.
+    rapportoVentilatorio: ve > 1 ? (ve * paco2) / (kg * 100 * 37.5) : null,
+    ventilazioneStandardizzata: ve > 1 ? (ve / 1000) * (paco2 / 40) : null,
     do2: ist.do2,
     vo2: ist.vo2,
     hb: s.parametri.hb,
@@ -926,9 +1071,11 @@ function ingressiGrezzi(
   const intubato = stato.ambiente === 'invasiva' || stato.ambiente === 'anestesia'
   const strumentale =
     stato.ambiente === 'anestesia' ? 40 : stato.ambiente === 'niv' ? 60 : stato.circuito === 'hme' ? 50 : 10
-  const peepTot = imp.peep + autoPeep(stato)
+  const intrinseca = manuale ? 0 : autoPeep(stato)
+  const peepTot = imp.peep + intrinseca
   return {
     ...comune,
+    autoPeep: intrinseca,
     fio2: imp.fio2 / 100,
     veMlMin: f * vt,
     vtMl: vt,
