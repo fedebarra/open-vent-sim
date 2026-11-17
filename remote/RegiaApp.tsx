@@ -11,6 +11,7 @@ import { rt, RemoteStrings, ventName } from './strings';
 import { MiniWaves } from './MiniWaves';
 import { EVENT_LIBRARY, SequenceStep, parseSequence, EventDef } from './events';
 import { comandiScenario, parseScenario, scenarioDa } from './scenario';
+import { SCENARI_PRONTI, type ScenarioPronto } from './scenari';
 import { Tour } from '../tour/Tour';
 import { REGIA_STEPS } from '../tour/regia';
 import { RegistroView } from './RegistroView';
@@ -19,12 +20,13 @@ import { Categoria, Registro, nuovoRegistro, vociAllarmi, PASSO_CAMPIONE_MS, leg
 import { useLanguage } from '../src/contexts/LanguageContext';
 import { translate } from '../device/i18n';
 import type { ComandoPaziente, VentIstantanea, AzioneVentilatore } from '../device/remoteTypes';
-import { PEEP_MINIMA_RI, PRESET_FISIOLOGIA, RECLUTAMENTO_SECONDI, trasmissioneToracica } from '../device/screens/scenario/ventilatore/fisica';
+import { PEEP_MINIMA_RI, PRESET_FISIOLOGIA, RECLUTAMENTO_SECONDI, sovradistensioneDi, trasmissioneToracica } from '../device/screens/scenario/ventilatore/fisica';
 import { PRESET_ASINCRONIA, TIPI_ASINCRONIA, type TipoAsincronia } from '../device/screens/scenario/ventilatore/asincronie';
 import { MODALITA_PER_AMBIENTE, PARAMETRI, impostazioniVisibili, type ChiaveImpostazione } from '../device/screens/scenario/ventilatore/parametri';
 import { ALLARMI, LIMITI_INIZIALI, type ChiaveAllarme } from '../device/screens/scenario/ventilatore/allarmi';
 import { NOME_AMBIENTE, NOME_ASINCRONIA, NOME_MODALITA, NOME_PRESET, NOME_MANOVRA, NOME_QUADRO } from '../device/screens/scenario/ventilatore/nomi';
 import { QUADRI_MECCANICA, conQuadro, quadroAcceso, senzaQuadro, type QuadroMeccanica } from '../device/screens/scenario/ventilatore/quadri';
+import { isteresiDi } from '../device/screens/scenario/ventilatore/scambio';
 
 interface Props { wsUrl: string; regiaKey: string }
 interface LogLine { at: number; vent: string; text: string; source: 'learner' | 'director' | 'device'; kind?: string }
@@ -333,7 +335,7 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
             </div>
             <div className="p-3">
               {!ist && tab !== 'events' ? <p className="text-slate-400">{s.notRunning}</p> : <>
-                {tab === 'patient' && ist && <PatientTab key={selected!} s={s} tr={tr} ist={ist} onApply={paziente} ramps={ramps.filter((r) => targets().includes(r.vent))} onStopRamps={() => setRamps([])} />}
+                {tab === 'patient' && ist && <PatientTab key={selected!} s={s} tr={tr} ist={ist} onApply={paziente} azione={azione} ramps={ramps.filter((r) => targets().includes(r.vent))} onStopRamps={() => setRamps([])} />}
                 {tab === 'async' && ist && <AsyncTab key={selected!} s={s} tr={tr} ist={ist} onApply={paziente} />}
                 {tab === 'mechanics' && ist && <MechanicsTab key={selected!} s={s} tr={tr} ist={ist} onApply={paziente} />}
                 {tab === 'lung' && ist && <LungTab key={selected!} s={s} ist={ist} onApply={paziente} onRecruit={() => azione({ tipo: 'manovra', manovra: 'reclutamento' }, s.recruitmentStart)} />}
@@ -514,7 +516,28 @@ const VITAL_FIELDS: FieldDef[] = [
 ];
 const liveOf = (ist: VentIstantanea, f: FieldDef) => { const src: any = f.g === 'vitali' ? ist.paziente : (ist as any)[f.g]; return src?.[f.k]; };
 
-const PatientTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; onApply: (p: Patch, label: string, rampSec: number) => void; ramps: Ramp[]; onStopRamps: () => void }> = ({ s, tr, ist, onApply, ramps, onStopRamps }) => {
+const PatientTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; onApply: (p: Patch, label: string, rampSec: number) => void; azione: (a: AzioneVentilatore, label: string) => void; ramps: Ramp[]; onStopRamps: () => void }> = ({ s, tr, ist, onApply, azione, ramps, onStopRamps }) => {
+  const [caso, setCaso] = useState<string | null>(null);
+  const lang = s.lang as 'it' | 'en';
+  const caricaCaso = (p: ScenarioPronto) => {
+    const c = comandiScenario(p.scenario, ist);
+    // The picture first (it resets the lung and the drive), then the case over it.
+    onApply({ preset: p.preset }, tr(NOME_PRESET[p.preset]), 0);
+    c.azioni.forEach((a) => azione(a, a.tipo === 'parametro' ? `${a.chiave} → ${a.valore}` : `${s.mode} → ${(a as any).modalita}`));
+    onApply(c.paziente, `${s.scenarioLoaded}: ${p.nome[lang]}${c.ambienteDiverso ? ` (${s.scenarioOtherEnv})` : ''}`, 0);
+    setCaso(p.id);
+    const sc = p.scenario;
+    setVals((x) => {
+      const n = { ...x };
+      for (const f of all) {
+        const v = f.g === 'vitali' ? (sc.vitali as any)[f.k] : (sc as any)[f.g]?.[f.k];
+        if (typeof v === 'number') n[`${f.g}.${f.k}`] = v;
+      }
+      return n;
+    });
+    setDirty(new Set());
+  };
+  const casoAttivo = SCENARI_PRONTI.find((p) => p.id === caso);
   const all = [...PATIENT_FIELDS, ...VITAL_FIELDS];
   const [vals, setVals] = useState<Record<string, number>>(() => Object.fromEntries(all.map((f) => [`${f.g}.${f.k}`, num(liveOf(ist, f), f.def)])));
   const [dirty, setDirty] = useState<Set<string>>(new Set());
@@ -541,6 +564,21 @@ const PatientTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; onAp
               className={`px-2.5 py-1 rounded border ${ist.fisiologia.preset === k ? 'bg-sky-900 border-sky-500' : 'bg-slate-800 border-slate-700 hover:border-sky-500'}`}>{tr(NOME_PRESET[k])}</button>
           ))}
         </div>
+      </div>
+      <div>
+        <div className="text-slate-400 mb-1">{s.readyCases}</div>
+        <div className="flex flex-wrap gap-1">
+          {SCENARI_PRONTI.map((p) => (
+            <button key={p.id} data-testid={`case-${p.id}`} onClick={() => caricaCaso(p)}
+              className={`px-2.5 py-1 rounded border ${caso === p.id ? 'bg-sky-900 border-sky-500' : 'bg-slate-800 border-slate-700 hover:border-sky-500'}`}>{p.nome[lang]}</button>
+          ))}
+        </div>
+        {casoAttivo && (
+          <div data-testid="case-note" className="mt-2 rounded bg-slate-800/70 border border-slate-700 px-3 py-2 text-xs space-y-1">
+            <div className="text-slate-200">{casoAttivo.nota[lang]}</div>
+            <div className="text-slate-500">{s.reference}: {casoAttivo.riferimento}</div>
+          </div>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-x-6 gap-y-2">{PATIENT_FIELDS.map(row)}</div>
       <div className="text-slate-400">{s.vitals}</div>
@@ -678,23 +716,48 @@ const MechanicsTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; on
 };
 
 // ----------------------------------------------------------------- Lung tab
+/**
+ * How the lung behaves with PEEP, in three pictures: each one sets
+ * recruitability, the margin before derecruitment and the overdistension PEEP
+ * together. The knobs stay under «fine tuning».
+ */
+const COMPORTAMENTI_POLMONE = {
+  nonReclutabile: { reclutabilita: 0, isteresi: 8, sovradistensione: 27 },
+  reclutabile: { reclutabilita: 0.5, isteresi: 8, sovradistensione: 27 },
+  instabile: { reclutabilita: 0.5, isteresi: 2, sovradistensione: 20 },
+} as const;
+type ComportamentoPolmone = keyof typeof COMPORTAMENTI_POLMONE;
+
 const LungTab: React.FC<{ s: RemoteStrings; ist: VentIstantanea; onApply: (p: Patch, label: string, rampSec: number) => void; onRecruit: () => void }> = ({ s, ist, onApply, onRecruit }) => {
-  const [r, setR] = useState(num(ist.fisiologia.reclutabilita, 0.15));
-  const [ccw, setCcw] = useState(num(ist.fisiologia.complianceParete, 175));
+  const f = ist.fisiologia;
+  const [r, setR] = useState(num(f.reclutabilita, 0.15));
+  const [ccw, setCcw] = useState(num(f.complianceParete, 175));
+  const [soglia, setSoglia] = useState(isteresiDi(f));
+  const [sovra, setSovra] = useState(sovradistensioneDi(f));
   const m = ist.misure as any;
   const dp = num(m.pPlateau, NaN) - num(ist.impostazioni.peep, 0);
-  const share = trasmissioneToracica({ ...ist.fisiologia, compliance: num(m.compliance, ist.fisiologia.compliance) });
+  const share = trasmissioneToracica({ ...f, compliance: num(m.compliance, f.compliance) });
   const tp = Number.isFinite(dp) ? dp * (1 - share) : NaN;
   const running = ist.manovra === 'reclutamento';
+  // Every lung falls in one of the three, presets included: derecruits early →
+  // unstable; nothing to reopen → non-recruitable; otherwise recruitable.
+  const attivo: ComportamentoPolmone = isteresiDi(f) < 5 && num(f.reclutabilita, 0) >= 0.1 ? 'instabile' : num(f.reclutabilita, 0) < 0.1 ? 'nonReclutabile' : 'reclutabile';
+  const scegli = (k: ComportamentoPolmone) => {
+    const c = COMPORTAMENTI_POLMONE[k];
+    setR(c.reclutabilita); setSoglia(c.isteresi); setSovra(c.sovradistensione);
+    onApply({ fisiologia: { ...c } }, s[`lung_${k}`], 0);
+  };
   return (
     <div className="space-y-3">
       <p className="text-slate-400 text-xs">{s.lungIntro}</p>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-        <Slider testId="sl-recruit" label={s.recruitability} value={r} min={0} max={1} step={0.05} digits={2} live={ist.fisiologia.reclutabilita} nowLabel={s.now} onChange={setR} />
-        <Slider label={s.chestWall} value={ccw} min={50} max={250} step={5} unit="mL/cmH₂O" live={ist.fisiologia.complianceParete} nowLabel={s.now} onChange={setCcw} />
+      <div className="flex flex-wrap gap-2 items-center">
+        <span className="text-slate-400">{s.lungBehaviour}:</span>
+        {(Object.keys(COMPORTAMENTI_POLMONE) as ComportamentoPolmone[]).map((k) => (
+          <button key={k} data-testid={`lung-${k}`} onClick={() => scegli(k)} className={`px-3 py-1.5 rounded border ${attivo === k ? 'bg-sky-700 border-sky-400 text-white' : 'bg-slate-800 border-slate-700 hover:border-sky-500'}`}>{s[`lung_${k}`]}</button>
+        ))}
       </div>
+      <p className="text-slate-300 text-sm min-h-[1.25rem]">{s[`lungHint_${attivo}`]}</p>
       <div className="flex gap-2 flex-wrap">
-        <button data-testid="lung-apply" onClick={() => onApply({ fisiologia: { reclutabilita: r, complianceParete: ccw } }, `${s.recruitability} ${r.toFixed(2)} · ${s.chestWall} ${ccw}`, 0)} className="px-5 py-2 rounded-lg bg-sky-600 font-semibold">{s.apply}</button>
         <button data-testid="recruit-start" disabled={!ist.ventilando || (!!ist.manovra && !running) || ist.ambiente !== 'invasiva'} onClick={onRecruit} className="px-4 py-2 rounded-lg bg-amber-600 disabled:bg-slate-700 font-semibold">{running ? `${s.recruitmentRunning} (${RECLUTAMENTO_SECONDI} s)` : s.recruitmentStart}</button>
       </div>
       <div className="grid grid-cols-3 gap-2 text-xs">
@@ -702,6 +765,22 @@ const LungTab: React.FC<{ s: RemoteStrings; ist: VentIstantanea; onApply: (p: Pa
         <Info k={s.transpulmonary} v={Number.isFinite(tp) ? `${tp.toFixed(1)} cmH₂O` : '–'} />
         <Info k="ΔP (Pplat − PEEP)" v={Number.isFinite(dp) ? `${dp.toFixed(1)} cmH₂O` : '–'} />
       </div>
+      <details data-testid="lung-fine" className="bg-slate-900/60 rounded-lg border border-slate-800">
+        <summary className="cursor-pointer px-3 py-2 text-slate-300">{s.fineTuning}</summary>
+        <div className="p-3 space-y-2">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+            <Slider testId="sl-recruit" label={s.recruitability} value={r} min={0} max={1} step={0.05} digits={2} live={f.reclutabilita} nowLabel={s.now} onChange={setR} />
+            <Slider label={s.chestWall} value={ccw} min={50} max={250} step={5} unit="mL/cmH₂O" live={f.complianceParete} nowLabel={s.now} onChange={setCcw} />
+            <Slider testId="sl-reclosure" label={s.reclosure} value={soglia} min={0} max={10} step={0.5} digits={1} unit="cmH₂O" live={isteresiDi(f)} nowLabel={s.now} onChange={setSoglia} />
+            <Slider testId="sl-overdistension" label={s.overdistension} value={sovra} min={12} max={35} step={1} unit="cmH₂O" live={sovradistensioneDi(f)} nowLabel={s.now} onChange={setSovra} />
+          </div>
+          <ul className="text-slate-500 text-xs list-disc pl-5 space-y-1">
+            <li>{s.reclosureHint}</li>
+            <li>{s.overdistensionHint}</li>
+          </ul>
+          <button data-testid="lung-apply" onClick={() => onApply({ fisiologia: { reclutabilita: r, complianceParete: ccw, isteresi: soglia, sovradistensione: sovra } }, `${s.recruitability} ${r.toFixed(2)} · ${s.chestWall} ${ccw} · ${s.reclosure} ${soglia.toFixed(1)} · ${s.overdistension} ${sovra}`, 0)} className="px-5 py-2 rounded-lg bg-sky-600 font-semibold">{s.apply}</button>
+        </div>
+      </details>
     </div>
   );
 };

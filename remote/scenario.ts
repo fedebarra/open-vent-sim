@@ -47,7 +47,7 @@ export function scenarioDa(ist: VentIstantanea, name: string): ScenarioFile {
   };
 }
 
-const FIS_NUMERI = ['compliance', 'complianceParete', 'reclutabilita', 'resistenza', 'sforzoEspiratorio', 'limitazioneFlusso', 'secrezioni', 'oscillazioniCardiache', 'aperturaVie', 'pesBasale', 'perditaMaschera'] as const;
+const FIS_NUMERI = ['compliance', 'complianceParete', 'reclutabilita', 'resistenza', 'sforzoEspiratorio', 'limitazioneFlusso', 'secrezioni', 'oscillazioniCardiache', 'aperturaVie', 'pesBasale', 'perditaMaschera', 'isteresi', 'sovradistensione'] as const;
 const DRIVE_NUMERI = ['frequenza', 'intensita', 'forza', 'variabilita', 'espirioAttivo'] as const;
 
 const finito = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);

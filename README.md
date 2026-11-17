@@ -178,10 +178,10 @@ At the top choose **where commands go**: *this ventilator* (selected on the left
 
 | Tab | What you do |
 |---|---|
-| **Patient** | One-click clinical pictures (Normal, COPD, ARDS, COVID, Anaphylaxis, Pulmonary oedema, Pneumonia, Fibroscopy); compliance, resistance, effort, secretions; SpO₂, EtCO₂, heart rate, mean arterial pressure. With **"Change over"** the change happens gradually (30 s – 5 min) instead of at once. |
+| **Patient** | One-click clinical pictures (Normal, COPD, ARDS, COVID, Anaphylaxis, Pulmonary oedema, Pneumonia, Fibroscopy); **cases from the literature**, ready to load, each with what the learner should find and its reference; compliance, resistance, effort, secretions; SpO₂, EtCO₂, heart rate, mean arterial pressure. With **"Change over"** the change happens gradually (30 s – 5 min) instead of at once. |
 | **Asynchronies** | Ineffective effort, double cycling, reverse triggering, flow starvation, premature/delayed cycling, auto-triggering, with the share of breaths affected. Learners only see the **waveforms**, never the name: spotting it is their job. Below, **Single cough** and **Coughing fit**: Paw to the high limit and the pressure alarm. |
-| **Lung** | Recruitability and chest-wall compliance: compliance now depends on PEEP. Start the **recruitment manoeuvre**. |
-| **Gas exchange** | Fixed shunt, low V/Q, alveolar dead space, diffusion, Hb, temperature, metabolism, bicarbonate, cardiac output, BMI, vasodilators, inhaled NO, CO and methaemoglobin; **one-lung ventilation**. Live PaO₂, PaCO₂, pH, P/F, Qs/Qt, VD/VT, safe apnoea time; **CO₂ and dead space** by Bohr-Enghoff (alveolar, physiological, anatomical), PaCO₂ − EtCO₂, EtCO₂/PaCO₂, ventilatory ratio and standardised VE (Cipulli 2026, see `docs/spazio-morto.md`). **Live arterial blood gas** as a reference for the instructor (the ventilator does not show it), with the derived indices. |
+| **Lung** | Three behaviours with PEEP: **Non-recruitable**, **Recruitable**, **Unstable** (opens at high PEEP, derecruits as soon as it comes down). Live compliance and driving pressure. Start the **recruitment manoeuvre**. Under *Fine tuning*: recruitability, chest-wall compliance, margin before derecruitment, overdistension PEEP. |
+| **Gas exchange** | One-click **pictures** that add up: pulmonary embolism, consolidation, anaemia, fever, sepsis, metabolic acidosis, CO poisoning, methaemoglobinaemia, inhaled NO; **one-lung ventilation**. Nine live numbers for the instructor (the ventilator does not show them): pH, PaCO₂, PaO₂, P/F, Qs/Qt, SaO₂, alveolar VD/VT, PaCO₂ − EtCO₂, EtCO₂/PaCO₂ (Bohr-Enghoff, Cipulli 2026, see `docs/spazio-morto.md`). *All values* opens the rest of the blood gas and the dead space indices; *Fine tuning* the sliders (shunt, low V/Q, dead space, diffusion, Hb, temperature, metabolism, bicarbonate, cardiac output, BMI, vasodilators, NO, CO, MetHb). |
 | **Machine** | Mode, settings, start/standby, silence alarms, inspiratory and expiratory holds: applied as if the learner touched them (logged as instructor actions). |
 | **Alarms** | The ventilator's alarm limits (low/high, on/off), as in its own Alarms drawer; **Reset to the start-up limits**. In PS, CPAP and PAV there is the **apnoea** time (default 20 s). |
 | **Events** | Ready-made events (bronchospasm, mucus plug, pneumothorax, desaturation, hypercapnia, induction, waking up, NMB reversal…). Fire now or build a timed **sequence**; save it to a file for next time. |
@@ -226,6 +226,20 @@ The log survives closing and reopening the console.
 | I want the old (2.x) interface | In the browser, add `?legacy=1` to the address (stand-alone only). |
 
 ## 9. What's new
+
+### 3.6.0 — 17 November 2026
+
+**CO₂ and dead space**, aligned with Cipulli F et al., *Dead space in critical care: a practical approach with clinical scenarios*, J Anesth Analg Crit Care 2026;6:20 (`docs/spazio-morto.md`).
+- **Shunt touches CO₂**: PaCO₂ is alveolar CO₂ mixed with venous blood through the shunt, so the Enghoff dead space is overestimated above 40% shunt, as at the bedside.
+- **PaCO₂ − EtCO₂** at rest about 5 mmHg; **trapped CO₂** with auto-PEEP, with EtCO₂ above PaCO₂ (negative dead space); a **shark-fin capnogram** with obstruction.
+- **Airway dead space grows with PEEP** (about 3 ml per cmH₂O at 70 kg; Tusman, Respir Care 2019).
+- Indices: alveolar, physiological and anatomical VD/VT, EtCO₂/PaCO₂, ventilatory ratio, standardised VE.
+
+**A simpler console.**
+- **Cases from the literature** (Patient tab): H1N1 influenza ARDS, pneumococcal ARDS, COVID-19 with decremental PEEP. One click sets patient, gas exchange and machine; below appear what the learner should find and the reference, paper and case.
+- **Lung**: three behaviours (Non-recruitable, Recruitable, Unstable) instead of sliders. Two new patient properties under *Fine tuning*: the **margin before derecruitment** (how far PEEP can drop below the level the lung was recruited at before it closes again) and the **overdistension PEEP** (where overdistension halves compliance).
+- **Gas exchange**: one-click pictures, nine numbers in view, the rest under *All values* and *Fine tuning*.
+- The **guided tour** of the console explains the cases, the lung behaviours and the gas exchange pictures.
 
 ### 3.5.0 — 14 November 2026
 

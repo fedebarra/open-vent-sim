@@ -953,6 +953,11 @@ export function letturaScambio(s: StatoScambio, ing: IngressiScambio): LetturaSc
  * PEEP bassa le zone poco ventilate si svuotano d'azoto e collassano
  * (atelettasie da assorbimento): le riapre il reclutamento.
  */
+/** Il margine prima del dereclutamento del paziente, cmH₂O. */
+export function isteresiDi(f: Pick<Fisiologia, 'isteresi'>): number {
+  return typeof f.isteresi === 'number' && f.isteresi >= 0 ? f.isteresi : ISTERESI_CMH2O
+}
+
 export function avanzaIsteresi(
   s: StatoIsteresi | null | undefined,
   peep: number,
@@ -960,6 +965,7 @@ export function avanzaIsteresi(
   reclutamento: boolean,
   scollegato: boolean,
   dtSec: number,
+  isteresi: number = ISTERESI_CMH2O,
 ): StatoIsteresi {
   let m = s?.peepMemoria ?? peep
   let a = s?.atelettasia ?? 0
@@ -969,7 +975,7 @@ export function avanzaIsteresi(
     a = 0
   }
   if (peep >= m) m = peep
-  else if (peep < m - ISTERESI_CMH2O) m = segue(m, peep + ISTERESI_CMH2O, dtSec, TAU_CHIUSURA)
+  else if (peep < m - isteresi) m = segue(m, peep + isteresi, dtSec, TAU_CHIUSURA)
   if (fio2 > 0.8 && !reclutamento) {
     const spinta = ((fio2 - 0.8) / 0.2) * clamp(1 - peep / 10, 0, 1)
     a = clamp(a + (spinta * dtSec) / 600, 0, 1)
@@ -980,6 +986,25 @@ export function avanzaIsteresi(
 }
 
 // ------------------------------------------ gli ingressi dal ventilatore --
+
+/** Quanto lo spazio morto delle vie aeree cresce con la PEEP, ml/kg per cmH₂O. */
+export const VD_PER_PEEP_ML_KG = 0.045
+
+/**
+ * Lo spazio morto delle vie aeree che la PEEP aggiunge (o toglie) rispetto a
+ * PEEP 5, ml.
+ *
+ * Le vie aeree si distendono col volume del polmone: lo spazio morto di Fowler
+ * cresce in modo lineare col volume di fine inspirazione, circa 20 ml per litro
+ * nei sani (Johns, Appl Physiol Nutr Metab 2006). In un modello di ARDS lo
+ * spazio morto delle vie aeree passa dal 32% al 53% del VT fra PEEP 0 e 30
+ * (Tusman, Respir Care 2019): 0,007 VT per cmH₂O, circa 0,045 ml/kg con un VT
+ * di 7 ml/kg, 3 ml per cmH₂O a 70 kg. Ancorato a PEEP 5, perché la taratura
+ * di base resti quella; sotto PEEP 0 non scende più.
+ */
+export function vdDaPeep(peepTotale: number, kg: number): number {
+  return VD_PER_PEEP_ML_KG * kg * (Math.max(0, peepTotale) - 5)
+}
 
 /**
  * Quello che il ventilatore sa del respiro, per lo scambio.
@@ -1080,7 +1105,7 @@ function ingressiGrezzi(
     veMlMin: f * vt,
     vtMl: vt,
     frequenza: f,
-    vdMl: (intubato ? 1.1 : 2.2) * kg + strumentale,
+    vdMl: (intubato ? 1.1 : 2.2) * kg + strumentale + vdDaPeep(peepTot, kg),
     vieAperte: true,
     fonteO2: imp.fio2 / 100,
     peepTotale: manuale ? Math.max(0, (imp.apl ?? 0) * 0.3) : peepTot,

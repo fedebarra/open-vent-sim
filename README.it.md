@@ -178,10 +178,10 @@ In alto scegli **a chi mandare** i comandi: *questo ventilatore* (quello selezio
 
 | Scheda | Che cosa fai |
 |---|---|
-| **Paziente** | Quadri clinici con un clic (Normale, BPCO, ARDS, COVID, Anafilassi, Edema, Polmonite, Fibroscopia); compliance, resistenza, sforzo, secrezioni; SpO₂, EtCO₂, frequenza cardiaca, pressione media. Con **«Cambia in»** il cambiamento avviene gradualmente (30 s – 5 min) invece che di colpo. |
+| **Paziente** | Quadri clinici con un clic (Normale, BPCO, ARDS, COVID, Anafilassi, Edema, Polmonite, Fibroscopia); **casi dalla letteratura** pronti da caricare, ognuno con cosa deve trovare lo studente e il riferimento; compliance, resistenza, sforzo, secrezioni; SpO₂, EtCO₂, frequenza cardiaca, pressione media. Con **«Cambia in»** il cambiamento avviene gradualmente (30 s – 5 min) invece che di colpo. |
 | **Asincronie** | Sforzo inefficace, doppio ciclo, reverse triggering, fame di flusso, ciclaggio precoce/ritardato, auto-trigger, con la quota degli atti coinvolti. Lo studente vede **solo le curve**, mai il nome: riconoscerla è il suo compito. Sotto, **Colpo di tosse** e **Accesso di tosse**: la Paw al limite alto e l'allarme di pressione. |
-| **Polmone** | Reclutabilità e compliance della parete: la compliance cambia con la PEEP. Avvio della **manovra di reclutamento**. |
-| **Scambio dei gas** | Shunt fisso, basso V/Q, spazio morto alveolare, diffusione, Hb, temperatura, metabolismo, bicarbonato, portata, BMI, vasodilatatori, NO inalatorio, CO e metaemoglobina; **ventilazione monopolmonare**. In tempo reale PaO₂, PaCO₂, pH, P/F, Qs/Qt, VD/VT, apnea sicura; **CO₂ e spazio morto** di Bohr-Enghoff (alveolare, fisiologico, anatomico), PaCO₂ − EtCO₂, EtCO₂/PaCO₂, rapporto ventilatorio e VE standardizzata (Cipulli 2026, vedi `docs/spazio-morto.md`). **Emogas arterioso in tempo reale** come riferimento per il docente (il ventilatore non lo mostra), con gli indici derivati. |
+| **Polmone** | Tre comportamenti con la PEEP: **Non reclutabile**, **Reclutabile**, **Instabile** (si apre con la PEEP alta, si derecluta appena scende). Compliance e pressione motrice in tempo reale. Avvio della **manovra di reclutamento**. In *Regolazione fine*: reclutabilità, compliance della parete, margine prima del dereclutamento, PEEP di sovradistensione. |
+| **Scambio dei gas** | **Quadri** con un clic, che si sommano: embolia polmonare, consolidamento, anemia, febbre, sepsi, acidosi metabolica, intossicazione da CO, metemoglobinemia, NO inalatorio; **ventilazione monopolmonare**. Nove numeri in tempo reale per il docente (il ventilatore non li mostra): pH, PaCO₂, PaO₂, P/F, Qs/Qt, SaO₂, VD/VT alveolare, PaCO₂ − EtCO₂, EtCO₂/PaCO₂ (Bohr-Enghoff, Cipulli 2026, vedi `docs/spazio-morto.md`). *Tutti i valori* apre il resto dell'emogas e gli indici dello spazio morto; *Regolazione fine* i cursori (shunt, basso V/Q, spazio morto, diffusione, Hb, temperatura, metabolismo, bicarbonato, portata, BMI, vasodilatatori, NO, CO, MetHb). |
 | **Macchina** | Modalità, parametri, avvio/standby, silenzio allarmi, pause inspiratoria ed espiratoria: come se li toccasse lo studente (nel registro risultano fatti dalla regia). |
 | **Allarmi** | I limiti d'allarme del ventilatore (basso/alto, acceso/spento), come dal suo pannello Allarmi; **Ripristina i limiti d'avvio**. In PS, CPAP e PAV c'è il tempo di **apnea** (20 s di serie). |
 | **Eventi** | Eventi pronti (broncospasmo, tappo di muco, pneumotorace, desaturazione, ipercapnia, induzione, risveglio, decurarizzazione…). Si lanciano subito oppure si mettono in **sequenza** con i tempi, e la sequenza si salva su file per la prossima volta. |
@@ -226,6 +226,20 @@ Il registro resta salvato anche se chiudi e riapri la regia.
 | Voglio l'interfaccia vecchia (2.x) | Nel browser aggiungi `?legacy=1` all'indirizzo, da soli. |
 
 ## 9. Novità
+
+### 3.6.0 — 17 novembre 2026
+
+**CO₂ e spazio morto**, allineati a Cipulli F et al., *Dead space in critical care: a practical approach with clinical scenarios*, J Anesth Analg Crit Care 2026;6:20 (`docs/spazio-morto.md`).
+- **Lo shunt tocca la CO₂**: la PaCO₂ è la CO₂ alveolare mescolata col sangue venoso dello shunt, quindi lo spazio morto di Enghoff è sovrastimato sopra il 40% di shunt, come al letto.
+- **PaCO₂ − EtCO₂** a riposo circa 5 mmHg; **CO₂ intrappolata** con l'auto-PEEP, con l'EtCO₂ sopra la PaCO₂ (spazio morto negativo); **capnogramma a pinna di squalo** nell'ostruzione.
+- **Lo spazio morto delle vie aeree cresce con la PEEP** (circa 3 ml per cmH₂O a 70 kg; Tusman, Respir Care 2019).
+- Indici: VD/VT alveolare, fisiologico e anatomico, EtCO₂/PaCO₂, rapporto ventilatorio, VE standardizzata.
+
+**Una regia più semplice.**
+- **Casi dalla letteratura** (scheda Paziente): ARDS da influenza H1N1, ARDS pneumococcica, COVID-19 con PEEP decrementale. Un clic imposta paziente, scambio dei gas e macchina; sotto compaiono cosa deve trovare lo studente e il riferimento, lavoro e caso.
+- **Polmone**: tre comportamenti (Non reclutabile, Reclutabile, Instabile) al posto dei cursori. Due nuove proprietà del paziente in *Regolazione fine*: il **margine prima del dereclutamento** (di quanto la PEEP può scendere sotto quella a cui il polmone è stato reclutato prima che si richiuda) e la **PEEP di sovradistensione** (dove la sovradistensione dimezza la compliance).
+- **Scambio dei gas**: quadri con un clic, nove numeri a vista, il resto in *Tutti i valori* e *Regolazione fine*.
+- La **guida passo passo** della regia spiega i casi, i comportamenti del polmone e i quadri dello scambio.
 
 ### 3.5.0 — 14 novembre 2026
 

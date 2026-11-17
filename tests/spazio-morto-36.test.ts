@@ -180,4 +180,41 @@ describe('Cipulli 2026, i casi', () => {
     expect(l.vdAlveolare!).toBeGreaterThan(-0.13); expect(l.vdAlveolare!).toBeLessThan(-0.07);
     expect(pendenzaCapnogramma(f, 14)).toBeGreaterThan(0.8);
   });
+  it('caso 4, COVID, PEEP 18 → 10: dereclutamento, sovradistensione e spazio morto delle vie aeree', () => {
+    const prova = (f: Record<string, number>) => {
+      let t = 0;
+      let ist: any = istantaneaIniziale('invasiva', 0, { pesoKg: 70, etco2: 33, spo2: null, heartRate: 85, map: 80 });
+      ist = {
+        ...ist, scambioAttivo: true, drive: { frequenza: 0, intensita: 0 },
+        fisiologia: { ...PRESET_FISIOLOGIA.covid.fisiologia, preset: 'covid', compliance: 48, reclutabilita: 0.5, ...f },
+        parametriScambio: con({ shuntFisso: 0.2, spazioMortoAlv: 0.25 }),
+      };
+      const fa = (x: any) => { ist = applica(ist, x, t).istantanea; };
+      const corriV = (sec: number) => { for (let k = 0; k < sec; k += 2) { t += 2; ist = batti(ist, t, 2); } };
+      const leggi = () => ({ ...letturaScambio(ist.scambio, ingressiDaVentilatore(statoDa(ist), ist.misure, { spo2: null, etco2: 33 })), pplat: ist.misure.pPlateau, crs: ist.misure.compliance });
+      for (const [k, v] of [['volume', 480], ['frequency', 18], ['peep', 18], ['fio2', 55]] as const) fa({ tipo: 'parametro', chiave: k, valore: v });
+      fa({ tipo: 'standby', ventilando: true });
+      corriV(900); const a = leggi();
+      for (const p of [16, 14, 12, 10]) { fa({ tipo: 'parametro', chiave: 'peep', valore: p }); corriV(600); }
+      return { a, b: leggi() };
+    };
+    // Lavoro, PEEP 18: Pplat 30, Crs 40, P/F 245, Qs 0,15, PaCO₂ 46, EtCO₂ 33, VD alveolare 0,28.
+    //         PEEP 10: Pplat 18, Crs 69 (ΔP 7 con PEEPi 1), P/F 164, Qs 0,18, PaCO₂ 43, EtCO₂ 31, VD 0,28.
+    const { a, b } = prova({ isteresi: 2, sovradistensione: 20 });
+    expect(a.pplat).toBeGreaterThan(29); expect(a.pplat).toBeLessThan(31);
+    expect(a.crs).toBeGreaterThan(37); expect(a.crs).toBeLessThan(43);
+    expect(a.qsqt).toBeCloseTo(0.15, 1); expect(a.pf).toBeGreaterThan(215); expect(a.pf).toBeLessThan(265);
+    expect(a.paco2).toBeGreaterThan(44.5); expect(a.paco2).toBeLessThan(47.5);
+    expect(a.vdAlveolare!).toBeCloseTo(0.28, 1);
+    expect(b.pplat).toBeGreaterThan(17); expect(b.pplat).toBeLessThan(19.5);
+    expect(b.crs).toBeGreaterThan(a.crs * 1.35);
+    expect(b.qsqt - a.qsqt).toBeGreaterThan(0.02);
+    expect(b.pf).toBeLessThan(a.pf * 0.88);
+    expect(a.paco2 - b.paco2).toBeGreaterThan(2); expect(a.paco2 - b.paco2).toBeLessThan(4.5);
+    expect(a.etco2 - b.etco2).toBeGreaterThan(1.2); expect(a.etco2 - b.etco2).toBeLessThan(3);
+    expect(Math.abs(b.vdAlveolare! - a.vdAlveolare!)).toBeLessThan(0.02);
+    // Con il margine e la sovradistensione di base lo stesso polmone non si derecluta: il P/F tiene.
+    const base = prova({});
+    expect(base.b.pf).toBeGreaterThan(b.pf * 1.1);
+  }, 60000);
 });
