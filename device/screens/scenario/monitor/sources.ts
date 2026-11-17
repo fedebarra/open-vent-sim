@@ -117,7 +117,7 @@ export interface Waveform {
  * all'ECG. Le quattro fasi sono quelle che si insegnano: spazio morto, salita
  * rapida, plateau che sale piano, discesa inspiratoria.
  */
-export function createCapnoWaveform(vitals: () => Vitals, atti?: () => number | null): Waveform {
+export function createCapnoWaveform(vitals: () => Vitals, atti?: () => number | null, pendenza?: () => number): Waveform {
   /** Il tempo della curva a cui è caduto l'ultimo atto a mano, e il contatore che l'ha detto. */
   let attoA: number | null = null
   let contati: number | null = null
@@ -138,15 +138,21 @@ export function createCapnoWaveform(vitals: () => Vitals, atti?: () => number | 
       const cycle = 60 / rate
       const u = (t % cycle) / cycle
       if (u < 0.06) return 0
+      // Nell'ostruzione la fase 2 si allunga e il plateau sparisce: la curva
+      // sale fino alla fine dell'espirazione (la pinna di squalo), perché gli
+      // alveoli che si svuotano per ultimi sono i più ricchi di CO₂. Senza un
+      // plateau l'EtCO₂ non rappresenta la PACO₂ (Cipulli 2026).
+      const p = Math.min(1, Math.max(0, pendenza?.() ?? 0))
+      const pinna = u < 0.62 ? peak * ((u - 0.06) / 0.56) ** 0.55 : 0
       if (u < 0.2) {
         // Salita rapida: l'aria alveolare che arriva dopo lo spazio morto.
         const k = (u - 0.06) / 0.14
-        return peak * 0.93 * Math.sin((Math.PI / 2) * k) ** 0.8
+        return (1 - p) * peak * 0.93 * Math.sin((Math.PI / 2) * k) ** 0.8 + p * pinna
       }
       if (u < 0.62) {
         // Plateau alveolare: sale ancora un poco, e la punta è l'EtCO₂.
         const k = (u - 0.2) / 0.42
-        return peak * (0.93 + 0.07 * k)
+        return (1 - p) * peak * (0.93 + 0.07 * k) + p * pinna
       }
       if (u < 0.7) {
         const k = (u - 0.62) / 0.08

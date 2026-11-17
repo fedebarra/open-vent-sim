@@ -94,12 +94,25 @@ export const ScambioTab: React.FC<{
       <div className="text-slate-400 text-xs">{s.gasDerived}</div>
       <div className="grid grid-cols-6 gap-1 text-xs" data-testid="gas-derived">
         <Box k="Qs/Qt" v={lettura ? `${Math.round(lettura.qsqt * 100)} %` : '–'} />
-        <Box k="VD/VT" v={lettura?.vdvt != null ? `${Math.round(lettura.vdvt * 100)} %` : '–'} />
         <Box k="OI" v={fmt(lettura?.oi, 1)} />
-        <Box k={s.gasVentRatio} v={fmt(lettura?.rapportoVentilatorio, 2)} />
         <Box k={s.gasHpvTone} v={lettura ? `${Math.round(lettura.tono * 100)} %` : '–'} />
         <Box k={s.gasSafeApnoea} v={lettura ? `${fmt(lettura.apneaSicuraMin, 1)} min` : '–'} />
       </div>
+      <div className="text-slate-400 text-xs">{s.gasDeadSpaceTitle}</div>
+      <div className="grid grid-cols-6 gap-1 text-xs" data-testid="gas-deadspace">
+        <Box k={s.gasVdAlv} v={fmt(lettura?.vdAlveolare, 2)} />
+        <Box k={s.gasVdPhys} v={fmt(lettura?.vdFisiologico, 2)} />
+        <Box k={s.gasVdAnat} v={fmt(lettura?.vdAnatomico, 2)} />
+        <Box k={s.gasGradient} v={`${fmt(lettura?.gradienteCo2)} mmHg`} />
+        <Box k={s.gasEtPa} v={fmt(lettura?.rapportoEtPa, 2)} />
+        <Box k="PECO₂" v={`${fmt(lettura?.peco2)} mmHg`} />
+        <Box k={s.gasVentRatio} v={fmt(lettura?.rapportoVentilatorio, 2)} />
+        <Box k={s.gasStdVe} v={`${fmt(lettura?.ventilazioneStandardizzata, 1)} L/min`} />
+        <Box k={s.gasPaco2Alv} v={`${fmt(lettura?.pAco2)} mmHg`} />
+      </div>
+      {lettura && lettura.vdAlveolare !== null && lettura.vdAlveolare < 0 && <p className="text-amber-300 text-xs" data-testid="gas-vd-negative">{s.gasNegativeVd}</p>}
+      {lettura && lettura.qsqt > 0.4 && lettura.vdAlveolare !== null && <p className="text-amber-300 text-xs" data-testid="gas-vd-shunt">{s.gasShuntVd}</p>}
+      {lettura && lettura.rapportoEtPa !== null && lettura.rapportoEtPa < 0.8 && <p className="text-amber-300 text-xs" data-testid="gas-etpa-low">{s.gasLowEtPa}</p>}
       {!ist.scambio && <p className="text-amber-300 text-xs">{s.gasNotStarted}</p>}
       {lettura?.taraturaAlLimite && <p className="text-amber-300 text-xs" data-testid="gas-calib-limit">{s.gasCalibLimit}</p>}
 
