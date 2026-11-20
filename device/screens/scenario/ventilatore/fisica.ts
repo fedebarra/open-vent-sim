@@ -66,8 +66,9 @@ import {
   type StatoGas,
 } from './gas'
 import { rumore } from './caso'
-import { attiRecenti, campioneMotore, letturaCurvaLenta, motoreCopre } from './motore'
+import { attiRecenti, campioneMotore, letturaCurvaLenta, letturaEAdi, motoreCopre } from './motore'
 import type { Circuito } from '../../paziente/presidiFigura'
+import type { CatetereEAdi } from './eadi'
 
 /**
  * Il polmone del paziente, e quanto tira.
@@ -178,6 +179,23 @@ export interface Fisiologia {
    * che la vasocostrizione ipossica riduce col tempo.
    */
   monopolmonare?: 'sinistro' | 'destro' | null
+  /**
+   * Il catetere dell'EAdi nell'esofago, e dove sta (facoltativo, assente se
+   * manca). Lo monta la regia, su qualunque paziente: anche in standby e in
+   * alto flusso il segnale si vede (`eadi.ts`).
+   */
+  catetereEAdi?: CatetereEAdi | null
+  /**
+   * L'efficienza neuromeccanica, cmH₂O/µV (facoltativa, 1 se manca): quanta
+   * Pmus fa ogni microvolt di EAdi. Bassa nel diaframma debole e
+   * nell'iperinsufflato (`eadi.ts`).
+   */
+  nme?: number
+  /**
+   * La lesione del nervo frenico, da 0 a 1 (facoltativa, 0 se manca): mezza è
+   * un lato, uno è bilaterale. Spegne l'EAdi; della Pmus restano gli accessori.
+   */
+  lesioneFrenico?: number
 }
 
 export type PresetFisiologia =
@@ -1031,6 +1049,21 @@ export function frequenzaErogata(stato: StatoVentilatore): number {
  * volte lo stesso stato dà due volte lo stesso numero.
  */
 export function misura(
+  stato: StatoVentilatore,
+  tSec: number,
+  dtSec: number,
+  precedenti: Misure | null,
+): Misure {
+  const m = misuraMacchina(stato, tSec, dtSec, precedenti)
+  // L'EAdi è del paziente e del catetere, non della macchina: si legge anche
+  // in standby e in alto flusso, prima dell'intubazione e dopo l'estubazione.
+  if (!stato.fisiologia.catetereEAdi) return m
+  const e = letturaEAdi(tSec, stato.ventilando ? polmoneOra(stato) : stato)
+  if (!e) return m
+  return { ...m, eadiPicco: parseFloat(e.picco.toFixed(1)), eadiMin: parseFloat(e.minimo.toFixed(1)) }
+}
+
+function misuraMacchina(
   stato: StatoVentilatore,
   tSec: number,
   dtSec: number,

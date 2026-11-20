@@ -16,7 +16,7 @@
 import { pmusc } from './asincronie'
 import { polmoneOra, type StatoVentilatore } from './fisica'
 import { puntoOnda } from './onde'
-import { campioneMotore, motoreCopre } from './motore'
+import { campioneEAdi, campioneMotore, motoreCopre } from './motore'
 
 export function pressioneAlveolare(tSec: number, stato: StatoVentilatore): number {
   if (!stato.manovra && motoreCopre(stato)) return campioneMotore(tSec, polmoneOra(stato)).palv
@@ -63,4 +63,14 @@ export function pressioneTranspolmonare(tSec: number, stato: StatoVentilatore): 
   if (!stato.manovra) return motoreCopre(stato) ? campioneMotore(tSec, polmoneOra(stato)).pl : null
   const pes = pressioneEsofagea(tSec, stato)
   return pes === null ? null : puntoOnda(tSec, stato).paw - pes
+}
+
+/**
+ * L'EAdi, µV, come la legge il catetere (`eadi.ts`): null senza catetere. C'è
+ * anche in standby e in alto flusso, e durante le pause: è del paziente.
+ */
+export function attivitaDiaframma(tSec: number, stato: StatoVentilatore): number | null {
+  if (!stato.fisiologia.catetereEAdi) return null
+  const senza = stato.manovra ? { ...stato, manovra: null } : stato
+  return campioneEAdi(tSec, senza.ventilando ? polmoneOra(senza) : senza)
 }

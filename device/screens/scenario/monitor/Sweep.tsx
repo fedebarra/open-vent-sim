@@ -117,6 +117,13 @@ export interface SweepChannel {
    * alta quanto quel valore nella scala della corsia.
    */
   calibrazione?: { valore: number; testo: string }
+  /**
+   * Una seconda curva **sotto** quella della corsia, nella stessa scala: più
+   * sottile, di un altro colore. Serve al ventilatore per la pressione stimata
+   * dal diaframma sovrapposta alla Paw: le due si leggono insieme, e dove non
+   * coincidono c'è la storia (`eadi.ts`).
+   */
+  ombra?: { at: (t: number) => number; color: string }
 }
 
 /** Quanti secondi di curva stanno da un bordo all'altro, se nessuno lo dice. */
@@ -321,6 +328,29 @@ export function Sweep({
       } else {
         ctx.clearRect(inizio, 0, larghezza, h)
         if (inizio + larghezza > w) ctx.clearRect(0, 0, inizio + larghezza - w, h)
+      }
+
+      // La curva in ombra va sotto, prima: la corsia la copre dove coincidono.
+      if (channel.ombra) {
+        const ombra = channel.ombra
+        const passo = Math.min(1 / 300, seconds / w)
+        ctx.strokeStyle = ombra.color
+        ctx.lineWidth = Math.max(1, 1.1 * dpr)
+        ctx.lineJoin = 'round'
+        ctx.setLineDash([])
+        ctx.beginPath()
+        let prima = -1
+        for (let t = from; ; t += passo) {
+          const ultimo = t >= to
+          const istante = ultimo ? to : t
+          const px = x(istante)
+          const py = y(ombra.at(istante))
+          if (prima < 0 || px < prima) ctx.moveTo(px, py)
+          else ctx.lineTo(px, py)
+          prima = px
+          if (ultimo) break
+        }
+        ctx.stroke()
       }
 
       ctx.strokeStyle = channel.color

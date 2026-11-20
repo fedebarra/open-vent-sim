@@ -221,6 +221,13 @@ export interface Misure {
   flowIndex: number | null
   /** La costante di tempo espiratoria misurata al 75% del corrente, secondi. */
   rcExp: number | null
+  /**
+   * Il picco dell'EAdi nell'ultimo respiro, µV: il comando che il diaframma
+   * riceve. Solo con il catetere montato (`eadi.ts`).
+   */
+  eadiPicco: number | null
+  /** Il fondo dell'EAdi fra un respiro e l'altro, µV: l'attività tonica, o l'artefatto. */
+  eadiMin: number | null
 }
 
 export type ChiaveImpostazione = keyof Impostazioni
@@ -238,6 +245,8 @@ export interface ContestoVista {
    * Una manopola che regola una cosa spenta è un comando di troppo.
    */
   impostazioni: Impostazioni
+  /** Il catetere dell'EAdi è montato: le sue misure si vedono, in qualunque modo. */
+  catetereEAdi?: boolean
 }
 
 export interface DefinizioneParametro {
@@ -697,6 +706,20 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     regolabile: false,
     visibile: (c) => c.ambiente === 'invasiva' && c.modalita === 'PS',
   },
+  eadiPicco: {
+    etichetta: 'vent.param.eadiPicco',
+    decimali: 1,
+    unita: 'vent.unit.microV',
+    regolabile: false,
+    visibile: (c) => c.catetereEAdi === true,
+  },
+  eadiMin: {
+    etichetta: 'vent.param.eadiMin',
+    decimali: 1,
+    unita: 'vent.unit.microV',
+    regolabile: false,
+    visibile: (c) => c.catetereEAdi === true,
+  },
   rcExp: {
     etichetta: 'vent.param.rcExp',
     decimali: 2,
@@ -852,6 +875,8 @@ export const MISURE_VUOTE: Misure = {
   rsbi: null,
   flowIndex: null,
   rcExp: null,
+  eadiPicco: null,
+  eadiMin: null,
 }
 
 /**

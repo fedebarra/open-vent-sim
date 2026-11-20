@@ -50,6 +50,18 @@ import {
   type TipoAsincronia,
 } from './asincronie'
 import type { StatoVentilatore } from './fisica'
+import {
+  RITARDO_ELETTROMECCANICO,
+  eadiLetta,
+  eadiTonica,
+  lesioneFrenico,
+  nmeDi,
+  piccoEMinimo,
+  quotaDiaframma,
+  quotaPmusFrenico,
+  type CatetereEAdi,
+  type MisuraEAdi,
+} from './eadi'
 
 /** Il passo d'integrazione, in secondi: 200 Hz. */
 export const PASSO = 0.005
@@ -173,6 +185,8 @@ export interface CampioneMotore {
   fase: number
   /** Dentro lo sforzo che ha fatto partire l'atto: il tratto che si colora. */
   inTrigger: boolean
+  /** L'EAdi come la legge il catetere, µV; null senza catetere. */
+  eadi: number | null
 }
 
 /** Un atto erogato: quello che il display misura. */
@@ -310,6 +324,15 @@ interface Parametri {
   autoTrigger: number[]
   /** il limite alto della pressione di picco: lì la macchina, se il paziente tossisce, smette di spingere. */
   pMax: number
+  /** Il catetere dell'EAdi e come legge il paziente; null senza catetere. */
+  eadi: {
+    catetere: CatetereEAdi
+    nme: number
+    diaframma: number
+    tonica: number
+    frequenzaCardiaca: number
+    seme: number
+  } | null
 }
 
 /**
@@ -378,7 +401,11 @@ function gauss(seme: number, k: number): number {
   return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
 }
 
-function pmusDi(sforzi: Sforzo[], t: number, da: { i: number }): { valore: number; attivo: Sforzo | null; tosse: boolean } {
+function pmusDi(
+  sforzi: Sforzo[],
+  t: number,
+  da: { i: number },
+): { valore: number; attivo: Sforzo | null; tosse: boolean; ins: number; esp: number } {
   // Gli sforzi sono in ordine: si avanza il primo indice utile e si guarda avanti poco.
   while (da.i < sforzi.length) {
     const s = sforzi[da.i]
@@ -386,6 +413,8 @@ function pmusDi(sforzi: Sforzo[], t: number, da: { i: number }): { valore: numbe
     else break
   }
   let valore = 0
+  let ins = 0
+  let esp = 0
   let attivo: Sforzo | null = null
   let tosse = false
   for (let k = da.i; k < sforzi.length; k++) {
@@ -393,11 +422,40 @@ function pmusDi(sforzi: Sforzo[], t: number, da: { i: number }): { valore: numbe
     if (s.t0 > t) break
     const u = t - s.t0
     if (u >= s.salita + s.tenuta + s.discesa) continue
-    valore += s.ampiezza * formaA(s, u)
+    const x = s.ampiezza * formaA(s, u)
+    valore += x
+    if (x > 0) ins += x
+    else esp -= x
     if (s.tosse) tosse = true
     if (s.ampiezza > 0 && (!attivo || s.t0 > attivo.t0)) attivo = s
   }
-  return { valore, attivo, tosse }
+  return { valore, attivo, tosse, ins, esp }
+}
+
+/**
+ * L'EAdi letta dal catetere a `t`: lo sforzo inspiratorio di un ritardo
+ * elettromeccanico **dopo** (il potenziale arriva prima della forza), la spinta
+ * espiratoria adesso. Il cursore è suo: va avanti di `δ` rispetto a quello
+ * della Pmus.
+ */
+function eadiA(p: Parametri, t: number, cursore: { i: number }): number {
+  const e = p.eadi
+  if (!e) return 0
+  const avanti = pmusDi(p.sforzi, t + RITARDO_ELETTROMECCANICO, cursore)
+  // La spinta espiratoria adesso: non c'è bisogno del cursore, gli sforzi sono pochi.
+  const ora = pmusDi(p.sforzi, t, { i: cursore.i })
+  // La tosse non è un muscolo che il catetere legge bene: satura e basta.
+  return eadiLetta({
+    t,
+    pmusAvanti: avanti.ins,
+    spintaEsp: ora.tosse ? 0 : ora.esp,
+    tonica: e.tonica,
+    nme: e.nme,
+    diaframma: e.diaframma,
+    catetere: e.catetere,
+    frequenzaCardiaca: e.frequenzaCardiaca,
+    seme: e.seme,
+  })
 }
 
 /** Le oscillazioni cardiache sul flusso: un colpo sistolico stretto per battito. */
@@ -689,6 +747,17 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
   const E2 = quotaE2 / (C * vRif)
   const E1 = (1 - quotaE2) / C
 
+  // ## Il frenico
+  //
+  // Con il frenico leso il diaframma non tira più, o tira da un lato: della
+  // Pmus resta quella degli accessori. Vale per tutti gli sforzi inspiratori
+  // del paziente, asincronie comprese.
+  const frenico = lesioneFrenico(fis)
+  if (frenico > 0) {
+    const resta = quotaPmusFrenico(frenico)
+    for (const s of sforzi) if (s.ampiezza > 0) s.ampiezza *= resta
+  }
+
   // ## La tosse
   //
   // Un colpo di tosse col tubo è un espirio esplosivo: i muscoli espiratori spingono il torace (una Pmus negativa
@@ -745,6 +814,16 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
     sforzi,
     autoTrigger,
     pMax: stato.pressioneMassima ?? Number.POSITIVE_INFINITY,
+    eadi: fis.catetereEAdi
+      ? {
+          catetere: fis.catetereEAdi,
+          nme: nmeDi(fis),
+          diaframma: quotaDiaframma(frenico),
+          tonica: eadiTonica(recluta, fis.atelettasia ?? 0, drive.frequenza > 0 && drive.intensita > 0 ? forza * (1 - frenico) : 0),
+          frequenzaCardiaca: stato.paziente.heartRate ?? 80,
+          seme: stato.seme,
+        }
+      : null,
   }
 }
 
@@ -837,6 +916,8 @@ interface Blocco {
   trigger: Uint8Array
   /** 1 dove fra il passo prima e questo c'è uno spigolo vero: non s'interpola. */
   spigolo: Uint8Array
+  /** L'EAdi letta dal catetere, µV; null senza catetere. */
+  eadi: Float32Array | null
   atti: AttoMotore[]
 }
 
@@ -862,10 +943,12 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
     fase: new Uint8Array(n),
     trigger: new Uint8Array(n),
     spigolo: new Uint8Array(n),
+    eadi: p.eadi ? new Float32Array(n) : null,
     atti: [],
   }
 
   const { modalita, C, R, peep } = p
+  const cursoreEAdi = { i: 0 }
   const controllata = modalita === 'VC' || modalita === 'PC' || modalita === 'PRVC' || modalita === 'SIMV'
   const cursore = { i: 0 }
   const ritorno = ritornoDi(p)
@@ -1234,6 +1317,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
       // L'artefatto cardiaco sulla Pes c'è sempre: il cuore sta sopra l'esofago.
       out.pes[q] = p.pesBase + V / p.Ccw - pmus + cardiaco(t - 0.08, p.cardio.frequenza) * 1
       out.fase[q] = fase
+      if (out.eadi) out.eadi[q] = eadiA(p, t, cursoreEAdi)
       // Gli spigoli del volume controllato: il flusso quadro che parte e che
       // si ferma. Sono veri, e chi campiona non li deve arrotondare.
       if (tipoAtto === 'volume' && fase !== fasePrima) out.spigolo[q] = 1
@@ -1347,6 +1431,9 @@ function chiave(stato: StatoVentilatore, inizio: number): string {
     Math.round((f.peepMemoria ?? 0) * 2) / 2,
     Math.round((f.atelettasia ?? 0) * 20) / 20,
     f.monopolmonare ?? '-',
+    f.catetereEAdi ?? '-',
+    f.nme ?? '-',
+    f.lesioneFrenico ?? 0,
     stato.ambiente,
     d.frequenza,
     d.intensita,
@@ -1415,7 +1502,73 @@ export function campioneMotore(tSec: number, stato: StatoVentilatore): CampioneM
     pl: paw - pes,
     fase: b.fase[f < 0.5 ? i : i + 1],
     inTrigger: b.trigger[f < 0.5 ? i : i + 1] === 1,
+    eadi: b.eadi ? l(b.eadi) : null,
   }
+}
+
+// ## L'EAdi senza la macchina
+//
+// In standby e in alto flusso il motore non gira, ma il paziente respira lo
+// stesso e il catetere legge lo stesso: è il segnale «dal giorno zero», prima
+// dell'intubazione e dopo l'estubazione. L'EAdi non ha bisogno dell'integratore
+// — è una funzione degli sforzi — e qui si calcola da sola, a blocchi come il
+// resto, con il paziente che non riceve nessun aiuto: niente asincronie della
+// macchina, nessuno sforzo che risponde al supporto.
+
+const MEMORIA_EADI = new Map<string, Float32Array>()
+
+function statoLibero(stato: StatoVentilatore): StatoVentilatore {
+  return { ...stato, modalita: 'CPAP', asincronia: null, drive: { ...stato.drive, responsivo: false } }
+}
+
+function bloccoEAdi(stato: StatoVentilatore, inizio: number): Float32Array {
+  const k = 'E|' + chiave(stato, inizio)
+  let b = MEMORIA_EADI.get(k)
+  if (b) return b
+  const libero = statoLibero(stato)
+  const p = parametri(libero, inizio - 2, inizio + BLOCCO_SEC)
+  const n = Math.round(BLOCCO_SEC / PASSO) + 1
+  b = new Float32Array(n)
+  const cursore = { i: 0 }
+  for (let q = 0; q < n; q++) b[q] = eadiA(p, inizio + q * PASSO, cursore)
+  MEMORIA_EADI.set(k, b)
+  if (MEMORIA_EADI.size > MEMORIA_MASSIMA) MEMORIA_EADI.delete(MEMORIA_EADI.keys().next().value as string)
+  return b
+}
+
+/**
+ * L'EAdi a `tSec`, µV, in qualunque stato della macchina: dal motore quando
+ * gira, dagli sforzi da soli quando no. Null senza catetere.
+ */
+export function campioneEAdi(tSec: number, stato: StatoVentilatore): number | null {
+  if (!stato.fisiologia.catetereEAdi) return null
+  if (motoreCopre(stato)) return campioneMotore(tSec, stato).eadi
+  const inizio = Math.floor(tSec / BLOCCO_SEC) * BLOCCO_SEC
+  const b = bloccoEAdi(stato, inizio)
+  const x = (tSec - inizio) / PASSO
+  const i = Math.min(b.length - 2, Math.max(0, Math.floor(x)))
+  const f = Math.min(1, Math.max(0, x - i))
+  return b[i] + (b[i + 1] - b[i]) * f
+}
+
+/** Quanto indietro si guarda per picco e minimo: un respiro e un po', mai meno di sei secondi. */
+function finestraEAdi(stato: StatoVentilatore): number {
+  const fr = stato.drive.frequenza
+  return Math.min(15, Math.max(6, fr > 0 ? (60 / fr) * 1.5 : 6))
+}
+
+/**
+ * Picco e minimo dell'EAdi negli ultimi secondi, µV: il picco dell'ultimo
+ * respiro e il fondo fra un respiro e l'altro. Null senza catetere.
+ */
+export function letturaEAdi(tSec: number, stato: StatoVentilatore): MisuraEAdi | null {
+  if (!stato.fisiologia.catetereEAdi) return null
+  const finestra = finestraEAdi(stato)
+  const passo = 0.02
+  const n = Math.round(finestra / passo)
+  const campioni = new Float32Array(n)
+  for (let i = 0; i < n; i++) campioni[i] = campioneEAdi(tSec - finestra + (i + 1) * passo, stato) ?? 0
+  return piccoEMinimo(campioni, 10)
 }
 
 /**
@@ -1544,5 +1697,6 @@ export function letturaCurvaLenta(stato: StatoVentilatore, durataSec: number): {
 /** Solo per le prove: svuota la memoria. */
 export function svuotaMemoriaMotore(): void {
   MEMORIA.clear()
+  MEMORIA_EADI.clear()
 }
 
