@@ -394,4 +394,11 @@ export const PRESET_ASINCRONIA: Record<
     drive: { frequenza: 22, intensita: 0.9 },
     asincronia: { tipo: 'fame-di-flusso', quota: 1, grado: 3 },
   },
+  // Fame d'aria in pressione controllata con un Ti lungo: lo sforzo è corto e
+  // forte, il paziente spinge per uscire mentre la macchina tiene — punta di
+  // Paw a fine inspirazione, flusso che si inverte prima del ciclaggio.
+  'spinge-per-uscire': {
+    drive: { frequenza: 23, intensita: 0.7, forma: { salita: 0.35, tenuta: 0.05, discesa: 0.3 }, espirioAttivo: 0.7 },
+    asincronia: { tipo: 'ciclaggio-ritardato', quota: 0.5 },
+  },
 }

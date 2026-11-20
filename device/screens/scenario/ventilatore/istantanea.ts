@@ -37,6 +37,7 @@
 import { valuta, MODALITA_CON_APNEA, LIMITI_INIZIALI, SILENZIO_SECONDI, conLimiteDellAgente, type AllarmeAttivo, type LimitiAllarme, spostaLimite } from './allarmi'
 import type { AzioneVentilatore } from './azioni'
 import { regolaPrvc, PRVC_PROVA } from './prvc'
+import { RAPPORTI } from './pannello'
 import { attiRecenti, motoreCopre, BLOCCO_SEC, CALDO_SEC } from './motore'
 import { forzaColpo, RITARDO_TOSSE_SEC, scoppiTosse } from './tosse'
 import {
@@ -935,7 +936,7 @@ export function attaccatoAllaMacchina(ventilazione: Record<string, unknown> | nu
   if (!ventilazione || ambienteDaScenario(ventilazione.environment as string | undefined) === null) return false
   if (/stand[- ]?by/i.test(String(ventilazione.device ?? ''))) return false
   const numero = (k: string) => typeof ventilazione[k] === 'number'
-  return Boolean(ventilazione.mode) || numero('rate') || numero('tidal_volume_ml') || numero('peep') || numero('fio2_percent')
+  return Boolean(ventilazione.mode) || numero('rate') || numero('tidal_volume_ml') || numero('peep') || numero('fio2_percent') || numero('inspiratory_pressure_cmh2o')
 }
 
 /**
@@ -1012,6 +1013,34 @@ export function conVentilazioneDelloScenario(
     const max = typeof def.max === 'number' ? def.max : Infinity
     const giusto = Math.max(min, Math.min(max, Math.round(valore)))
     fuori = applica(fuori, { tipo: 'parametro', chiave, valore: giusto }, 0).istantanea
+  }
+  // La pressione controllata: il livello sopra la PEEP (il supporto, in PS), il
+  // tempo inspiratorio e la salita. Il Ti diventa il rapporto della manopola più
+  // vicino alla frazione inspiratoria che dice, così le frecce continuano a
+  // scorrere sui suoi passi.
+  const detto = (k: string) => {
+    const v = ventilazione[k]
+    const n = Number(v)
+    return v === null || v === undefined || v === '' || !Number.isFinite(n) ? null : n
+  }
+  const metti = (chiave: 'pressureTarget' | 'psLevel' | 'inspiratoryRiseTimeSeconds', valore: number, decimali = 0) => {
+    const def = PARAMETRI[chiave]
+    const min = typeof def.min === 'number' ? def.min : -Infinity
+    const max = typeof def.max === 'number' ? def.max : Infinity
+    const f = 10 ** decimali
+    fuori = applica(fuori, { tipo: 'parametro', chiave, valore: Math.round(Math.max(min, Math.min(max, valore)) * f) / f }, 0).istantanea
+  }
+  const pInsp = detto('inspiratory_pressure_cmh2o')
+  if (pInsp !== null) metti(fuori.modalita === 'PS' ? 'psLevel' : 'pressureTarget', pInsp)
+  const salita = detto('rise_time_s')
+  if (salita !== null) metti('inspiratoryRiseTimeSeconds', Math.round(salita / 0.05) * 0.05, 2)
+  const ti = detto('inspiratory_time_s')
+  const frequenza = Number(fuori.impostazioni.frequency)
+  if (ti !== null && ti > 0 && frequenza > 0) {
+    const quota = ti / (60 / frequenza)
+    const frazione = (r: string) => { const [i, e] = r.split(':').map(Number); return i / (i + e) }
+    const ratio = RAPPORTI.reduce((a, b) => (Math.abs(frazione(b) - quota) < Math.abs(frazione(a) - quota) ? b : a))
+    fuori = applica(fuori, { tipo: 'parametro', chiave: 'ratio', valore: ratio }, 0).istantanea
   }
   return fuori
 }

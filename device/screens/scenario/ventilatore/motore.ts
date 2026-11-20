@@ -95,6 +95,35 @@ const R_CHIUSO = 50
 const RAMPA_VALVOLA = 0.025
 /** E non più in fretta di così, in cmH₂O/s: da una pressione alta ci mette di più. */
 const PENDENZA_VALVOLA = 350
+/**
+ * Il regolatore di pressione non è ideale. Una macchina vera insegue la Paw
+ * bersaglio con un ritardo di qualche decina di millisecondi: quando il
+ * paziente cambia lo sforzo più in fretta di così, la Paw si sposta prima che
+ * la valvola corregga — scende quando tira, sale quando spinge. È il tempo con
+ * cui il regolatore «si accorge» dello sforzo, in secondi, e la frazione del
+ * cambio di Pmus che arriva alla Paw prima che lo corregga.
+ */
+const TAU_REGOLATORE = 0.06
+const GUADAGNO_REGOLATORE = 0.5
+/** E non di più, in cmH₂O: oltre, la valvola di sicurezza o il trigger fanno il resto. */
+const SCOSTAMENTO_MASSIMO = 6
+/**
+ * Con la salita a zero la pressione arriva al bersaglio di colpo e lo supera:
+ * la sovraelongazione del regolatore, come frazione del livello, che si smorza
+ * in qualche decina di millisecondi. Sparisce da una salita di 0,1 s in su.
+ */
+const SOVRAELONGAZIONE = 0.18
+const SALITA_SENZA_SOVRA = 0.1
+/**
+ * Il paziente che espira dentro un'inspirazione a pressione: la valvola
+ * inspiratoria non può riprendersi il gas, e lo scarica quella espiratoria, che
+ * è chiusa e apre con una resistenza. La Paw sale sopra il bersaglio in
+ * proporzione al flusso che torna indietro: è la punta di fine inspirazione del
+ * ciclaggio ritardato. cmH₂O/(l/s) all'inizio; poi la valvola apre, in un tempo
+ * di qualche decimo di secondo (s), e la Paw torna sul bersaglio.
+ */
+const R_SFIATO = 14
+const APERTURA_SFIATO = 0.15
 /** In pressione di supporto un atto non dura più di così: il ciclaggio di sicurezza. */
 const TI_MASSIMO_PS = 3
 /** Sopra la pressione bersaglio di tanto, la macchina cicla: il paziente spinge. */
@@ -222,6 +251,15 @@ interface Sforzo {
    * vera il trigger è sempre aperto, qui lo è per loro (vedi `triggerControllata`).
    */
   apre?: boolean
+  /**
+   * È la seconda metà di uno sforzo che il ciclaggio ha interrotto: l'atto che
+   * apre è il secondo del doppio ciclo, e non sposta la griglia della macchina —
+   * se la spostasse, gli sforzi della regia cadrebbero in un altro punto del
+   * ciclo da lì in avanti.
+   */
+  rilancio?: boolean
+  /** È un colpo di tosse: solo questo rende turbolento il ramo espiratorio, non l'espirio attivo. */
+  tosse?: boolean
 }
 
 /** Le scelte del motore, ricavate dallo stato una volta per blocco. */
@@ -339,7 +377,7 @@ function gauss(seme: number, k: number): number {
   return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2)
 }
 
-function pmusDi(sforzi: Sforzo[], t: number, da: { i: number }): { valore: number; attivo: Sforzo | null } {
+function pmusDi(sforzi: Sforzo[], t: number, da: { i: number }): { valore: number; attivo: Sforzo | null; tosse: boolean } {
   // Gli sforzi sono in ordine: si avanza il primo indice utile e si guarda avanti poco.
   while (da.i < sforzi.length) {
     const s = sforzi[da.i]
@@ -348,15 +386,17 @@ function pmusDi(sforzi: Sforzo[], t: number, da: { i: number }): { valore: numbe
   }
   let valore = 0
   let attivo: Sforzo | null = null
+  let tosse = false
   for (let k = da.i; k < sforzi.length; k++) {
     const s = sforzi[k]
     if (s.t0 > t) break
     const u = t - s.t0
     if (u >= s.salita + s.tenuta + s.discesa) continue
     valore += s.ampiezza * formaA(s, u)
+    if (s.tosse) tosse = true
     if (s.ampiezza > 0 && (!attivo || s.t0 > attivo.t0)) attivo = s
   }
-  return { valore, attivo }
+  return { valore, attivo, tosse }
 }
 
 /** Le oscillazioni cardiache sul flusso: un colpo sistolico stretto per battito. */
@@ -476,8 +516,28 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
           togli(t - Ttot * 0.4, t + Ttot * 0.6)
           // Perché il trigger riapra lo sforzo deve vincere il ritorno elastico
           // del volume appena entrato: è il paziente con una fame vera.
-          const forte = Math.max(ampiezza, imp.volume / C + 4)
-          sforzi.push({ t0: t - 0.08, salita: tempi.Ti * 0.8, tenuta: tempi.Ti * 0.9, discesa: 0.35, ampiezza: forte, muto: false, apre: true })
+          if (modalita === 'VC' || (modalita === 'SIMV' && imp.psLevel === 0)) {
+            const forte = Math.max(ampiezza, imp.volume / C + 4)
+            sforzi.push({ t0: t - 0.08, salita: tempi.Ti * 0.8, tenuta: tempi.Ti * 0.9, discesa: 0.35, ampiezza: forte, muto: false, apre: true })
+          } else {
+            // Due atti più il secondo Ti non stanno in un ciclo: un doppio ciclo
+            // subito dopo un altro cadrebbe dentro il secondo atto del primo, e
+            // da lì la macchina resterebbe sfasata per sempre. Uno sì e uno no.
+            // In una fila di atti asincroni tocca al primo, al terzo, al quinto.
+            let fila = 1
+            while (fila < 40 && attoAsincrono(i - fila + SPOSTA_INDICE, conTrigger, stato.seme)) fila++
+            if (fila < 40 ? fila % 2 === 0 : ((i % 2) + 2) % 2 === 1) break
+            // In pressione il volume lo fa lo sforzo stesso, e una tenuta non
+            // basta: il polmone pieno torna indietro appena la valvola apre. Il
+            // trigger riapre solo se lo sforzo **cresce ancora** dopo il
+            // ciclaggio, più in fretta di quanto il polmone si svuoti.
+            const livello = modalita === 'SIMV' ? imp.psLevel : modalita === 'PRVC' ? imp.volume / C : imp.pressureTarget
+            // Il primo pezzo apre l'atto e tiene per tutto il Ti; il secondo è
+            // lo sforzo che il paziente non ha finito, e riparte proprio mentre
+            // la macchina stacca.
+            sforzi.push({ t0: t - 0.08, salita: 0.3, tenuta: tempi.Ti, discesa: 0.5, ampiezza, muto: false, apre: true })
+            sforzi.push({ t0: t + tempi.Ti - 0.1, salita: 0.3, tenuta: 0.15, discesa: 0.4, ampiezza: livello + 4, muto: false, apre: true, rilancio: true })
+          }
           break
         }
         case 'fame-di-flusso': {
@@ -590,7 +650,7 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
     if (c.t < da - 2 || c.t > a + 1) continue
     const primo = i === 0 || c.t - (stato.tossi![i - 1].t ?? -1e9) > 1
     if (primo) sforzi.push({ t0: c.t - 0.3, salita: 0.18, tenuta: 0.02, discesa: 0.08, ampiezza: 7 * c.forza, muto: false })
-    sforzi.push({ t0: c.t - 0.02, ...COLPO_DI_TOSSE, ampiezza: -TOSSE_PMUS * c.forza, muto: true })
+    sforzi.push({ t0: c.t - 0.02, ...COLPO_DI_TOSSE, ampiezza: -TOSSE_PMUS * c.forza, muto: true, tosse: true })
   }
   sforzi.sort((x, y) => x.t0 - y.t0)
 
@@ -787,6 +847,8 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
   let pawPrima = peep
   let fasePrima = 2
   let pawCiclo = peep
+  let pmusVisto = 0
+  let ritornoDa = Number.NEGATIVE_INFINITY
   let ultimaTosse = Number.NEGATIVE_INFINITY
   // Lo stress index: la regressione di ln(Paw − Paw₀) su ln(t) nel tratto a
   // flusso costante, accumulata mentre passa.
@@ -798,7 +860,9 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
   const passi = Math.round((t1 - t0) / PASSO)
   for (let s = 0; s <= passi; s++) {
     const t = t0 + s * PASSO
-    const { valore: pmus, attivo } = pmusDi(p.sforzi, t, cursore)
+    const { valore: pmus, attivo, tosse: inTosse } = pmusDi(p.sforzi, t, cursore)
+    // Quello che il regolatore ha già visto dello sforzo: la Pmus, in ritardo.
+    pmusVisto += (pmus - pmusVisto) * Math.min(1, PASSO / TAU_REGOLATORE)
     const palvSenza = peep + ritorno(V)
     const palv = palvSenza - pmus
     const osc = p.cardio.ampiezza > 0 ? cardiaco(t, p.cardio.frequenza) * p.cardio.ampiezza * 4 : 0
@@ -870,8 +934,12 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         if (controllata && tipoAtto !== 'supporto') {
           // In assistita-controllata il ciclo riparte dall'atto innescato; in
           // SIMV l'obbligato sincronizzato resta sulla sua griglia.
-          if (innescato && modalita !== 'SIMV') prossimoMandatorio = t + p.Ttot
+          if (innescato && modalita !== 'SIMV' && !sforzoInnesco?.rilancio) prossimoMandatorio = t + p.Ttot
           while (prossimoMandatorio <= t + p.Ttot * 0.25) prossimoMandatorio += p.Ttot
+          // Dopo il secondo atto del doppio ciclo l'obbligato che gli cade
+          // addosso salta: partirebbe appena il secondo ha finito, un terzo atto
+          // di fila che nessun ventilatore eroga.
+          if (sforzoInnesco?.rilancio) while (prossimoMandatorio < t + atTi + REFRATTARIO + 0.3) prossimoMandatorio += p.Ttot
         }
         fase = 0
         inizioAtto = t
@@ -956,8 +1024,22 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         const livello = tipoAtto === 'supporto' ? (modalita === 'SIMV' ? p.psSimv : p.ps) : atMotrice
         const sale = liscio(Math.min(1, dentro / p.salita))
         paw = peep + livello * sale
+        // La sovraelongazione con la salita a zero, e lo sforzo che il regolatore
+        // non ha ancora inseguito.
+        const oltre = dentro - p.salita
+        const sovra = SOVRAELONGAZIONE * Math.max(0, 1 - p.salita / SALITA_SENZA_SOVRA)
+        if (sovra > 0 && oltre >= 0) paw += livello * sovra * Math.exp(-oltre / 0.035) * Math.cos(2 * Math.PI * 7 * oltre)
+        if (!inTosse) paw -= Math.max(-SCOSTAMENTO_MASSIMO, Math.min(SCOSTAMENTO_MASSIMO, GUADAGNO_REGOLATORE * (pmus - pmusVisto)))
         if (p.perdita > 0) paw = pressioneConPerdita(paw, palv, R, p.perdita * fluttua(t))
         Q = (paw - palv) / R
+        // In un atto a tempo il paziente che spinge prima del ciclaggio rimanda
+        // indietro il gas: lo scarica la valvola espiratoria, e la Paw sale.
+        if (Q < 0 && tipoAtto === 'pressione' && p.perdita === 0) {
+          if (ritornoDa < inizioAtto) ritornoDa = t
+          const rs = R_SFIATO * Math.exp(-(t - ritornoDa) / APERTURA_SFIATO)
+          Q = (paw - palv) / (R + rs)
+          paw -= rs * Q
+        }
         // Con le vie aeree chiuse il gas intrappolato non torna indietro
         // mentre la pressione sale: aspetta che la Paw passi l'apertura.
         if (p.aop > 0 && paw < p.aop) Q = Math.max(0, Q)
@@ -982,7 +1064,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
     }
     // il paziente tossisce mentre la macchina spinge: la Paw arriva al limite alto e la macchina smette di
     // insufflare, apre l'espirazione (e suona l'allarme di pressione)
-    const tossisce = pmus < TOSSE_IN_CORSO
+    const tossisce = inTosse && pmus < TOSSE_IN_CORSO
     if (tossisce) ultimaTosse = t
     if ((fase === 0 || fase === 1) && tossisce && paw >= p.pMax) {
       paw = p.pMax + SFORO_LIMITE

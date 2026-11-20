@@ -25,6 +25,8 @@ export interface ScenarioPronto {
 
 const CIPULLI_2026 = 'Cipulli F, Sanna A, Garberi R, Lassola S, Forcione M, Bellani G, Foti G, Rezoagli E. Dead space in critical care: a practical approach with clinical scenarios. J Anesth Analg Crit Care 2026;6:20. doi:10.1186/s44158-025-00320-4';
 
+const DE_HARO_2019 = 'de Haro C, Ochagavia A, López-Aguilar J, Fernandez-Gonzalo S, Navarra-Ventura G, Magrans R, Montanyà J, Blanch L; ASYNICU Group. Patient-ventilator asynchronies during mechanical ventilation: current knowledge and research priorities. Intensive Care Med Exp 2019;7(Suppl 1):43. doi:10.1186/s40635-019-0234-5';
+
 const paralizzato = { frequenza: 0, intensita: 0, forma: null };
 
 function scenario(
@@ -84,5 +86,28 @@ export const SCENARI_PRONTI: ScenarioPronto[] = [
     riferimento: `${CIPULLI_2026}, caso 4.`,
     preset: 'covid',
     scenario: scenario('COVID-19 PEEP decrementale', { volume: 480, frequency: 18, peep: 18, fio2: 55 }, 'covid', { compliance: 48, reclutabilita: 0.5, isteresi: 2, sovradistensione: 20 }, 33, { shuntFisso: 0.2, spazioMortoAlv: 0.25 }),
+  },  {
+    id: 'pc-fame-aria',
+    nome: { it: 'PC con Ti lungo e fame d\'aria', en: 'PC with long Ti and air hunger' },
+    nota: {
+      it: 'PC 14 sopra PEEP 5, Ti 1,5 s (I:E 1:1), salita 0. Il paziente ha uno sforzo corto e forte e spinge per uscire: FR 23 su 20, VT oltre 10 ml/kg, punta di Paw a fine inspirazione e flusso che si inverte prima del ciclaggio. Peso ideale 58 kg. Dalla scheda Asincronie si passa al doppio ciclo. Si corregge accorciando il Ti o passando in PS.',
+      en: 'PC 14 above PEEP 5, Ti 1.5 s (I:E 1:1), rise 0. The patient makes a short, strong effort and pushes to get out: RR 23 over 20, VT above 10 ml/kg, Paw spike at end-inspiration and flow reversing before cycling. Ideal body weight 58 kg. Switch to double cycling from the Asynchronies tab. Fix it by shortening Ti or moving to PS.',
+    },
+    riferimento: `${DE_HARO_2019}, fig. 1.`,
+    preset: 'normale',
+    scenario: {
+      app: 'open-vent-sim',
+      kind: 'scenario',
+      version: 1,
+      name: "PC con fame d'aria",
+      ambiente: 'invasiva',
+      modalita: 'PC',
+      impostazioni: { pressureTarget: 14, peep: 5, frequency: 20, ratio: '1:1', inspiratoryRiseTimeSeconds: 0, triggerFlow: 2, triggerControllata: 1, fio2: 30 },
+      fisiologia: { ...PRESET_FISIOLOGIA.normale.fisiologia, compliance: 40, resistenza: 10 },
+      drive: { frequenza: 23, intensita: 0.7, forma: { salita: 0.35, tenuta: 0.05, discesa: 0.3 }, espirioAttivo: 0.7 },
+      asincronia: { tipo: 'ciclaggio-ritardato', quota: 0.5 },
+      vitali: { spo2: 95, etco2: 34, heartRate: 105, map: 85 },
+    },
   },
+
 ];

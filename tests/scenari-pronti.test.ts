@@ -24,7 +24,7 @@ describe('casi dalla letteratura', () => {
   it('ogni caso ha nome, nota e riferimento al lavoro e al caso, e passa il controllo dei file scenario', () => {
     for (const p of SCENARI_PRONTI) {
       expect(p.nome.it && p.nome.en && p.nota.it && p.nota.en).toBeTruthy();
-      expect(p.riferimento).toMatch(/doi:10\.\d+\/.+, caso \d\.$/);
+      expect(p.riferimento).toMatch(/doi:10\.\d+\/.+, (caso|fig\.) \d\.$/);
       const sc = parseScenario(JSON.stringify(p.scenario));
       expect(sc.fisiologia).toEqual(p.scenario.fisiologia);
       expect(sc.scambio).toEqual(p.scenario.scambio);
