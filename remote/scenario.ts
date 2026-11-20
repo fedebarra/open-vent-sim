@@ -79,7 +79,10 @@ export function parseScenario(text: string): ScenarioFile {
   const f = d.drive?.forma;
   drive.forma = f && finito(f.salita) && finito(f.tenuta) && finito(f.discesa) ? { salita: f.salita, tenuta: f.tenuta, discesa: f.discesa } : null;
   const a = d.asincronia;
-  const asincronia = a && typeof a.tipo === 'string' && finito(a.quota) ? { tipo: a.tipo, quota: Math.min(1, Math.max(0, a.quota)), ...(finito(a.grado) ? { grado: a.grado } : {}) } : null;
+  const voce = (x: any) => (x && typeof x.tipo === 'string' && finito(x.quota) ? { tipo: x.tipo, quota: Math.min(1, Math.max(0, x.quota)), ...(finito(x.grado) ? { grado: x.grado } : {}) } : null);
+  const prima = voce(a);
+  const insieme = prima && Array.isArray(a.insieme) ? a.insieme.map(voce).filter(Boolean).slice(0, 2) : [];
+  const asincronia = prima ? { ...prima, ...(insieme.length ? { insieme } : {}) } : null;
   const v = d.vitali ?? {};
   const vit = (x: unknown) => (finito(x) ? x : null);
   return {

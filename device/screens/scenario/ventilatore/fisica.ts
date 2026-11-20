@@ -50,6 +50,7 @@ import {
   DRIVE_ASSENTE,
   PMUSC_MASSIMA,
   driveEfficace,
+  elencoAsincronie,
   quotaEfficace,
   type Drive,
   type ImpostazioniAsincronia,
@@ -997,26 +998,28 @@ export function attiSpontaneiSimv(stato: StatoVentilatore): number {
 export function frequenzaErogata(stato: StatoVentilatore): number {
   const macchina = 60 / periodoCicloSec(stato)
   const spontanei = attiSpontaneiSimv(stato)
-  const a = stato.asincronia
-  if (!a || a.quota <= 0) return macchina + spontanei
-  // **La quota che conta è quella corretta dal trigger.** Rendendo sensibile la
-  // sensibilità gli sforzi passano, e la frequenza erogata risale verso quella
-  // nativa del paziente: è il segno sui numeri che dice che la manovra ha
-  // funzionato, e si legge prima che sulle curve.
-  const quota = quotaEfficace(a, stato.impostazioni.triggerFlow)
-  if (quota <= 0) return macchina + spontanei
+  const base = macchina + spontanei
   const spontanea = stato.modalita === 'PS' || stato.modalita === 'CPAP'
-  if (a.tipo === 'sforzo-inefficace') {
-    if (spontanea) return macchina * (1 - quota)
-    // In SIMV gli sforzi che non arrivano al trigger tolgono atti **spontanei**:
-    // gli obbligati partono lo stesso, ed è tutta la differenza fra una
-    // modalità che garantisce e una che aspetta.
-    return macchina + spontanei * (1 - quota)
+  // Più asincronie insieme si spartiscono gli atti: ognuna sposta la frequenza
+  // per la sua quota, e gli spostamenti si sommano.
+  let frequenza = base
+  for (const a of elencoAsincronie(stato.asincronia)) {
+    // **La quota che conta è quella corretta dal trigger.** Rendendo sensibile la
+    // sensibilità gli sforzi passano, e la frequenza erogata risale verso quella
+    // nativa del paziente: è il segno sui numeri che dice che la manovra ha
+    // funzionato, e si legge prima che sulle curve.
+    const quota = quotaEfficace(a, stato.impostazioni.triggerFlow)
+    if (quota <= 0) continue
+    if (a.tipo === 'sforzo-inefficace') {
+      // In SIMV gli sforzi che non arrivano al trigger tolgono atti **spontanei**:
+      // gli obbligati partono lo stesso, ed è tutta la differenza fra una
+      // modalità che garantisce e una che aspetta.
+      frequenza -= spontanea ? macchina * quota : spontanei * quota
+    } else if (a.tipo === 'doppio-ciclo' || a.tipo === 'auto-trigger') {
+      frequenza += base * quota
+    }
   }
-  if (a.tipo === 'doppio-ciclo' || a.tipo === 'auto-trigger') {
-    return (macchina + spontanei) * (1 + quota)
-  }
-  return macchina + spontanei
+  return frequenza
 }
 
 /**
@@ -1098,7 +1101,7 @@ export function misura(
     const Tif = sigh ? sigh.Ti * (TifOrdinario / Math.max(0.01, TiOrdinario)) : TifOrdinario
     const imp = stato.impostazioni
     const vt = volumeCorrenteAtteso(stato)
-    const doppio = stato.asincronia?.tipo === 'doppio-ciclo' ? stato.asincronia.quota : 0
+    const doppio = elencoAsincronie(stato.asincronia).find((x) => x.tipo === 'doppio-ciclo')?.quota ?? 0
 
     const pAlveolare = imp.peep + vt / Math.max(1, fis.compliance)
     if (modalita === 'VC' || (modalita === 'SIMV' && imp.psLevel === 0)) {
@@ -1262,6 +1265,16 @@ export function misura(
       )
       // (l'asterisco lo mette il display quando c'è la P0.1: gli stessi atti)
       if (cdyn !== null) m.compliance = Math.round(cdyn)
+      // ## Il picco misurato, in pressione
+      //
+      // In pressione il picco non è il bersaglio: il regolatore lo supera con la
+      // salita a zero, e il paziente che spinge prima del ciclaggio lo alza di
+      // parecchio. Il display scrive quello dell'ultimo atto, come la macchina
+      // vera — mai sotto il bersaglio, che è quello che la valvola tiene.
+      if (modalita === 'PC' || modalita === 'PRVC' || modalita === 'PS') {
+        const ultimo = recenti.at(-1)
+        if (ultimo && ultimo.pip > (m.pPeak ?? 0) + 0.5) m.pPeak = arrotonda(ultimo.pip)
+      }
     }
     // la tosse: la macchina vede la Paw del colpo appena succede (non a fine atto), la scrive come picco e sopra
     // il limite suona l'allarme di pressione; il numero resta per `PICCO_TOSSE_SEC`, poi torna quello dell'atto.

@@ -42,9 +42,10 @@
 import { estrazione, rumore } from './caso'
 import {
   PMUSC_MASSIMA,
-  attoAsincrono,
+  asincroniaDellAtto,
   driveEfficace,
   durataSforzoSec,
+  elencoAsincronie,
   quotaEfficace,
   type TipoAsincronia,
 } from './asincronie'
@@ -122,8 +123,8 @@ const SALITA_SENZA_SOVRA = 0.1
  * ciclaggio ritardato. cmH₂O/(l/s) all'inizio; poi la valvola apre, in un tempo
  * di qualche decimo di secondo (s), e la Paw torna sul bersaglio.
  */
-const R_SFIATO = 14
-const APERTURA_SFIATO = 0.15
+const R_SFIATO = 20
+const APERTURA_SFIATO = 0.3
 /** In pressione di supporto un atto non dura più di così: il ciclaggio di sicurezza. */
 const TI_MASSIMO_PS = 3
 /** Sopra la pressione bersaglio di tanto, la macchina cicla: il paziente spinge. */
@@ -429,10 +430,15 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
 
   const sforzi: Sforzo[] = []
   const autoTrigger: number[] = []
-  const asin = stato.asincronia
-  const tipo: TipoAsincronia | null = asin && asin.quota > 0 ? asin.tipo : null
-  const conTrigger = asin ? { ...asin, quota: quotaEfficace(asin, imp.triggerFlow) } : null
+  // Le asincronie della regia, con la quota che il trigger lascia passare.
+  const controllataAperta =
+    (modalita === 'VC' || modalita === 'PC' || modalita === 'PRVC') && imp.triggerControllata === 1
+  const elenco = elencoAsincronie(stato.asincronia).map((x) => ({ ...x, quota: quotaEfficace(x, imp.triggerFlow) }))
+  const dellAtto = (i: number) => asincroniaDellAtto(i + SPOSTA_INDICE, elenco, stato.seme)
   const spontanea = modalita === 'PS' || modalita === 'CPAP' || modalita === 'PAV'
+  // Gli sforzi del treno, per indice: in assistita-controllata le asincronie del
+  // paziente stanno su di loro (vedi sotto).
+  const ancoreTreno: { indice: number; t: number }[] = []
 
   // ## Il treno spontaneo
   if (drive.frequenza > 0 && drive.intensita > 0) {
@@ -461,13 +467,14 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
       const v = 1 + (estrazione(stato.seme + 7, k) - 0.5) * 0.08 + variabilita * 0.18 * Math.max(-2, Math.min(2, gauss(stato.seme + 11, k)))
       const durata = 1 + variabilita * 0.12 * Math.max(-2, Math.min(2, gauss(stato.seme + 13, k)))
       const sposta = variabilita * 0.1 * periodo * Math.max(-2.5, Math.min(2.5, gauss(stato.seme + 17, k)))
+      ancoreTreno.push({ indice: k, t: sfas + k * periodo + sposta + 0.08 })
       sforzi.push({
         t0: sfas + k * periodo + sposta,
         salita: base.salita * stringi * durata,
         tenuta: base.tenuta * stringi * durata,
         discesa: base.discesa * stringi * durata,
         ampiezza: drive.intensita * PMUSC_MASSIMA * Math.max(0.2, v) * scarico,
-        muto: spontanea && tipo === 'sforzo-inefficace' && attoAsincrono(k + SPOSTA_INDICE, conTrigger, stato.seme),
+        muto: spontanea && dellAtto(k)?.tipo === 'sforzo-inefficace',
       })
       // L'espirio attivo: dopo lo sforzo, gli addominali. Cade nella seconda
       // metà dell'espirazione e finisce prima che cominci lo sforzo dopo.
@@ -489,15 +496,55 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
   }
 
   // ## Le asincronie della regia, come cause
-  if (tipo && conTrigger && conTrigger.quota > 0) {
+  if (elenco.some((x) => x.quota > 0)) {
     const intensita = Math.max(0.5, drive.intensita) * forza
     const ampiezza = intensita * PMUSC_MASSIMA
-    const grado = Math.min(4, Math.max(1, asin?.grado ?? 1))
-    const i0 = Math.floor((da - 3) / Ttot)
-    const i1 = Math.ceil((a + 1) / Ttot)
-    for (let i = i0; i <= i1; i++) {
-      if (!attoAsincrono(i + SPOSTA_INDICE, conTrigger, stato.seme)) continue
-      const t = i * Ttot
+    const ea = Math.min(1, Math.max(0, stato.drive.espirioAttivo ?? 0))
+    const inPressione = !(modalita === 'VC' || (modalita === 'SIMV' && imp.psLevel === 0))
+    // Il doppio ciclo in pressione è fatto davvero solo sul primo, terzo,
+    // quinto di una fila: due atti più il secondo Ti non stanno in un ciclo.
+    const doppioFatto = (j: number): boolean => {
+      let fila = 0
+      while (fila < 40 && dellAtto(j - fila)?.tipo === 'doppio-ciclo') fila++
+      if (fila === 0) return false
+      return fila < 40 ? fila % 2 === 1 : ((j % 2) + 2) % 2 === 0
+    }
+    // **Dove cadono.** Di regola sugli atti della macchina, uno per ciclo. Ma in
+    // assistita-controllata, con un paziente che respira per conto suo, gli atti
+    // li apre lui e ogni atto innescato fa ripartire il ciclo: la griglia della
+    // macchina scivola, e uno sforzo messo lì cadrebbe a metà di
+    // un'inspirazione o in piena espirazione. Allora le asincronie stanno sugli
+    // sforzi del paziente — sono sue — tranne quelle che nascono dalla
+    // macchina: il reverse triggering (è l'insufflazione che lo innesca) e
+    // l'auto-trigger (non c'è nessuno sforzo).
+    const sulPaziente = controllataAperta && ancoreTreno.length > 0
+    const dellaMacchina = (x: TipoAsincronia) => x === 'reverse-trigger' || x === 'auto-trigger'
+    // La voce di un atto: sul paziente solo le sue, sulla griglia (quando c'è il
+    // paziente) solo quelle della macchina.
+    const voceDi = (i: number, paziente: boolean) => {
+      const v = dellAtto(i)
+      if (!v || !sulPaziente) return v
+      return dellaMacchina(v.tipo) === !paziente ? v : null
+    }
+    const posti: { indice: number; t: number; paziente: boolean }[] = []
+    for (let i = Math.floor((da - 3) / Ttot); i <= Math.ceil((a + 1) / Ttot); i++) posti.push({ indice: i, t: i * Ttot, paziente: false })
+    if (sulPaziente) for (const x of ancoreTreno) posti.push({ ...x, paziente: true })
+    for (const { indice: i, t: tAncora, paziente } of posti) {
+      // Dopo un doppio ciclo in pressione il ciclo dopo è occupato dal secondo
+      // atto: lì un'altra asincronia cadrebbe dentro un'inspirazione. Non si
+      // perde: slitta al ciclo dopo, se quello è libero — se no la quota di chi
+      // sta insieme a un doppio ciclo si assottiglierebbe a ogni coppia.
+      const suoi = !sulPaziente || paziente
+      if (suoi && inPressione && doppioFatto(i - 1)) continue
+      let voce = voceDi(i, paziente)
+      if (!voce && suoi && inPressione && doppioFatto(i - 2)) {
+        const rimandata = voceDi(i - 1, paziente)
+        if (rimandata && rimandata.tipo !== 'doppio-ciclo') voce = rimandata
+      }
+      if (!voce) continue
+      const tipo = voce.tipo
+      const grado = Math.min(4, Math.max(1, voce.grado ?? 1))
+      const t = tAncora
       const togli = (t0: number, t1: number) => {
         for (let k = sforzi.length - 1; k >= 0; k--) if (sforzi[k].t0 >= t0 && sforzi[k].t0 < t1 && sforzi[k].ampiezza > 0) sforzi.splice(k, 1)
       }
@@ -520,13 +567,8 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
             const forte = Math.max(ampiezza, imp.volume / C + 4)
             sforzi.push({ t0: t - 0.08, salita: tempi.Ti * 0.8, tenuta: tempi.Ti * 0.9, discesa: 0.35, ampiezza: forte, muto: false, apre: true })
           } else {
-            // Due atti più il secondo Ti non stanno in un ciclo: un doppio ciclo
-            // subito dopo un altro cadrebbe dentro il secondo atto del primo, e
-            // da lì la macchina resterebbe sfasata per sempre. Uno sì e uno no.
-            // In una fila di atti asincroni tocca al primo, al terzo, al quinto.
-            let fila = 1
-            while (fila < 40 && attoAsincrono(i - fila + SPOSTA_INDICE, conTrigger, stato.seme)) fila++
-            if (fila < 40 ? fila % 2 === 0 : ((i % 2) + 2) % 2 === 1) break
+            // Un doppio ciclo subito dopo un altro cadrebbe dentro il secondo
+            // atto del primo: lo salta il controllo in cima al giro.
             // In pressione il volume lo fa lo sforzo stesso, e una tenuta non
             // basta: il polmone pieno torna indietro appena la valvola apre. Il
             // trigger riapre solo se lo sforzo **cresce ancora** dopo il
@@ -570,7 +612,13 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
           // la macchina tiene: l'espirio attivo è una Pmus negativa.
           togli(t - Ttot * 0.4, t + Ttot * 0.6)
           sforzi.push({ t0: t - 0.08, salita: tempi.Ti * 0.25, tenuta: 0, discesa: tempi.Ti * 0.25, ampiezza, muto: false })
-          sforzi.push({ t0: t + tempi.Ti * 0.55, salita: tempi.Ti * 0.25, tenuta: tempi.Ti * 0.2, discesa: 0.3, ampiezza: -ampiezza * 0.6, muto: false })
+          // La spinta cresce con l'espirio attivo del paziente: chi ha gli
+          // addominali in gioco spinge forte, e la punta di Paw si alza.
+          // Sta dentro l'inspirazione e molla appena dopo il ciclaggio, col
+          // polmone ancora pieno: mollata più tardi, sotto la capacità
+          // funzionale, il ritorno elastico farebbe un flusso inspiratorio che
+          // il trigger prende per uno sforzo.
+          sforzi.push({ t0: t + tempi.Ti * 0.35, salita: tempi.Ti * 0.3, tenuta: tempi.Ti * 0.25, discesa: 0.35, ampiezza: -ampiezza * (0.6 + 0.8 * ea), muto: false })
           break
         }
         case 'auto-trigger': {
@@ -886,7 +934,13 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         // regolata in assistita-controllata o che lo sforzo sia di quelli che
         // la regia ha messo apposta per aprirlo.
         const puo = !controllata || p.triggerControllata || modalita === 'SIMV' || attivo?.apre === true
-        const sforzoValido = attivo ? !attivo.muto : true
+        // In controllata col trigger aperto l'atto lo apre uno sforzo: il flusso
+        // del ritorno elastico quando il paziente molla una spinta espiratoria
+        // non è una richiesta, e innescato metterebbe la macchina fuori fase
+        // con il paziente per sempre. Senza sforzo restano le perdite e il cuore.
+        const sforzoValido = attivo
+          ? !attivo.muto
+          : !(controllata && p.triggerControllata && p.perdita === 0 && p.cardio.ampiezza === 0)
         if (inAttesa !== null) {
           if (t >= inAttesa) parte = 'paziente'
         } else if (puo && sforzoValido && flussoVisto > p.trigger) inAttesa = t + RITARDO_TRIGGER
@@ -1301,7 +1355,7 @@ function chiave(stato: StatoVentilatore, inizio: number): string {
     d.responsivo ? 1 : 0,
     d.variabilita ?? 0,
     d.espirioAttivo ?? 0,
-    a ? `${a.tipo}:${a.quota}:${a.grado ?? 1}` : '-',
+    elencoAsincronie(a).map((x) => `${x.tipo}:${x.quota}:${x.grado ?? 1}`).join(',') || '-',
     stato.seme,
     stato.sfasamentoSpontaneo ?? 0,
     stato.paziente.heartRate ?? 80,

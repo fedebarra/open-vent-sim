@@ -169,6 +169,65 @@ export interface ImpostazioniAsincronia {
   quota: number
   /** Gravità della fame di flusso, 1–4 (fig. 2 di de Haro). Uno altrove. */
   grado?: number
+  /**
+   * Altre asincronie **sugli altri atti** dello stesso paziente (facoltative).
+   *
+   * Al letto non se ne vede quasi mai una sola: chi ha fame d'aria sotto un Ti
+   * lungo spinge per uscire su un atto e fa un doppio ciclo su quello dopo. Le
+   * quote si spartiscono gli atti senza sovrapporsi: ogni atto ne ha al più
+   * una, e la somma non passa uno.
+   */
+  insieme?: AsincroniaInsieme[]
+}
+
+/** Una delle asincronie aggiunte: tipo, quota e grado, senza altre dentro. */
+export interface AsincroniaInsieme {
+  tipo: TipoAsincronia
+  quota: number
+  grado?: number
+}
+
+/** Quante asincronie insieme al massimo: la principale e due. */
+export const MASSIMO_INSIEME = 2
+
+/**
+ * Le asincronie della regia in fila: la principale, poi quelle insieme, senza
+ * doppioni di tipo e senza quote a zero. Vuota se non c'è niente.
+ */
+export function elencoAsincronie(a: ImpostazioniAsincronia | null | undefined): AsincroniaInsieme[] {
+  if (!a) return []
+  const fuori: AsincroniaInsieme[] = []
+  const visti = new Set<TipoAsincronia>()
+  for (const x of [a, ...(a.insieme ?? []).slice(0, MASSIMO_INSIEME)]) {
+    if (!x || !(x.quota > 0) || visti.has(x.tipo)) continue
+    visti.add(x.tipo)
+    fuori.push({ tipo: x.tipo, quota: Math.min(1, x.quota), ...(x.grado !== undefined ? { grado: x.grado } : {}) })
+  }
+  return fuori
+}
+
+/**
+ * Quale asincronia tocca a **questo** atto, o nessuna.
+ *
+ * Una sola estrazione per atto, e le quote messe in fila: con il 50% di una e
+ * il 25% dell'altra, metà degli atti ha la prima, un quarto la seconda, il
+ * resto niente. Con una sola asincronia è esattamente `attoAsincrono`.
+ */
+export function asincroniaDellAtto(
+  indice: number,
+  elenco: AsincroniaInsieme[],
+  seme = 1,
+): AsincroniaInsieme | null {
+  if (!elenco.length || indice < 0) return null
+  const u = estrazione(seme, indice)
+  let soglia = 0
+  for (const x of elenco) {
+    if (x.quota <= 0) continue
+    if (x.quota >= 1 && soglia === 0) return x
+    soglia += x.quota
+    if (u < soglia) return x
+  }
+  return null
 }
 
 /** Da «sei eventi al minuto» alla quota, che è quello che il motore usa. */
@@ -396,9 +455,10 @@ export const PRESET_ASINCRONIA: Record<
   },
   // Fame d'aria in pressione controllata con un Ti lungo: lo sforzo è corto e
   // forte, il paziente spinge per uscire mentre la macchina tiene — punta di
-  // Paw a fine inspirazione, flusso che si inverte prima del ciclaggio.
+  // Paw a fine inspirazione, flusso che si inverte prima del ciclaggio — e un
+  // atto su quattro tira ancora quando la macchina stacca: doppio ciclo.
   'spinge-per-uscire': {
-    drive: { frequenza: 23, intensita: 0.7, forma: { salita: 0.35, tenuta: 0.05, discesa: 0.3 }, espirioAttivo: 0.7 },
-    asincronia: { tipo: 'ciclaggio-ritardato', quota: 0.5 },
+    drive: { frequenza: 23, intensita: 0.9, forma: { salita: 0.35, tenuta: 0.05, discesa: 0.3 }, espirioAttivo: 0.8 },
+    asincronia: { tipo: 'ciclaggio-ritardato', quota: 0.5, insieme: [{ tipo: 'doppio-ciclo', quota: 0.25 }] },
   },
 }

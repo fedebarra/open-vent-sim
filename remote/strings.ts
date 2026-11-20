@@ -81,7 +81,7 @@ const it = {
   activeRamps: 'Cambi graduali in corso', stopRamps: 'Ferma',
 
   asyncIntro: 'Il ventilatore degli studenti mostra solo le curve deformate, mai il nome dell’asincronia.',
-  asyncNone: 'Nessuna', asyncQuota: 'Atti coinvolti', asyncGrade: 'Gravità (fame di flusso)',
+  asyncNone: 'Nessuna', asyncWith: 'Insieme a (sugli altri atti)', asyncQuotaWith: 'Atti coinvolti (la seconda)', asyncQuota: 'Atti coinvolti', asyncGrade: 'Gravità (fame di flusso)',
   driveRate: 'Drive del paziente (atti/min)', driveIntensity: 'Intensità dello sforzo',
   asyncPresets: 'Situazioni pronte', asyncStop: 'Togli asincronia',
   coughTitle: 'Tosse', coughOne: 'Colpo di tosse', coughFit: 'Accesso di tosse',
@@ -269,7 +269,7 @@ const en: RemoteStrings = {
   activeRamps: 'Gradual changes running', stopRamps: 'Stop',
 
   asyncIntro: 'The learners’ ventilator only shows the distorted waveforms, never the asynchrony name.',
-  asyncNone: 'None', asyncQuota: 'Breaths affected', asyncGrade: 'Severity (flow starvation)',
+  asyncNone: 'None', asyncWith: 'Together with (on other breaths)', asyncQuotaWith: 'Breaths affected (the second)', asyncQuota: 'Breaths affected', asyncGrade: 'Severity (flow starvation)',
   driveRate: 'Patient drive (breaths/min)', driveIntensity: 'Effort intensity',
   asyncPresets: 'Ready-made situations', asyncStop: 'Remove asynchrony',
   coughTitle: 'Cough', coughOne: 'Single cough', coughFit: 'Coughing fit',

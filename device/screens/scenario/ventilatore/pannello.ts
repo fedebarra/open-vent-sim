@@ -18,7 +18,7 @@
 import type { TranslationKey } from '../../../i18n/it'
 import type { AzioneVentilatore } from './azioni'
 import { costanteTempo, tempiRespiro, volumeCorrenteAtteso, type StatoVentilatore } from './fisica'
-import { PMUSC_MASSIMA, driveEfficace } from './asincronie'
+import { PMUSC_MASSIMA, driveEfficace, elencoAsincronie } from './asincronie'
 import type { Misure } from './parametri'
 import {
   impostazioniVisibili,
@@ -275,9 +275,35 @@ export function scaleOnde(
     }
   }
 
-  const vt = volumeCorrenteAtteso(stato)
+  // ## Il volume e il flusso che ci sono davvero, non solo quelli attesi
+  //
+  // In pressione il volume lo fa anche il paziente, e con un doppio ciclo due
+  // atti si sommano: una corsia tagliata sul volume atteso li taglia in cima,
+  // proprio dove sta quello che si deve vedere. Il doppio ciclo lo raddoppia
+  // quasi; il misurato conta solo quando passa di molto l'atteso — cioè quando
+  // il volume lo fa il paziente — perché se inseguisse ogni atto la corsia
+  // crescerebbe con la pressione di supporto, e alzarla non si vedrebbe più.
+  const doppio = elencoAsincronie(stato.asincronia).some((x) => x.tipo === 'doppio-ciclo')
+  const atteso = volumeCorrenteAtteso(stato)
+  const misurato = Math.max(misure.volumeInspired ?? 0, misure.volumeExpired ?? 0)
+  // (In PS no: lì la regola del fondo legato al paziente è quella che fa
+  // vedere il supporto che cresce.)
+  const controllataPressione = stato.modalita === 'PC' || stato.modalita === 'PRVC'
+  const vt = controllataPressione && misurato > atteso * 1.3 ? misurato : atteso
+  const vtCorsia = vt * (doppio ? 1.9 : 1)
   const { Tif } = tempiRespiro(stato)
-  const picco = Tif > 0 ? (vt / 1000 / Tif) * 60 : 30
+  // In pressione il picco del flusso è all'inizio dell'atto: tutto il livello,
+  // più lo sforzo, sulla sola resistenza — non il volume diviso il tempo, che
+  // con un Ti lungo lo darebbe tre volte più basso.
+  const inPressione =
+    stato.modalita === 'PC' || stato.modalita === 'PRVC' || stato.modalita === 'PS' ||
+    (stato.modalita === 'SIMV' && imp.psLevel > 0)
+  const livello = stato.modalita === 'PC' ? imp.pressureTarget : stato.modalita === 'PRVC' ? imp.volume / Math.max(3, stato.fisiologia.compliance) : imp.psLevel
+  const sforzoPicco = driveEfficace(stato.drive).intensita * PMUSC_MASSIMA
+  const piccoPressione = inPressione
+    ? ((livello + sforzoPicco) / Math.max(1, stato.fisiologia.resistenza)) * 60
+    : 0
+  const picco = Math.max(Tif > 0 ? (vt / 1000 / Tif) * 60 : 30, piccoPressione)
   // ## Il picco espiratorio non si deduce da quello inspiratorio
   //
   // Il primo tentativo lo stimava a una volta e otto l'inspiratorio, e la curva
@@ -303,7 +329,7 @@ export function scaleOnde(
     // vede crescere**. Sopra, la scala fa il suo gradino.
     volume: [
       0,
-      fondoScala(Math.max(300, pesoRiferimento(stato) * 10, vt * 1.1)),
+      fondoScala(Math.max(300, pesoRiferimento(stato) * 10, vtCorsia * 1.1)),
     ],
   }
 }
