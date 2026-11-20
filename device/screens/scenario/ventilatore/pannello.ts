@@ -279,12 +279,18 @@ export function scaleOnde(
   //
   // In pressione il volume lo fa anche il paziente, e con un doppio ciclo due
   // atti si sommano: una corsia tagliata sul volume atteso li taglia in cima,
-  // proprio dove sta quello che si deve vedere. Il misurato alza il fondo, il
-  // doppio ciclo lo raddoppia quasi.
+  // proprio dove sta quello che si deve vedere. Il doppio ciclo lo raddoppia
+  // quasi; il misurato conta solo quando passa di molto l'atteso — cioè quando
+  // il volume lo fa il paziente — perché se inseguisse ogni atto la corsia
+  // crescerebbe con la pressione di supporto, e alzarla non si vedrebbe più.
   const doppio = elencoAsincronie(stato.asincronia).some((x) => x.tipo === 'doppio-ciclo')
+  const atteso = volumeCorrenteAtteso(stato)
   const misurato = Math.max(misure.volumeInspired ?? 0, misure.volumeExpired ?? 0)
-  const vt = Math.max(volumeCorrenteAtteso(stato), misurato)
-  const vtCorsia = vt * (doppio ? 1.7 : 1)
+  // (In PS no: lì la regola del fondo legato al paziente è quella che fa
+  // vedere il supporto che cresce.)
+  const controllataPressione = stato.modalita === 'PC' || stato.modalita === 'PRVC'
+  const vt = controllataPressione && misurato > atteso * 1.3 ? misurato : atteso
+  const vtCorsia = vt * (doppio ? 1.9 : 1)
   const { Tif } = tempiRespiro(stato)
   // In pressione il picco del flusso è all'inizio dell'atto: tutto il livello,
   // più lo sforzo, sulla sola resistenza — non il volume diviso il tempo, che
