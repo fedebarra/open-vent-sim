@@ -21,7 +21,7 @@ import { useLanguage } from '../src/contexts/LanguageContext';
 import { translate } from '../device/i18n';
 import type { ComandoPaziente, VentIstantanea, AzioneVentilatore } from '../device/remoteTypes';
 import { PEEP_MINIMA_RI, PRESET_FISIOLOGIA, RECLUTAMENTO_SECONDI, sovradistensioneDi, trasmissioneToracica } from '../device/screens/scenario/ventilatore/fisica';
-import { PRESET_ASINCRONIA, TIPI_ASINCRONIA, type TipoAsincronia } from '../device/screens/scenario/ventilatore/asincronie';
+import { PRESET_ASINCRONIA, TIPI_ASINCRONIA, elencoAsincronie, type TipoAsincronia } from '../device/screens/scenario/ventilatore/asincronie';
 import { MODALITA_PER_AMBIENTE, PARAMETRI, impostazioniVisibili, type ChiaveImpostazione } from '../device/screens/scenario/ventilatore/parametri';
 import { ALLARMI, LIMITI_INIZIALI, type ChiaveAllarme } from '../device/screens/scenario/ventilatore/allarmi';
 import { NOME_AMBIENTE, NOME_ASINCRONIA, NOME_MODALITA, NOME_PRESET, NOME_MANOVRA, NOME_QUADRO } from '../device/screens/scenario/ventilatore/nomi';
@@ -597,6 +597,9 @@ const AsyncTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; onAppl
   const [tipo, setTipo] = useState<TipoAsincronia | null>(ist.asincronia?.tipo ?? null);
   const [quota, setQuota] = useState(ist.asincronia?.quota ?? 0.5);
   const [grado, setGrado] = useState(ist.asincronia?.grado ?? 2);
+  // a second asynchrony on the other breaths: real patients rarely show only one
+  const [tipo2, setTipo2] = useState<TipoAsincronia | null>(ist.asincronia?.insieme?.[0]?.tipo ?? null);
+  const [quota2, setQuota2] = useState(ist.asincronia?.insieme?.[0]?.quota ?? 0.25);
   const [freq, setFreq] = useState(num(ist.drive.frequenza, 14));
   const [intens, setIntens] = useState(num(ist.drive.intensita, 0.5));
   const name = (k: TipoAsincronia) => tr(NOME_ASINCRONIA[k]);
@@ -606,7 +609,7 @@ const AsyncTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; onAppl
       <div className="flex flex-wrap gap-1 items-center">
         <span className="text-slate-400 mr-1">{s.asyncPresets}:</span>
         {Object.entries(PRESET_ASINCRONIA).map(([k, v]) => (
-          <button key={k} data-testid={`async-preset-${k}`} onClick={() => { setTipo(v.asincronia.tipo); setQuota(v.asincronia.quota); setGrado(v.asincronia.grado ?? 2); setFreq(v.drive.frequenza); setIntens(v.drive.intensita); onApply({ drive: v.drive, asincronia: v.asincronia }, (s as any)['apreset_' + k] || k, 0); }}
+          <button key={k} data-testid={`async-preset-${k}`} onClick={() => { setTipo(v.asincronia.tipo); setQuota(v.asincronia.quota); setGrado(v.asincronia.grado ?? 2); setTipo2(v.asincronia.insieme?.[0]?.tipo ?? null); setQuota2(v.asincronia.insieme?.[0]?.quota ?? 0.25); setFreq(v.drive.frequenza); setIntens(v.drive.intensita); onApply({ drive: v.drive, asincronia: v.asincronia }, (s as any)['apreset_' + k] || k, 0); }}
             className="px-2.5 py-1 rounded bg-slate-800 border border-slate-700 hover:border-amber-500">{(s as any)['apreset_' + k] || k}</button>
         ))}
       </div>
@@ -621,13 +624,26 @@ const AsyncTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; onAppl
       <div className="grid grid-cols-2 gap-x-6 gap-y-2">
         <Slider label={s.asyncQuota} value={quota * 100} min={5} max={100} step={5} unit="%" onChange={(v) => setQuota(v / 100)} />
         {tipo === 'fame-di-flusso' && <Slider label={s.asyncGrade} value={grado} min={1} max={4} step={1} onChange={setGrado} />}
+        <label className="flex flex-col gap-1">
+          <span className="text-slate-400">{s.asyncWith}</span>
+          <select data-testid="async-with" value={tipo2 ?? ''} onChange={(e) => setTipo2((e.target.value || null) as TipoAsincronia | null)} className="bg-slate-800 border border-slate-700 rounded px-2 py-1.5">
+            <option value="">{s.asyncNone}</option>
+            {TIPI_ASINCRONIA.filter((k) => k !== tipo).map((k) => <option key={k} value={k}>{name(k)}</option>)}
+          </select>
+        </label>
+        {tipo2 && tipo2 !== tipo ? <Slider label={s.asyncQuotaWith} value={Math.min(quota2, 1 - quota) * 100} min={0} max={Math.max(0, Math.round((1 - quota) * 100))} step={5} unit="%" onChange={(v) => setQuota2(v / 100)} /> : <div />}
         <Slider label={s.driveRate} value={freq} min={0} max={40} step={1} live={ist.drive.frequenza} nowLabel={s.now} onChange={setFreq} />
         <Slider label={s.driveIntensity} value={intens} min={0} max={1} step={0.05} digits={2} live={ist.drive.intensita} nowLabel={s.now} onChange={setIntens} />
       </div>
       <div className="flex gap-2 items-center">
-        <button data-testid="async-apply" disabled={!tipo} onClick={() => tipo && onApply({ asincronia: { tipo, quota, grado }, drive: { frequenza: freq, intensita: intens } }, `${name(tipo)} ${Math.round(quota * 100)}%`, 0)} className="px-5 py-2 rounded-lg bg-amber-600 disabled:bg-slate-700 font-semibold">{s.apply}</button>
+        <button data-testid="async-apply" disabled={!tipo} onClick={() => {
+          if (!tipo) return;
+          const q2 = Math.min(quota2, 1 - quota);
+          const insieme = tipo2 && tipo2 !== tipo && q2 > 0 ? [{ tipo: tipo2, quota: q2 }] : undefined;
+          onApply({ asincronia: { tipo, quota, grado, ...(insieme ? { insieme } : {}) }, drive: { frequenza: freq, intensita: intens } }, `${name(tipo)} ${Math.round(quota * 100)}%${insieme ? ` + ${name(insieme[0].tipo)} ${Math.round(q2 * 100)}%` : ''}`, 0);
+        }} className="px-5 py-2 rounded-lg bg-amber-600 disabled:bg-slate-700 font-semibold">{s.apply}</button>
         <button data-testid="async-stop" onClick={() => { setTipo(null); onApply({ asincronia: null }, s.asyncStop, 0); }} className="px-4 py-2 rounded-lg bg-slate-700">{s.asyncStop}</button>
-        <span className="text-xs text-slate-300" data-testid="async-current">{ist.asincronia ? `● ${name(ist.asincronia.tipo)} ${Math.round(ist.asincronia.quota * 100)}%` : ''}</span>
+        <span className="text-xs text-slate-300" data-testid="async-current">{ist.asincronia ? `● ${elencoAsincronie(ist.asincronia).map((x) => `${name(x.tipo)} ${Math.round(x.quota * 100)}%`).join(' + ')}` : ''}</span>
       </div>
       {/* OVS 3.4: the patient coughs on the machine: Paw up to the high limit, alarm */}
       {ist.ambiente !== 'alto-flusso' && (

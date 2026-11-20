@@ -262,3 +262,35 @@ test('NIV: the console sets a real mask leak, and the ventilator shows it', asyn
   expect(errors).toEqual([]);
   await Promise.all([regiaCtx.close(), ventCtx.close()]);
 });
+
+test('ready case «PC with long Ti and air hunger»: two asynchronies at once on the learner ventilator', async ({ browser }, info) => {
+  const regiaCtx = await browser.newContext({ locale: 'it-IT', viewport: { width: 1440, height: 900 } });
+  const ventCtx = await browser.newContext({ locale: 'it-IT', viewport: { width: 1366, height: 860 } });
+  const regia = await regiaCtx.newPage();
+  const vent = await ventCtx.newPage();
+  const errors: string[] = [];
+  for (const pg of [regia, vent]) pg.on('pageerror', (e) => errors.push(e.message));
+  await regia.goto(srv.regiaUrl('127.0.0.1'));
+  await vent.goto(`http://127.0.0.1:${srv.port}/?role=vent&pin=1234`);
+  await startIcuVentilation(vent);
+  await expect(regia.getByTestId('vent-list')).toContainText('ventila');
+  // earlier tests may have left ventilators in the list: pick the newest
+  await regia.getByTestId('vent-list').locator('li').last().click();
+
+  await regia.getByTestId('tab-patient').click();
+  await regia.getByTestId('case-pc-fame-aria').click();
+  await expect(regia.getByTestId('case-note')).toContainText('Ti 1,5 s');
+  await regia.getByTestId('tab-async').click();
+  await expect(regia.getByTestId('async-current')).toContainText('Ciclaggio ritardato 50%');
+  await expect(regia.getByTestId('async-current')).toContainText('Doppio ciclo 25%');
+
+  // the patient drives the rate above the set 20, and the end-inspiratory push shows on the peak
+  await expectNum(regia, 'f', (n) => n >= 21, 'measured rate above the set rate');
+  await expectNum(regia, 'Ppeak', (n) => n >= 21, 'Ppeak above PC 14 + PEEP 5');
+  await vent.getByRole('button', { name: '10s' }).click();
+  await vent.waitForTimeout(12000);
+  await vent.screenshot({ path: info.outputPath('pc-fame-aria.png') });
+  expect(errors).toEqual([]);
+  await regiaCtx.close();
+  await ventCtx.close();
+});
