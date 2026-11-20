@@ -5,10 +5,11 @@
  * active expiration is not mistaken for a cough.
  */
 import { describe, it, expect } from 'vitest';
-import { istantaneaIniziale, applica, statoDa } from '../device/screens/scenario/ventilatore/istantanea';
+import { istantaneaIniziale, applica, statoDa, conVentilazioneDelloScenario } from '../device/screens/scenario/ventilatore/istantanea';
 import { campioneMotore, attiRecenti } from '../device/screens/scenario/ventilatore/motore';
 import type { StatoVentilatore } from '../device/screens/scenario/ventilatore/fisica';
 import { SCENARI_PRONTI } from '../remote/scenari';
+import { PRESET_ASINCRONIA } from '../device/screens/scenario/ventilatore/asincronie';
 import { parseScenario, comandiScenario } from '../remote/scenario';
 
 const PASSIVO = { frequenza: 0, intensita: 0 };
@@ -104,5 +105,25 @@ describe('the ready-made case', () => {
     const vt = a.reduce((x, y) => x + y.vti, 0) / a.length;
     expect(vt / 58).toBeGreaterThan(10);
     expect(Math.max(...a.map((x) => x.pip))).toBeGreaterThan(20.5);
+  });
+});
+
+describe('settings written in a scenario', () => {
+  it('PC 14 above PEEP, Ti 1.5 s at RR 20 is I:E 1:1 with rise 0', () => {
+    const ist = conVentilazioneDelloScenario(istantaneaIniziale('invasiva', 0), { mode: 'pressometrica', rate: 20, peep: 5, inspiratory_pressure_cmh2o: 14, inspiratory_time_s: 1.5, rise_time_s: 0 });
+    expect(ist.modalita).toBe('PC');
+    expect(ist.impostazioni.pressureTarget).toBe(14);
+    expect(ist.impostazioni.ratio).toBe('1:1');
+    expect(ist.impostazioni.inspiratoryRiseTimeSeconds).toBe(0);
+  });
+  it('in pressure support the written level is the support', () => {
+    const ist = conVentilazioneDelloScenario(istantaneaIniziale('invasiva', 0), { mode: 'pressione di supporto', inspiratory_pressure_cmh2o: 10 });
+    expect(ist.modalita).toBe('PS');
+    expect(ist.impostazioni.psLevel).toBe(10);
+  });
+  it('the console preset "pushing to get out" is the ready-made case patient', () => {
+    const p = SCENARI_PRONTI.find((x) => x.id === 'pc-fame-aria')!;
+    expect(PRESET_ASINCRONIA['spinge-per-uscire'].drive).toEqual(p.scenario.drive);
+    expect(PRESET_ASINCRONIA['spinge-per-uscire'].asincronia).toEqual(p.scenario.asincronia);
   });
 });
