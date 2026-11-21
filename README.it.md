@@ -2,7 +2,7 @@
 
 **Simulatore gratuito e open-source di ventilatore, macchina d'anestesia e alti flussi — con la regia dell'istruttore sulla rete della tua aula.**
 
-🇬🇧 [English version](README.md) · 📅 Versione 3.4.1 — 13 novembre 2026 · Licenza MIT
+🇬🇧 [English version](README.md) · 📅 Versione 3.8.0 — 21 novembre 2026 · Licenza MIT
 
 📄 **L'articolo:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. Se usi Open Vent Sim in un corso, una tesi o un lavoro, [citalo così](#11-come-citare).
 
@@ -33,7 +33,7 @@
 - **Tre apparecchi in uno**: macchina d'anestesia, ventilatore di terapia intensiva (invasiva e non invasiva) e alti flussi.
 - **Curve vere**: pressione, flusso e volume calcolati dal modello del polmone, con compliance che cambia con la PEEP, auto-PEEP, sforzi del paziente e asincronie.
 - **Loop pressione–volume e flusso–volume**, tracce di **pressione alveolare (Palv)** e **sforzo del paziente (Pmus)**, modalità **PRVC**.
-- Un **motore del respiro** che integra l'equazione del moto: auto-PEEP, trigger, ciclaggio e asincronie succedono invece di essere disegnati. **PAV+**, assistita-controllata (A/C), **flusso decelerante**, tracce **Pes e PL**, **P0.1**, **stress index**, **flow index**, **RSBI**, **RCexp**, **PMI**, **EIT** con PEEP trial e pendelluft, **curva P/V lenta** (pressione di apertura delle vie aeree), **rapporto R/I**, il **test di occlusione**.
+- Un **motore del respiro** che integra l'equazione del moto: auto-PEEP, trigger, ciclaggio e asincronie succedono invece di essere disegnati. **PAV+**, assistita-controllata (A/C), **flusso decelerante**, tracce **Pes e PL**, **P0.1**, **stress index**, **flow index**, **RSBI**, **RCexp**, **PMI**, **EIT** con PEEP trial e pendelluft, **curva P/V lenta** (pressione di apertura delle vie aeree), **rapporto R/I**, il **test di occlusione**. **Assistenza neurale (NEURO)** guidata dall'attività elettrica del diaframma (**EAdi**), con un catetere esofageo che il discente posiziona leggendo quattro derivazioni ECG.
 - Lo **scambio dei gas**: SpO₂, EtCO₂ ed **emogas** (pH, PaCO₂, PaO₂, HCO₃⁻, lattato) escono da un modello con shunt, basso V/Q, spazio morto, diffusione, vasocostrizione ipossica, riserve di O₂ e isteresi del reclutamento.
 - **Regia dell'istruttore**: da un computer (o da un tablet) vedi in diretta il ventilatore di ogni studente e cambi il paziente: quadro clinico, meccanica, parametri vitali, asincronie, eventi programmati.
 - **Registro della sessione** per il debriefing: chi ha fatto cosa e quando, con l'andamento dei parametri. Si stampa in PDF.
@@ -57,9 +57,9 @@ Vai alla pagina **[Releases](https://github.com/fedebarra/open-vent-sim/releases
 
 | Il tuo computer | File da scaricare |
 |---|---|
-| Windows | `OpenVentSim-3.4.1-win-x64.exe` (installazione) — oppure `OpenVentSim-3.4.1-portable.exe` (senza installare, si apre e basta) |
-| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.4.1-mac-arm64.dmg` |
-| Mac con processore Intel | `OpenVentSim-3.4.1-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.8.0-win-x64.exe` (installazione) — oppure `OpenVentSim-3.8.0-portable.exe` (senza installare, si apre e basta) |
+| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.8.0-mac-arm64.dmg` |
+| Mac con processore Intel | `OpenVentSim-3.8.0-mac-x64.dmg` |
 
 > Se il `.dmg` non si apre, scarica il `.zip` con lo stesso nome: doppio clic per estrarlo, poi trascina **Open Vent Sim** in Applicazioni.
 
@@ -162,6 +162,7 @@ Sopra le curve ci sono i tasti **Curve / Loop** e, se abilitato, **Palv·Pmus**:
 Le curve escono da un **motore del respiro**: l'equazione del moto integrata a 200 Hz, con dentro lo sforzo del paziente. L'auto-PEEP si accumula atto dopo atto, lo sforzo inefficace è uno sforzo vero che non arriva al trigger, il doppio trigger è uno sforzo più lungo dell'inspirazione della macchina. Il motore è stato confrontato con il simulatore di T. Piraino (sim.rtmaven.com, rivisto da G. Bellani): volumi correnti entro l'1-2%, pressioni entro 0,5 cmH₂O (il confronto è in `docs/confronto-rtmaven.md`).
 
 - **PAV+** e **A/C** (trigger aperto in VC, PC, PRVC; spento di default). **Flusso decelerante** in VC.
+- **NEURO** (assistenza neurale), invasiva e NIV, quando la regia ha montato il catetere dell'EAdi: Paw = PEEP + livello × EAdi. In NIV anche la **PC** (a tempo, sempre assistita) e la scelta per una **perdita oltre il 95%** (continua a ventilare, o pausa).
 - **Pes·PL**: pressione esofagea e transpolmonare, con l'artefatto cardiaco.
 - **P0.1** (quando il paziente apre gli atti) e **stress index** (VC a flusso quadro) sul display.
 - **EIT** (intensiva invasiva): immagine tidal e dinamica, impedenza globale/ventrale/dorsale, pendelluft con gli sforzi vigorosi, e un **PEEP trial** con le curve di collasso e sovradistensione e il loro incrocio (Costa 2009).
@@ -183,6 +184,8 @@ In alto scegli **a chi mandare** i comandi: *questo ventilatore* (quello selezio
 | **Polmone** | Tre comportamenti con la PEEP: **Non reclutabile**, **Reclutabile**, **Instabile** (si apre con la PEEP alta, si derecluta appena scende). Compliance e pressione motrice in tempo reale. Avvio della **manovra di reclutamento**. In *Regolazione fine*: reclutabilità, compliance della parete, margine prima del dereclutamento, PEEP di sovradistensione. |
 | **Scambio dei gas** | **Quadri** con un clic, che si sommano: embolia polmonare, consolidamento, anemia, febbre, sepsi, acidosi metabolica, intossicazione da CO, metemoglobinemia, NO inalatorio; **ventilazione monopolmonare**. Nove numeri in tempo reale per il docente (il ventilatore non li mostra): pH, PaCO₂, PaO₂, P/F, Qs/Qt, SaO₂, VD/VT alveolare, PaCO₂ − EtCO₂, EtCO₂/PaCO₂ (Bohr-Enghoff, Cipulli 2026, vedi `docs/spazio-morto.md`). *Tutti i valori* apre il resto dell'emogas e gli indici dello spazio morto; *Regolazione fine* i cursori (shunt, basso V/Q, spazio morto, diffusione, Hb, temperatura, metabolismo, bicarbonato, portata, BMI, vasodilatatori, NO, CO, MetHb). |
 | **Macchina** | Modalità, parametri, avvio/standby, silenzio allarmi, pause inspiratoria ed espiratoria: come se li toccasse lo studente (nel registro risultano fatti dalla regia). |
+| **Sforzo e parete** | Quadri che si sommano al polmone (obesità, addome teso, chiusura delle vie aeree, sforzo vigoroso…), la forma dello sforzo, lo sforzo che risponde al supporto; in NIV la **perdita della maschera**; in alto flusso la **cannula** (ostruita, tubo staccato, fuori dal naso), la **bocca aperta** e l'indice **ROX** per il docente. |
+| **Diaframma** | Monti il **catetere dell'EAdi** (a posto, troppo profondo, troppo superficiale, dislocato: una profondità vera che poi il discente corregge), efficienza neuromeccanica, lesione del frenico, sedazione e curaro. Senza catetere NEURO è grigio sul ventilatore. |
 | **Allarmi** | I limiti d'allarme del ventilatore (basso/alto, acceso/spento), come dal suo pannello Allarmi; **Ripristina i limiti d'avvio**. In PS, CPAP e PAV c'è il tempo di **apnea** (20 s di serie). |
 | **Eventi** | Eventi pronti (broncospasmo, tappo di muco, pneumotorace, desaturazione, ipercapnia, induzione, risveglio, decurarizzazione…). Si lanciano subito oppure si mettono in **sequenza** con i tempi, e la sequenza si salva su file per la prossima volta. |
 
@@ -226,6 +229,26 @@ Il registro resta salvato anche se chiudi e riapri la regia.
 | Voglio l'interfaccia vecchia (2.x) | Nel browser aggiungi `?legacy=1` all'indirizzo, da soli. |
 
 ## 9. Novità
+
+### 3.8.0 — 21 novembre 2026
+
+**Assistenza neurale (NEURO) e il segnale del diaframma (EAdi).**
+- La regia monta un **catetere dell'EAdi** (nuova scheda *Diaframma*). L'attività elettrica del diaframma viene dallo sforzo del paziente attraverso l'efficienza neuromeccanica (Bellani, Crit Care Med 2013); sedazione, curaro e lesione del frenico la cambiano, e un catetere messo male si vede come al letto (ECG nel segnale, minimo alto, muscoli espiratori).
+- **NEURO**, invasiva e NIV: Paw = PEEP + livello × EAdi, trigger neurale in gara con quello pneumatico, ciclaggio al 70% del picco dell'EAdi, tetto 5 cmH₂O sotto il limite alto di pressione, backup, passaggio automatico al supporto di pressione («NEURO ⇄ PS») e l'allarme **Segnale EAdi non credibile**. NEURO è grigio finché il catetere non è montato; corsia e numeri dell'EAdi compaiono solo in NEURO.
+- **Titolazione con il ginocchio**: alzando il livello il VT si ferma intorno a 6,5 ml/kg (Hering-Breuer) mentre l'EAdi continua a scendere (Brander, Chest 2009).
+- **Il discente posiziona il catetere**: profondità di partenza dalla NEX (× 0,9 dal naso, × 0,8 dalla bocca, più la costante del calibro), quattro derivazioni ECG esofagee in tempo reale con il diaframma che si accende dove è più forte, spingi o tira un passo interelettrodico alla volta, verifica con l'occlusione di fine espirazione (EAdi su, Paw giù nello stesso istante). La regola porta vicino, non sempre sopra (Barwing, Intensive Care Med 2009).
+
+**NIV.** Pressione controllata (a tempo, sempre assistita: con la perdita il Ti non si allunga); NEURO con la maschera, con trigger e ciclaggio che la perdita non tocca (Bertrand, Chest 2013); **perdita oltre il 95%**: continua a ventilare o pausa con flusso alto o basso, riparte da sola, allarme **Perdita eccessiva**; evento di regia *maschera staccata*.
+
+**Alto flusso.** Il pannello mostra il flusso **misurato** e una fascia che scorre mentre eroga. Guasti della cannula dalla regia: ostruita (**Flusso ostacolato**), tubo staccato (**Circuito aperto**), fuori dal naso (non suona niente: il paziente desatura). La **bocca aperta** abbassa la pressione che il flusso fa. L'indice **ROX** in regia (Roca, AJRCCM 2019).
+
+**Cinque casi pronti nuovi**: titolazione di NEURO; BPCO in NIV con la maschera che perde; alto flusso con la cannula fuori dal naso; il catetere alla profondità della NEX; svezzamento difficile con l'EAdi alta (Doorduin, Anesthesiology 2018).
+
+**Dalla 3.7** (non pubblicata a parte): la pressione controllata su una macchina vera (sovraelongazione del regolatore, sfiato della valvola espiratoria, doppio ciclo nei modi a pressione, espirio attivo e tosse), la situazione *Spinge per uscire* e il caso *PC con Ti lungo e fame d'aria* (de Haro 2019); più asincronie insieme sullo stesso paziente, agganciate agli sforzi del paziente in A/C; il picco di pressione misurato nei modi a pressione.
+
+**Correzioni.** In PAV e NEURO la pressione di picco sul display era PEEP + 1,5 invece di quella misurata. La guida passo passo raccoglie i passi che cominciano a valere quando cambia la modalità.
+
+Le **guide passo passo** del ventilatore e della regia spiegano tutto questo.
 
 ### 3.6.0 — 17 novembre 2026
 
