@@ -2,7 +2,7 @@
 
 **A free, open-source simulator of ICU ventilator, anaesthesia machine and high-flow oxygen — with an instructor console that runs on your classroom's own network.**
 
-🇮🇹 [Versione italiana](README.it.md) · 📅 Version 3.4.1 — 13 November 2026 · MIT licence
+🇮🇹 [Versione italiana](README.it.md) · 📅 Version 3.8.0 — 21 November 2026 · MIT licence
 
 📄 **The paper:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. If you use Open Vent Sim in a course, a thesis or a paper, [please cite it](#11-how-to-cite).
 
@@ -33,7 +33,7 @@
 - **Three machines in one**: anaesthesia workstation, ICU ventilator (invasive and non-invasive) and high-flow oxygen.
 - **Real waveforms**: pressure, flow and volume come from a lung model with PEEP-dependent compliance, auto-PEEP, patient effort and asynchronies.
 - **Pressure–volume and flow–volume loops**, **alveolar pressure (Palv)** and **patient effort (Pmus)** traces, **PRVC** mode.
-- A **breathing engine** that integrates the equation of motion: auto-PEEP, triggers, cycling and asynchronies happen instead of being drawn. **PAV+**, assist-control (A/C), **decelerating flow**, **Pes and PL** traces, **P0.1**, **stress index**, **flow index**, **RSBI**, **RCexp**, **PMI**, **EIT** with PEEP trial and pendelluft, **low-flow P/V curve** (airway opening pressure), **R/I ratio**, the **occlusion test**.
+- A **breathing engine** that integrates the equation of motion: auto-PEEP, triggers, cycling and asynchronies happen instead of being drawn. **PAV+**, assist-control (A/C), **decelerating flow**, **Pes and PL** traces, **P0.1**, **stress index**, **flow index**, **RSBI**, **RCexp**, **PMI**, **EIT** with PEEP trial and pendelluft, **low-flow P/V curve** (airway opening pressure), **R/I ratio**, the **occlusion test**. **Neural assist (NEURO)** driven by the diaphragm's electrical activity (**EAdi**), with an oesophageal catheter the learner places by reading four ECG leads.
 - **Gas exchange**: SpO₂, EtCO₂ and the **blood gas** (pH, PaCO₂, PaO₂, HCO₃⁻, lactate) come from a model with shunt, low V/Q, dead space, diffusion, hypoxic vasoconstriction, O₂ stores and recruitment hysteresis.
 - **Instructor console**: from one computer (or tablet) you see every learner's ventilator live and change the patient: clinical picture, mechanics, vital signs, asynchronies, timed events.
 - **Session log** for the debriefing: who did what and when, with parameter trends. Prints to PDF.
@@ -57,9 +57,9 @@ Go to **[Releases](https://github.com/fedebarra/open-vent-sim/releases/latest)**
 
 | Your computer | File |
 |---|---|
-| Windows | `OpenVentSim-3.4.1-win-x64.exe` (installer) — or `OpenVentSim-3.4.1-portable.exe` (no install, just run it) |
-| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.4.1-mac-arm64.dmg` |
-| Mac with Intel processor | `OpenVentSim-3.4.1-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.8.0-win-x64.exe` (installer) — or `OpenVentSim-3.8.0-portable.exe` (no install, just run it) |
+| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.8.0-mac-arm64.dmg` |
+| Mac with Intel processor | `OpenVentSim-3.8.0-mac-x64.dmg` |
 
 > If the `.dmg` won't open, download the `.zip` with the same name: double-click to extract, then drag **Open Vent Sim** into Applications.
 
@@ -162,6 +162,7 @@ Above the waveforms there are the **Waves / Loops** buttons and, when enabled, *
 The waveforms come from a **breathing engine**: the equation of motion integrated at 200 Hz, with the patient's effort inside. Auto-PEEP builds up breath by breath, an ineffective effort is a real effort that misses the trigger, a double trigger is an effort longer than the machine's inspiration. The engine was validated against the simulator by T. Piraino (sim.rtmaven.com, reviewed by G. Bellani): tidal volumes within 1–2%, pressures within 0.5 cmH₂O (comparison in `docs/confronto-rtmaven.md`).
 
 - **PAV+** and **A/C** (trigger open in VC, PC, PRVC; off by default). **Decelerating flow** in VC.
+- **NEURO** (neural assist), invasive and NIV, once the console has mounted the EAdi catheter: Paw = PEEP + level × EAdi. In NIV also **PC** (time-cycled, always assisted) and a choice for a **leak over 95%** (keep ventilating, or pause).
 - **Pes·PL**: oesophageal and transpulmonary pressure, with the cardiac artefact.
 - **P0.1** (when the patient opens the breaths) and **stress index** (VC, square flow) on the display.
 - **EIT** (invasive ICU): tidal and dynamic image, global/ventral/dorsal impedance, pendelluft with vigorous efforts, and a **PEEP trial** with collapse/overdistension curves and their crossing (Costa 2009).
@@ -183,6 +184,8 @@ At the top choose **where commands go**: *this ventilator* (selected on the left
 | **Lung** | Three behaviours with PEEP: **Non-recruitable**, **Recruitable**, **Unstable** (opens at high PEEP, derecruits as soon as it comes down). Live compliance and driving pressure. Start the **recruitment manoeuvre**. Under *Fine tuning*: recruitability, chest-wall compliance, margin before derecruitment, overdistension PEEP. |
 | **Gas exchange** | One-click **pictures** that add up: pulmonary embolism, consolidation, anaemia, fever, sepsis, metabolic acidosis, CO poisoning, methaemoglobinaemia, inhaled NO; **one-lung ventilation**. Nine live numbers for the instructor (the ventilator does not show them): pH, PaCO₂, PaO₂, P/F, Qs/Qt, SaO₂, alveolar VD/VT, PaCO₂ − EtCO₂, EtCO₂/PaCO₂ (Bohr-Enghoff, Cipulli 2026, see `docs/spazio-morto.md`). *All values* opens the rest of the blood gas and the dead space indices; *Fine tuning* the sliders (shunt, low V/Q, dead space, diffusion, Hb, temperature, metabolism, bicarbonate, cardiac output, BMI, vasodilators, NO, CO, MetHb). |
 | **Machine** | Mode, settings, start/standby, silence alarms, inspiratory and expiratory holds: applied as if the learner touched them (logged as instructor actions). |
+| **Effort & chest wall** | Pictures that add to the lung (obesity, tense abdomen, airway closure, vigorous effort…), the shape of the effort, an effort that responds to support; in NIV the **mask leak**; in high flow the **cannula** (blocked, tube detached, out of the nose), **mouth open** and the **ROX** index for the instructor. |
+| **Diaphragm** | Mount the **EAdi catheter** (in place, too deep, too shallow, dislodged: a real depth the learner then corrects), neuromechanical efficiency, phrenic lesion, sedation and curare. Without the catheter NEURO is greyed out on the ventilator. |
 | **Alarms** | The ventilator's alarm limits (low/high, on/off), as in its own Alarms drawer; **Reset to the start-up limits**. In PS, CPAP and PAV there is the **apnoea** time (default 20 s). |
 | **Events** | Ready-made events (bronchospasm, mucus plug, pneumothorax, desaturation, hypercapnia, induction, waking up, NMB reversal…). Fire now or build a timed **sequence**; save it to a file for next time. |
 
@@ -226,6 +229,26 @@ The log survives closing and reopening the console.
 | I want the old (2.x) interface | In the browser, add `?legacy=1` to the address (stand-alone only). |
 
 ## 9. What's new
+
+### 3.8.0 — 21 November 2026
+
+**Neural assist (NEURO) and the diaphragm signal (EAdi).**
+- The console mounts an **EAdi catheter** (new *Diaphragm* tab). The diaphragm's electrical activity comes from the patient's own effort through the neuromechanical efficiency (Bellani, Crit Care Med 2013); sedation, curare and a phrenic lesion change it, and a misplaced catheter shows as it does at the bedside (ECG in the signal, high minimum, expiratory muscles).
+- **NEURO**, invasive and NIV: Paw = PEEP + level × EAdi, neural trigger racing the pneumatic one, cycling at 70% of the EAdi peak, a ceiling 5 cmH₂O under the high pressure limit, backup, automatic fallback to pressure support («NEURO ⇄ PS») and the **EAdi signal not credible** alarm. NEURO is greyed out until the catheter is mounted; the EAdi lane and numbers appear only in NEURO.
+- **Titration with a knee**: raising the level, VT stops around 6.5 ml/kg (Hering-Breuer) while EAdi keeps falling (Brander, Chest 2009).
+- **The learner places the catheter**: starting depth from NEX (× 0.9 nasal, × 0.8 oral, plus the caliber constant), four live oesophageal ECG leads with the diaphragm lighting where it is strongest, push or pull one electrode step at a time, check with an expiratory occlusion (EAdi up, Paw down at the same moment). The rule gets close, not always on target (Barwing, Intensive Care Med 2009).
+
+**NIV.** Pressure control (time-cycled, always assisted: its Ti does not drag with a leak); NEURO through the mask, with trigger and cycling the leak cannot touch (Bertrand, Chest 2013); **leak over 95%**: keep ventilating or pause with a high or low flow, resume by itself, **Excessive leak** alarm; console event *mask off*.
+
+**High flow.** The panel shows the **measured** flow and a band that moves while it delivers. Cannula faults from the console: blocked (**Flow obstructed**), tube detached (**Circuit open**), out of the nose (nothing sounds: the patient desaturates). **Mouth open** lowers the pressure the flow makes. The **ROX** index on the console (Roca, AJRCCM 2019).
+
+**Five new ready cases**: NEURO titration; COPD on NIV with a leaking mask; high flow with the cannula out of the nose; the catheter at the NEX depth; difficult weaning with a high EAdi (Doorduin, Anesthesiology 2018).
+
+**From 3.7** (not released on its own): pressure control on a real machine (regulator overshoot, expiratory-valve relief, double cycling in pressure modes, active expiration versus cough), the *Pushing to get out* situation and the *PC with long Ti and air hunger* case (de Haro 2019); several asynchronies at once on the same patient, anchored on the patient's efforts in A/C; the measured peak pressure in pressure modes.
+
+**Fixes.** In PAV and NEURO the displayed peak pressure was PEEP + 1.5 instead of the measured one. The guided tour picks up steps that start to apply when the mode changes.
+
+The **guided tours** of the ventilator and the console cover all of the above.
 
 ### 3.6.0 — 17 November 2026
 
