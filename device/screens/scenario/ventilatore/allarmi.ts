@@ -46,6 +46,7 @@ export type ChiaveAllarme =
   | 'peep'
   | 'measuredFrequency'
   | 'leakPercentage'
+  | 'perditaEccessiva'
   | 'inspiratoryCo2'
   | 'etAgentConcentration'
   | 'flussoErogato'
@@ -142,6 +143,20 @@ export const ALLARMI: Record<ChiaveAllarme, DefinizioneAllarme> = {
     misura: 'leakPercentage',
     visibile: (c) => c.ambiente === 'niv',
   },
+  // ## La maschera staccata
+  //
+  // Oltre il 95% di perdita non c'è un limite da spostare: è la maschera che
+  // non sta sul viso. Un interruttore, come l'acqua; in pausa è l'unico che
+  // suona, perché volume, frequenza e apnea dicono la stessa cosa peggio.
+  perditaEccessiva: {
+    etichetta: 'vent.alarm.perditaEccessiva',
+    unita: 'vent.unit.none',
+    passo: 0,
+    minimo: 0,
+    massimo: 0,
+    interruttore: true,
+    visibile: (c) => c.ambiente === 'niv',
+  },
   inspiratoryCo2: {
     etichetta: 'vent.alarm.inspiratoryCo2',
     unita: 'vent.unit.mmHg',
@@ -209,6 +224,7 @@ export const LIMITI_INIZIALI: LimitiAllarme = {
   peep: { basso: 0, alto: 20, acceso: true },
   measuredFrequency: { basso: 5, alto: 35, acceso: true },
   leakPercentage: { basso: null, alto: 30, acceso: true },
+  perditaEccessiva: { basso: null, alto: null, acceso: true },
   inspiratoryCo2: { basso: null, alto: 5, acceso: true },
   etAgentConcentration: { basso: 0.1, alto: 5, acceso: true },
   flussoErogato: { basso: 5, alto: 70, acceso: true },
@@ -288,12 +304,21 @@ export function valuta(
     impostazioni: stato.impostazioni,
   }
   const attivi: AllarmeAttivo[] = []
+  const inPausa = misure.pausaPerdita === 1
 
   for (const chiave of Object.keys(ALLARMI) as ChiaveAllarme[]) {
     const def = ALLARMI[chiave]
     // Un'istantanea salvata prima che l'allarme esistesse non ha il suo limite: vale quello di fabbrica.
     const limite = limiti[chiave] ?? LIMITI_INIZIALI[chiave]
     if (!limite?.acceso || !def.visibile(ctx)) continue
+
+    if (chiave === 'perditaEccessiva') {
+      const perdita = misure.leakPercentage
+      if (inPausa || (perdita !== null && perdita > 95)) attivi.push({ chiave, verso: null, valore: perdita })
+      continue
+    }
+    // In pausa la macchina non ventila apposta: si sorveglia solo il gas.
+    if (inPausa && chiave !== 'fio2' && chiave !== 'acqua') continue
 
     if (chiave === 'acqua') {
       const acqua = misure.waterLevelPercent

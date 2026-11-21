@@ -66,7 +66,7 @@ import {
   type StatoGas,
 } from './gas'
 import { rumore } from './caso'
-import { attiRecenti, campioneMotore, letturaCurvaLenta, letturaEAdi, motoreCopre } from './motore'
+import { attiRecenti, campioneMotore, flussoPausaLmin, inPausaPerdita, letturaCurvaLenta, letturaEAdi, motoreCopre } from './motore'
 import type { Circuito } from '../../paziente/presidiFigura'
 import type { CatetereEAdi } from './eadi'
 
@@ -858,7 +858,7 @@ export function sighDiQuestoAtto<T extends PerPressioni>(
   Ttot: number,
 ): { stato: T; Ti: number } | null {
   const imp = stato.impostazioni
-  if (!(imp.sighRate > 0)) return null
+  if (!(imp.sighRate > 0) || (stato as { ambiente?: string }).ambiente === 'niv') return null
   if (stato.modalita !== 'VC' && stato.modalita !== 'PC' && stato.modalita !== 'PRVC' && stato.modalita !== 'SIMV') return null
   const ogni = Math.max(1, Math.round(60 / (imp.sighRate * Math.max(0.5, Ttot))))
   if (indiceAtto % ogni !== 0) return null
@@ -1054,7 +1054,35 @@ export function misura(
   dtSec: number,
   precedenti: Misure | null,
 ): Misure {
-  const m = misuraMacchina(stato, tSec, dtSec, precedenti)
+  let m = misuraMacchina(stato, tSec, dtSec, precedenti)
+  // ## In pausa per la maschera staccata
+  //
+  // Non ci sono atti: niente volumi, niente frequenza, e la perdita è tutta.
+  // La pausa la sa il motore; qui la si scrive.
+  if (stato.ventilando && stato.ambiente === 'niv') {
+    const pausa = inPausaPerdita(tSec, polmoneOra(stato))
+    const paw = pausa ? parseFloat(campioneMotore(tSec, polmoneOra(stato)).paw.toFixed(1)) : 0
+    m = pausa
+      ? {
+          ...m,
+          pausaPerdita: 1,
+          leakPercentage: 100,
+          volumeInspired: 0,
+          volumeExpired: 0,
+          volumeMinute: 0,
+          measuredFrequency: 0,
+          mlPerKg: 0,
+          tiTtot: null,
+          pPeak: paw,
+          pMean: paw,
+          pPlateau: null,
+          // tutto il flusso della pausa esce dal bordo
+          leakFlow: flussoPausaLmin(stato.impostazioni.perditaEccessiva),
+          compliance: null,
+          p01: null,
+        }
+      : { ...m, pausaPerdita: 0 }
+  }
   // L'EAdi è del paziente e del catetere, non della macchina: si legge anche
   // in standby e in alto flusso, prima dell'intubazione e dopo l'estubazione.
   if (!stato.fisiologia.catetereEAdi) return m
@@ -1222,7 +1250,7 @@ function misuraMacchina(
     // 4-bis) restano sui numeri dell'atto che hanno.
     const dalMotore =
       motoreCopre(statoMotore) &&
-      (modalita === 'PS' || modalita === 'CPAP' || modalita === 'PAV' || modalita === 'NEURO' || imp.triggerControllata === 1)
+      (modalita === 'PS' || modalita === 'CPAP' || modalita === 'PAV' || modalita === 'NEURO' || imp.triggerControllata === 1 || ambiente === 'niv')
     const atti = dalMotore ? attiRecenti(tSec, statoMotore, 20) : []
     // ## Nessun atto contato è un numero, non un ripiego (OVS 3.3)
     //
@@ -1304,10 +1332,16 @@ function misuraMacchina(
       // salita a zero, e il paziente che spinge prima del ciclaggio lo alza di
       // parecchio. Il display scrive quello dell'ultimo atto, come la macchina
       // vera — mai sotto il bersaglio, che è quello che la valvola tiene.
+      const ultimo = recenti.at(-1)
       if (modalita === 'PC' || modalita === 'PRVC' || modalita === 'PS') {
-        const ultimo = recenti.at(-1)
         if (ultimo && ultimo.pip > (m.pPeak ?? 0) + 0.5) m.pPeak = arrotonda(ultimo.pip)
       }
+      // In PAV e in NEURO il bersaglio non c'è: la pressione la fa lo sforzo,
+      // atto per atto. Il picco è quello misurato.
+      if ((modalita === 'PAV' || modalita === 'NEURO') && ultimo) m.pPeak = arrotonda(ultimo.pip)
+      // Con la maschera che perde tanto la turbina non arriva al bersaglio: il
+      // picco è quello che la macchina è riuscita a fare.
+      if (ambiente === 'niv' && typeof fis.perditaMaschera === 'number' && ultimo && modalita !== 'CPAP') m.pPeak = arrotonda(ultimo.pip)
     }
     // la tosse: la macchina vede la Paw del colpo appena succede (non a fine atto), la scrive come picco e sopra
     // il limite suona l'allarme di pressione; il numero resta per `PICCO_TOSSE_SEC`, poi torna quello dell'atto.

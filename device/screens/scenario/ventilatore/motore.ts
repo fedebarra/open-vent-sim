@@ -197,6 +197,27 @@ const FLUSSO_MASSIMO = 3
  */
 const RESIDUO_PERDITA_INSP = 0.2
 
+/**
+ * ## La maschera staccata: la perdita oltre il 95%
+ *
+ * In NIV la macchina si accorge che la maschera non tiene quando quasi tutto
+ * il gas che dà se ne va dal bordo: la perdita dell'atto,
+ * `(VTi − VTe) / VTi`, sopra il 95% per due atti di fila. Che cosa fa lo
+ * decide l'impostazione `perditaEccessiva`: continua a ventilare (e suona),
+ * oppure si mette **in pausa** — non cicla, tiene un flusso costante per
+ * accorgersi di quando la maschera torna — e riparte da sola appena la Paw
+ * risale verso la PEEP. Il flusso della pausa, l/s: alto e basso.
+ */
+const PERDITA_ECCESSIVA = 0.95
+const ATTI_PER_PAUSA = 2
+const FLUSSO_PAUSA = [0, 40 / 60, 15 / 60] as const
+/** Il flusso della pausa con questa impostazione, l/min; 0 se la macchina continua. */
+export function flussoPausaLmin(perditaEccessiva: number | undefined): number {
+  return Math.round(FLUSSO_PAUSA[Math.min(2, Math.max(0, Math.round(perditaEccessiva ?? 0)))] * 60)
+}
+/** In pausa, per quanto la Paw deve stare vicino alla PEEP perché la macchina riparta, secondi. */
+const RIPRESA_PAUSA = 1
+
 /** Un istante del motore. Flusso in l/min (positivo in inspirazione), volumi in ml. */
 export interface CampioneMotore {
   paw: number
@@ -344,6 +365,10 @@ interface Parametri {
   decelerante: boolean
   /** La perdita della maschera: l/s per √cmH₂O, 0 se non c'è. */
   perdita: number
+  /** Si ventila con la maschera. */
+  niv: boolean
+  /** NIV, perdita oltre il 95%: il flusso della pausa in l/s, 0 se la macchina continua a ventilare. */
+  flussoPausa: number
   /** Il ritorno elastico: `Palv − PEEP = E1·V + E2·V²` fino a `vTetto`, poi lineare. */
   E1: number
   E2: number
@@ -417,14 +442,16 @@ function fluttua(t: number): number {
  * turbina, la Paw scende finché i conti tornano. Bisezione fra la pressione
  * alveolare (flusso al paziente nullo) e quella chiesta.
  */
-function pressioneConPerdita(chiesta: number, palv: number, R: number, k: number): number {
+function pressioneConPerdita(chiesta: number, palv: number, R: number, k: number, massimo = FLUSSO_MASSIMO): number {
   const serve = (p: number) => Math.max(0, (p - palv) / R) + k * Math.sqrt(Math.max(0, p))
-  if (serve(chiesta) <= FLUSSO_MASSIMO) return chiesta
-  let a = Math.min(palv, chiesta)
+  if (serve(chiesta) <= massimo) return chiesta
+  // Se la perdita da sola chiede più della turbina, la pressione scende anche
+  // sotto quella alveolare: la maschera staccata non tiene nemmeno la PEEP.
+  let a = 0
   let b = chiesta
   for (let i = 0; i < 30; i++) {
     const m = (a + b) / 2
-    if (serve(m) > FLUSSO_MASSIMO) b = m
+    if (serve(m) > massimo) b = m
     else a = m
   }
   return a
@@ -746,7 +773,7 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
   // polmone — sostituisce l'auto-PEEP invece di sommarsi (la regola dell'80%).
   const pCrit = fis.limitazioneFlusso > 0 ? 3 + 9 * Math.min(1, fis.limitazioneFlusso) : 0
 
-  const ogniSigh = imp.sighRate > 0 ? Math.max(1, Math.round(60 / (imp.sighRate * Math.max(0.5, Ttot)))) : 0
+  const ogniSigh = imp.sighRate > 0 && stato.ambiente !== 'niv' ? Math.max(1, Math.round(60 / (imp.sighRate * Math.max(0.5, Ttot)))) : 0
   // La Pes a fine espirazione: cinque cmH₂O sopra lo zero, più la quota della
   // PEEP che la parete si prende. La regia può scriverla lei: l'obeso e
   // l'addome teso stanno a quindici, venti (Talmor, *NEJM* 2008).
@@ -833,7 +860,9 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
     salita: Math.max(0.02, imp.inspiratoryRiseTimeSeconds),
     ciclaggio: Math.min(0.9, Math.max(0.05, imp.flowCycleOffPercent / 100)),
     trigger: Math.max(0.3, imp.triggerFlow),
-    triggerControllata: imp.triggerControllata === 1,
+    // In NIV la pressione controllata è sempre assistita: il paziente sveglio
+    // con la maschera apre l'atto quando vuole.
+    triggerControllata: imp.triggerControllata === 1 || stato.ambiente === 'niv',
     psSimv: imp.psLevel,
     pavGuadagno: Math.min(0.95, Math.max(0.05, (imp.pavSupporto ?? 50) / 100)),
     pavMax: 35,
@@ -845,6 +874,8 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
       stato.ambiente === 'niv' && typeof fis.perditaMaschera === 'number'
         ? Math.max(0, fis.perditaMaschera) / 60 / Math.sqrt(10)
         : 0,
+    niv: stato.ambiente === 'niv',
+    flussoPausa: stato.ambiente === 'niv' ? FLUSSO_PAUSA[Math.min(2, Math.max(0, Math.round(imp.perditaEccessiva ?? 0)))] : 0,
     E1,
     E2,
     vTetto: vRif * 1.5,
@@ -975,6 +1006,8 @@ interface Blocco {
   spigolo: Uint8Array
   /** L'EAdi letta dal catetere, µV; null senza catetere. */
   eadi: Float32Array | null
+  /** 1 dove la macchina è in pausa per la perdita eccessiva. */
+  pausa: Uint8Array
   atti: AttoMotore[]
 }
 
@@ -1001,6 +1034,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
     trigger: new Uint8Array(n),
     spigolo: new Uint8Array(n),
     eadi: p.eadi ? new Float32Array(n) : null,
+    pausa: new Uint8Array(n),
     atti: [],
   }
 
@@ -1020,6 +1054,11 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
   let asincroniFila = 0
   const esiti: boolean[] = []
   let apertura: AttoMotore['apertura'] = 'macchina'
+  // La pausa per la maschera staccata: quanti atti di fila hanno perso tutto, e
+  // da quando la Paw è tornata vicino alla PEEP.
+  let inPausa = false
+  let persiFila = 0
+  let tenutaDa = Number.NEGATIVE_INFINITY
   const controllata = modalita === 'VC' || modalita === 'PC' || modalita === 'PRVC' || modalita === 'SIMV'
   const cursore = { i: 0 }
   const ritorno = ritornoDi(p)
@@ -1077,7 +1116,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
     const osc = p.cardio.ampiezza > 0 ? cardiaco(t, p.cardio.frequenza) * p.cardio.ampiezza * 4 : 0
 
     // ## Si apre un atto?
-    if (fase === 2 && modalita !== 'CPAP') {
+    if (fase === 2 && modalita !== 'CPAP' && !inPausa) {
       const aperta = t - fineInsp >= REFRATTARIO
       // La perdita della maschera in espirazione: la macchina la stima e la
       // toglie, ma una perdita che cambia lascia un residuo — e un residuo
@@ -1094,7 +1133,11 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         // In controllata il trigger è chiuso, salvo che la macchina sia
         // regolata in assistita-controllata o che lo sforzo sia di quelli che
         // la regia ha messo apposta per aprirlo.
-        const puo = !controllata || p.triggerControllata || modalita === 'SIMV' || attivo?.apre === true
+        // In NIV l'assistenza neurale non ascolta il trigger pneumatico finché
+        // il segnale è buono: la perdita della maschera non apre atti.
+        const puo =
+          (!controllata || p.triggerControllata || modalita === 'SIMV' || attivo?.apre === true) &&
+          !(neuro && p.niv && !ripiego && p.eadi !== null)
         // In controllata col trigger aperto l'atto lo apre uno sforzo: il flusso
         // del ritorno elastico quando il paziente molla una spinta espiratoria
         // non è una richiesta, e innescato metterebbe la macchina fuori fase
@@ -1176,7 +1219,14 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         // prima non sia uscito nemmeno per metà: è il **breath stacking**, e la
         // curva deve salire sopra il corrente impostato, come sul monitor vero.
         if (!attoCorrente || attoCorrente.vte >= attoCorrente.vti * 0.5) vDisplay = 0
-        if (attoCorrente) chiudiAtto(attoCorrente, palvSenza, p, out, inizio)
+        if (attoCorrente) {
+          chiudiAtto(attoCorrente, palvSenza, p, out, inizio)
+          // La maschera staccata: l'atto appena finito ha perso quasi tutto.
+          if (p.flussoPausa > 0 && p.perdita > 0) {
+            const dato = attoCorrente.vti + attoCorrente.vPersoInsp
+            persiFila = dato > 0 && (dato - attoCorrente.vte) / dato > PERDITA_ECCESSIVA ? persiFila + 1 : 0
+          }
+        }
         attoCorrente = nuovoAtto(t, innescato, peep, palvSenza)
         attoCorrente.apertura = apertura
         attoCorrente.ripiego = neuro !== null && innescato && ripiego
@@ -1200,10 +1250,34 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
     // ancora espirando, il prossimo parte (è così che l'aria si accumula).
     const dentro = t - inizioAtto
 
+    // ## La pausa: due atti persi di fila, e la macchina smette di ciclare
+    if (!inPausa && persiFila >= ATTI_PER_PAUSA && fase === 2) {
+      inPausa = true
+      persiFila = 0
+      tenutaDa = Number.NEGATIVE_INFINITY
+      if (attoCorrente) chiudiAtto(attoCorrente, palvSenza, p, out, inizio)
+      attoCorrente = null
+      inAttesa = null
+    }
+
     // ## La Paw e il flusso, secondo chi comanda
     let paw = peep
     let Q = 0 // l/s
-    if (fase === 0 || fase === 1) {
+    if (inPausa) {
+      // Un flusso costante che cerca la PEEP: con la maschera staccata se ne
+      // va tutto dal bordo e la Paw resta a terra; con la maschera che torna a
+      // tenere la Paw risale, e la macchina riparte.
+      paw = pressioneConPerdita(peep, palv, R, p.perdita * fluttua(t), p.flussoPausa)
+      Q = (paw - palv) / R
+      vDisplay = 0
+      if (paw >= Math.max(1, 0.7 * peep)) {
+        if (!Number.isFinite(tenutaDa)) tenutaDa = t
+        if (t - tenutaDa >= RIPRESA_PAUSA) {
+          inPausa = false
+          ultimoAtto = t
+        }
+      } else tenutaDa = Number.NEGATIVE_INFINITY
+    } else if (fase === 0 || fase === 1) {
       if (tipoAtto === 'volume') {
         if (dentro < atTif && volumeErogato < atVt) {
           // Quadro: lo stesso flusso dall'inizio alla fine. Decelerante: una
@@ -1318,7 +1392,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
       fineInsp = t
       if (attoCorrente) attoCorrente.limitato = true
     }
-    if (fase === 2) {
+    if (fase === 2 && !inPausa) {
       if (fineInsp === t) pawCiclo = pawPrima
       // L'espirazione: la valvola porta la Paw alla PEEP in poche decine di
       // millisecondi e poi la tiene; se il paziente tira, il flusso continuo
@@ -1364,6 +1438,20 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         if (paw > p.pMax + SFORO_LIMITE) paw = p.pMax + SFORO_LIMITE
       }
     }
+    // In espirazione la macchina tiene la PEEP dando alla perdita il gas che
+    // esce dal bordo: se la perdita chiede più della turbina, la PEEP non
+    // arriva e la valvola espiratoria resta chiusa.
+    // Il gas che il paziente espira, allora, esce anche lui dal bordo: la
+    // macchina non lo vede tornare.
+    let dalBordo = false
+    if (fase === 2 && !inPausa && p.perdita > 0) {
+      const tenuta = pressioneConPerdita(paw, palv, R, p.perdita * fluttua(t))
+      if (tenuta < paw - 1e-6) {
+        paw = tenuta
+        Q = (paw - palv) / R
+        dalBordo = true
+      }
+    }
     pawPrima = paw
 
     // La perdita: il gas che esce dal bordo della maschera, e il pezzo che la
@@ -1379,10 +1467,16 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
     // il polmone svuotato dalla tosse che si riempie fino alla capacità funzionale non è un volume corrente:
     // contato, la curva del volume saliva in cima e ci restava fino all'atto dopo
     if (!(V - dV < 0 && t - ultimaTosse < 4)) vDisplay += dV
-    if (modalita === 'CPAP') {
+    if (modalita === 'CPAP' && !inPausa) {
       if (flussoPrima <= 0 && Q > 0) {
         vDisplay = Math.max(0, dV)
-        if (attoCorrente) chiudiAtto(attoCorrente, palvSenza, p, out, inizio)
+        if (attoCorrente) {
+          chiudiAtto(attoCorrente, palvSenza, p, out, inizio)
+          if (p.flussoPausa > 0 && p.perdita > 0) {
+            const dato = attoCorrente.vti + attoCorrente.vPersoInsp
+            persiFila = dato > 0 && (dato - attoCorrente.vte) / dato > PERDITA_ECCESSIVA ? persiFila + 1 : 0
+          }
+        }
         attoCorrente = nuovoAtto(t, true, peep, palvSenza)
         if (attivo) attoCorrente.p01 = attivo.ampiezza * formaA(attivo, 0.1)
       }
@@ -1390,10 +1484,11 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
     flussoPrima = Q * 60
     if (attoCorrente) {
       if (Q > 0) attoCorrente.vti += dV
-      else attoCorrente.vte -= dV
+      else if (!dalBordo) attoCorrente.vte -= dV
       if (qPerso > 0) {
         attoCorrente.vPerso += qPerso * 1000 * PASSO
-        if (fase !== 2) attoCorrente.vPersoInsp += qPerso * 1000 * PASSO
+        // In CPAP l'inspirazione è quella del paziente: il flusso che entra.
+        if (fase !== 2 || (modalita === 'CPAP' && Q > 0)) attoCorrente.vPersoInsp += qPerso * 1000 * PASSO
       }
       if (fase !== 2) attoCorrente.pip = Math.max(attoCorrente.pip, paw)
       attoCorrente.pMax = Math.max(attoCorrente.pMax, paw)
@@ -1404,7 +1499,10 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         // NEURO: l'atto era sincrono con il diaframma? Un atto aperto dal
         // trigger pneumatico senza attività vicina, o un «atto» brevissimo
         // aperto da un artefatto, non lo è.
-        if (neuro && innescato) {
+        // In NIV il trigger pneumatico tace finché il segnale è buono: senza
+        // segnale gli atti sono solo di backup, e anche quelli dicono che il
+        // diaframma non si vede.
+        if (neuro && (innescato || (p.niv && !ripiego))) {
           const ti = t - attoCorrente.inizio
           const attivita = p.eadi !== null && Math.abs(eInizioSopra - attoCorrente.inizio) < 0.35 && ePicco - eAtto > neuro.soglia + 0.5
           const sincrono = attivita && ti >= NEURO_TI_MINIMO
@@ -1443,6 +1541,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
       out.pes[q] = p.pesBase + V / p.Ccw - pmus + cardiaco(t - 0.08, p.cardio.frequenza) * 1
       out.fase[q] = fase
       if (out.eadi) out.eadi[q] = eOra
+      if (inPausa) out.pausa[q] = 1
       // Gli spigoli del volume controllato: il flusso quadro che parte e che
       // si ferma. Sono veri, e chi campiona non li deve arrotondare.
       if (tipoAtto === 'volume' && fase !== fasePrima) out.spigolo[q] = 1
@@ -1632,6 +1731,15 @@ export function campioneMotore(tSec: number, stato: StatoVentilatore): CampioneM
     inTrigger: b.trigger[f < 0.5 ? i : i + 1] === 1,
     eadi: b.eadi ? l(b.eadi) : null,
   }
+}
+
+/** NIV: la macchina a `tSec` è in pausa per la perdita eccessiva (la maschera staccata). */
+export function inPausaPerdita(tSec: number, stato: StatoVentilatore): boolean {
+  if (!motoreCopre(stato) || stato.ambiente !== 'niv') return false
+  const inizio = Math.floor(tSec / BLOCCO_SEC) * BLOCCO_SEC
+  const b = blocco(stato, inizio)
+  const i = Math.min(b.pausa.length - 1, Math.max(0, Math.round((tSec - inizio) / PASSO)))
+  return b.pausa[i] === 1
 }
 
 // ## L'EAdi senza la macchina
