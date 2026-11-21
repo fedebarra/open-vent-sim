@@ -42,6 +42,7 @@ export const NOME_MODALITA: Record<Modalita, TranslationKey> = {
   SIMV: 'vent.mode.SIMV',
   CPAP: 'vent.mode.CPAP',
   PAV: 'vent.mode.PAV',
+  NEURO: 'vent.mode.NEURO',
   AF: 'vent.mode.AF',
 }
 

@@ -12,6 +12,7 @@
 import type { AzioneVentilatore, ComandoPaziente, VentIstantanea } from '../device/remoteTypes';
 import { PARAMETRI, type Ambiente, type ChiaveImpostazione, type Modalita, MODALITA_PER_AMBIENTE } from '../device/screens/scenario/ventilatore/parametri';
 import { PARAMETRI_SCAMBIO, type ParametriScambio } from '../device/screens/scenario/ventilatore/scambio';
+import { CATETERI_EADI } from '../device/screens/scenario/ventilatore/eadi';
 
 export interface ScenarioFile {
   app: 'open-vent-sim';
@@ -47,7 +48,7 @@ export function scenarioDa(ist: VentIstantanea, name: string): ScenarioFile {
   };
 }
 
-const FIS_NUMERI = ['compliance', 'complianceParete', 'reclutabilita', 'resistenza', 'sforzoEspiratorio', 'limitazioneFlusso', 'secrezioni', 'oscillazioniCardiache', 'aperturaVie', 'pesBasale', 'perditaMaschera', 'isteresi', 'sovradistensione'] as const;
+const FIS_NUMERI = ['compliance', 'complianceParete', 'reclutabilita', 'resistenza', 'sforzoEspiratorio', 'limitazioneFlusso', 'secrezioni', 'oscillazioniCardiache', 'aperturaVie', 'pesBasale', 'perditaMaschera', 'isteresi', 'sovradistensione', 'nme', 'lesioneFrenico'] as const;
 const DRIVE_NUMERI = ['frequenza', 'intensita', 'forza', 'variabilita', 'espirioAttivo'] as const;
 
 const finito = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -68,6 +69,7 @@ export function parseScenario(text: string): ScenarioFile {
   const fisiologia: Record<string, unknown> = {};
   for (const k of FIS_NUMERI) if (finito(d.fisiologia?.[k])) fisiologia[k] = d.fisiologia[k];
   if (d.fisiologia?.monopolmonare === 'sinistro' || d.fisiologia?.monopolmonare === 'destro') fisiologia.monopolmonare = d.fisiologia.monopolmonare;
+  if ((CATETERI_EADI as string[]).includes(d.fisiologia?.catetereEAdi)) fisiologia.catetereEAdi = d.fisiologia.catetereEAdi;
   const scambio: Partial<ParametriScambio> = {};
   for (const k of Object.keys(PARAMETRI_SCAMBIO) as (keyof ParametriScambio)[]) {
     const x = d.scambio?.[k];
@@ -118,7 +120,8 @@ export function comandiScenario(sc: ScenarioFile, ist: VentIstantanea): { azioni
   return {
     azioni,
     paziente: {
-      fisiologia: sc.fisiologia as ComandoPaziente['fisiologia'],
+      // The catheter is part of the picture: a file without one takes it out.
+      fisiologia: { catetereEAdi: null, ...sc.fisiologia } as ComandoPaziente['fisiologia'],
       drive: sc.drive as ComandoPaziente['drive'],
       asincronia: sc.asincronia,
       vitali: sc.vitali,

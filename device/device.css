@@ -1236,3 +1236,104 @@
   font-size: clamp(0.58rem, 10cqi, 0.6875rem);
 }
 .simvent__manopola-corpo .simvent__valore { white-space: nowrap; }
+
+/* OVS 3.8: la corsia dell'EAdi da sola (standby in NEURO). */
+.simvent__quadro--eadi {
+  flex: 0 0 auto;
+  height: 9.5rem;
+  gap: 0.5rem;
+}
+.simvent__spento--sopra {
+  flex: 1;
+  min-height: 3rem;
+}
+.simvent__quadro--eadi:has(.simvent__spento--sopra) {
+  flex: 1;
+  height: auto;
+}
+.simvent__quadro--eadi:has(.simvent__spento--sopra) .simmon__waves {
+  flex: 0 0 9.5rem;
+}
+/* La modalità che non si può scegliere dice perché. */
+.simvent__scelte button small {
+  font-size: 0.65rem;
+  font-weight: 400;
+  color: #8a97ad;
+}
+/* NEURO: su che cosa sta andando la macchina. */
+.simvent__neuro {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.simvent__neuro--ripiego {
+  border: 1px solid #f59e0b;
+  color: #fbbf24;
+}
+.simvent__neuro--backup {
+  border: 1px solid #ef4444;
+  color: #fca5a5;
+}
+/* Alto flusso: la fascia che scorre mentre eroga. */
+.simvent__af-flusso {
+  position: relative;
+  flex: 0 0 auto;
+  height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  background: #0b111c;
+}
+.simvent__af-flusso::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0 1.4rem,
+    rgba(45, 212, 191, 0.10) 1.4rem 2.2rem,
+    rgba(45, 212, 191, 0.55) 2.2rem 2.45rem,
+    transparent 2.45rem 2.8rem
+  );
+  background-size: 2.8rem 100%;
+}
+.simvent__af-flusso span {
+  position: relative;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #55627a;
+}
+.simvent__af-flusso--attivo::before {
+  opacity: 1;
+  animation: simvent-af-scorre var(--af-durata, 1s) linear infinite;
+}
+.simvent__af-flusso--attivo span {
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: #0b111c;
+  color: #5eead4;
+}
+.simvent__af-flusso--scalda::before {
+  filter: hue-rotate(-140deg) saturate(1.4);
+}
+.simvent__af-flusso--scalda span {
+  color: #fbbf24;
+}
+@keyframes simvent-af-scorre {
+  from { background-position: 0 0; }
+  to { background-position: 2.8rem 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .simvent__af-flusso--attivo::before { animation-duration: calc(var(--af-durata, 1s) * 4); }
+}
+/* La fascia sta fra i numeri grandi e la camera dell'acqua. */
+.simvent__altoflusso > .simvent__af-flusso { order: 1; }
+.simvent__altoflusso > .simvent__consumabile { order: 2; }

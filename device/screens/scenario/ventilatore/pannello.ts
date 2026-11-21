@@ -169,6 +169,7 @@ export const GRUPPI: { titolo: TranslationKey; chiavi: ChiaveMisura[] }[] = [
       'mac',
     ],
   },
+  { titolo: 'vent.group.diaframma', chiavi: ['eadiPicco', 'eadiMin'] },
   { titolo: 'vent.group.apparecchio', chiavi: ['deliveredTemperature', 'waterLevelPercent'] },
 ]
 

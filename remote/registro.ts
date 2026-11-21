@@ -44,6 +44,9 @@ export const PARAMETRI_REGISTRO: { key: string; label: string; unit: string; col
   { key: 'f', label: 'f', unit: '/min', color: '#f472b6' },
   { key: 'fio2', label: 'FiO₂', unit: '%', color: '#e5e7eb' },
   { key: 'hr', label: 'HR', unit: '/min', color: '#ef4444' },
+  // OVS 3.8: only with the EAdi catheter mounted (null otherwise, and not sampled).
+  { key: 'eadiPeak', label: 'EAdi peak', unit: 'µV', color: '#d9f99d' },
+  { key: 'eadiMin', label: 'EAdi min', unit: 'µV', color: '#65a30d' },
 ];
 
 /** Same knob touched again within this window → one grouped line. */
