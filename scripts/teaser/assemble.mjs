@@ -61,6 +61,10 @@ const PLAN = [
   { card: 'outro', beats: 12 },
 ];
 const XFADE = BEAT;
+// The footage sits in a frame, with a band under it for the captions: a caption
+// over the app covered exactly the waveforms people were meant to read.
+const FW = 1664, FH = 936, FX = Math.round((1920 - FW) / 2), FY = 24, BAND = 1080 - FY - FH;
+const NAVY = '0x0b1220';
 // transitions: into a card an iris closes, out of it it opens; between scenes a slide
 const transition = (a, b) => (b.card === 'outro' ? 'fadeblack' : b.card ? 'circleclose' : a.card ? 'circleopen' : 'smoothleft');
 
@@ -72,16 +76,18 @@ const CSS = `
   :root { --teal: #2dd4bf; --lime: #d9f99d; --navy: #0b1220; --ease: cubic-bezier(.2,.8,.2,1); }
   .acc { --hi: var(--lime); } .def { --hi: var(--teal); }
 
-  /* caption: a tag, then a box revealed from the left, words rising one by one */
-  .cap { position: absolute; left: 70px; bottom: 120px; animation: out .35s ease-in both; animation-delay: calc(var(--d) - .4s); }
-  .tag { display: inline-block; margin-bottom: 14px; padding: 8px 18px; border-radius: 999px; font-size: 24px; font-weight: 700;
+  /* caption: in its own band under the footage — never over the waveforms.
+     The tag, then a box revealed from the left, words rising one by one. */
+  .cap { position: absolute; left: ${FX}px; right: ${FX}px; bottom: ${Math.round((BAND - 76) / 2)}px; display: flex; align-items: center; gap: 18px;
+         animation: out .35s ease-in both; animation-delay: calc(var(--d) - .4s); }
+  .tag { flex: none; display: inline-block; padding: 8px 18px; border-radius: 999px; font-size: 24px; font-weight: 700;
          letter-spacing: 2px; text-transform: uppercase; color: var(--navy); background: var(--hi);
          animation: pop .35s var(--ease) both .05s; }
-  .box { display: flex; align-items: center; gap: 22px; padding: 24px 40px 24px 28px; border-radius: 20px;
-         background: rgba(7,12,22,.88); border: 1px solid rgba(255,255,255,.08); box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  .box { display: flex; align-items: center; gap: 20px; padding: 14px 32px 14px 22px; border-radius: 18px;
+         background: #111a2b; border: 1px solid rgba(255,255,255,.08);
          animation: reveal .5s var(--ease) both .15s; }
   .box i { width: 8px; align-self: stretch; border-radius: 4px; background: var(--hi); transform-origin: top; animation: grow .35s var(--ease) both .25s; }
-  .box b { font-size: 52px; font-weight: 750; letter-spacing: -.5px; }
+  .box b { font-size: 44px; font-weight: 750; letter-spacing: -.5px; white-space: nowrap; }
   .w { display: inline-block; animation: rise .45s var(--ease) both; }
 
   /* full-frame cards */
@@ -183,8 +189,8 @@ for (const [i, s] of PLAN.entries()) {
     const zoom = `1+${(s.z - 1).toFixed(3)}*(${ramp}*${ramp}*(3-2*${ramp}))`;
     ff('-f', 'concat', '-safe', '0', '-i', path.join(RAW, s.id, 'frames.txt'), '-framerate', String(FPS), '-i', mg,
       '-filter_complex',
-      `[0:v]fps=${FPS},scale=3840:2160:flags=lanczos,zoompan=z='${zoom}':x='(iw-iw/zoom)*${s.fx}':y='(ih-ih/zoom)*${s.fy}':d=1:s=1920x1080:fps=${FPS},` +
-      `trim=duration=${d.toFixed(3)},setpts=PTS-STARTPTS[v];[v][1:v]overlay=0:0:shortest=1,format=yuv420p,settb=1/30[out]`,
+      `[0:v]fps=${FPS},scale=3840:2160:flags=lanczos,zoompan=z='${zoom}':x='(iw-iw/zoom)*${s.fx}':y='(ih-ih/zoom)*${s.fy}':d=1:s=${FW}x${FH}:fps=${FPS},` +
+      `trim=duration=${d.toFixed(3)},setpts=PTS-STARTPTS,pad=1920:1080:${FX}:${FY}:color=${NAVY}[v];[v][1:v]overlay=0:0:shortest=1,format=yuv420p,settb=1/30[out]`,
       '-map', '[out]', '-t', d.toFixed(3), '-c:v', 'libx264', '-crf', '15', '-preset', 'slow', '-r', String(FPS), clip);
   }
   clips.push({ clip, d, s });
