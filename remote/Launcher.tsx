@@ -176,17 +176,19 @@ export const DesktopLauncher: React.FC<{ onSolo: () => void }> = ({ onSolo }) =>
       <p className="mt-6 mb-6 text-xl">{l.question}</p>
       {error && <p className="text-red-400 mb-4 max-w-lg text-center">{l.error} {error}</p>}
       <div className="grid gap-4 sm:grid-cols-3 w-full max-w-3xl">
-        <Choice testId="choose-regia" icon={<DirectorIcon size={64} strokeWidth={1.3} />} title={l.regia} desc={l.regiaDesc} onClick={startRegia} />
-        <Choice testId="choose-vent" icon={<LearnerDeviceIcon size={64} strokeWidth={1.3} />} title={l.vent} desc={l.ventDesc} onClick={() => setStep('find')} />
-        <Choice testId="choose-solo" icon={<SoloIcon size={64} strokeWidth={1.3} />} title={l.solo} desc={l.soloDesc} onClick={onSolo} />
+        <Choice testId="choose-regia" icon={<DirectorIcon size={80} />} title={l.regia} desc={l.regiaDesc} onClick={startRegia} />
+        <Choice testId="choose-vent" icon={<LearnerDeviceIcon size={80} />} title={l.vent} desc={l.ventDesc} onClick={() => setStep('find')} />
+        <Choice testId="choose-solo" icon={<SoloIcon size={80} />} title={l.solo} desc={l.soloDesc} onClick={onSolo} />
       </div>
     </Shell>
   );
 };
 
 const Choice: React.FC<{ icon: React.ReactNode; title: string; desc: string; onClick: () => void; testId: string }> = ({ icon, title, desc, onClick, testId }) => (
-  <button data-testid={testId} onClick={onClick} className="rounded-2xl bg-slate-900 border-2 border-slate-700 hover:border-sky-400 p-6 text-left transition">
-    <div className="mb-4 text-sky-300">{icon}</div>
+  // Top-aligned, with a fixed place for the icon: a <button> centres its content,
+  // and with descriptions of different lengths every icon sat at its own height.
+  <button data-testid={testId} onClick={onClick} className="h-full rounded-2xl bg-slate-900 border-2 border-slate-700 hover:border-sky-400 p-6 text-left transition flex flex-col items-start justify-start">
+    <div className="mb-4 h-20 w-20 flex items-center justify-center">{icon}</div>
     <div className="text-2xl font-bold">{title}</div>
     <div className="text-slate-400 mt-1">{desc}</div>
   </button>

@@ -19,22 +19,52 @@ const Svg: React.FC<P & { children: React.ReactNode }> = ({ size = 24, className
 
 
 
-/** Learner device joining the classroom: tablet with an incoming signal. */
-export const LearnerDeviceIcon: React.FC<P> = (p) => (
-  <Svg {...p}>
-    <rect x="4" y="7" width="12" height="14" rx="1.8" />
-    <path d="M9 18.5h2" />
-    <path d="M6.5 13h2l.8-2.5 1.4 4.5.8-2H13.5" />
-    <path d="M18 5.5a3.5 3.5 0 0 1 0 5M20 3.5a6.3 6.3 0 0 1 0 9" />
-  </Svg>
+
+
+/** Instructor console: a laptop that sees every ventilator — four small screens with their curves. */
+export const DirectorIcon: React.FC<P> = ({ size = 24, className, title }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width={size} height={size} className={className}
+    role={title ? 'img' : undefined} aria-hidden={title ? undefined : true}>
+    {title && <title>{title}</title>}
+    <rect x="12" y="14" width="76" height="52" rx="6" fill="#e9eef2" stroke="#17293a" strokeWidth="3" />
+    <rect x="18" y="20" width="64" height="40" rx="3" fill="#0b1220" />
+    <rect x="21" y="23" width="28" height="16" rx="2" fill="#111a2b" /><rect x="51" y="23" width="28" height="16" rx="2" fill="#111a2b" />
+    <rect x="21" y="41" width="28" height="16" rx="2" fill="#111a2b" /><rect x="51" y="41" width="28" height="16" rx="2" fill="#111a2b" />
+    <path d="M24 35 h4 l3 -8 h6 l2 8 h7 M54 35 h4 l3 -8 h6 l2 8 h7" fill="none" stroke="#f5c542" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M24 53 h4 l3 -8 h6 l2 8 h7 M54 53 h4 l3 -8 h6 l2 8 h7" fill="none" stroke="#2dd4bf" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M4 70 H96 L90 80 H10 Z" fill="#c3ccd3" stroke="#17293a" strokeWidth="3" strokeLinejoin="round" />
+    <path d="M42 70 H58" stroke="#17293a" strokeWidth="2.4" strokeLinecap="round" />
+  </svg>
 );
 
-/** Single user, no network. */
-export const SoloIcon: React.FC<P> = (p) => (
-  <Svg {...p}>
-    <circle cx="12" cy="8" r="3.5" />
-    <path d="M5 20.5c.7-3.6 3.4-5.8 7-5.8s6.3 2.2 7 5.8" />
-  </Svg>
+/** Learner ventilator: a tablet with the curves, connected to the instructor (the network badge). */
+export const LearnerDeviceIcon: React.FC<P> = ({ size = 24, className, title }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width={size} height={size} className={className}
+    role={title ? 'img' : undefined} aria-hidden={title ? undefined : true}>
+    {title && <title>{title}</title>}
+    <rect x="10" y="18" width="68" height="50" rx="7" fill="#e9eef2" stroke="#17293a" strokeWidth="3" />
+    <rect x="16" y="24" width="56" height="38" rx="3" fill="#0b1220" />
+    <path d="M20 40 h6 l3 -10 h10 l2 10 h12 l3 -10 h10 l2 10 h2" fill="none" stroke="#f5c542" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M20 52 h5 l2 -6 c4 1 7 3 9 5 l1 1 l1 4 c2 -3 5 -4 10 -4 h4 l2 -6 c4 1 7 3 9 5 l1 1 l1 4 c1 -2 2 -3 4 -3" fill="none" stroke="#2dd4bf" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="78" cy="68" r="17" fill="#0d9488" stroke="#17293a" strokeWidth="3" />
+    <path d="M68 66 a14 14 0 0 1 20 0 M71.5 70 a9 9 0 0 1 13 0" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+    <circle cx="78" cy="74.5" r="2.4" fill="#fff" />
+  </svg>
+);
+
+/** On my own: the same tablet, used by one person without a network. */
+export const SoloIcon: React.FC<P> = ({ size = 24, className, title }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width={size} height={size} className={className}
+    role={title ? 'img' : undefined} aria-hidden={title ? undefined : true}>
+    {title && <title>{title}</title>}
+    <rect x="10" y="18" width="68" height="50" rx="7" fill="#e9eef2" stroke="#17293a" strokeWidth="3" />
+    <rect x="16" y="24" width="56" height="38" rx="3" fill="#0b1220" />
+    <path d="M20 40 h6 l3 -10 h10 l2 10 h12 l3 -10 h10 l2 10 h2" fill="none" stroke="#f5c542" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M20 52 h5 l2 -6 c4 1 7 3 9 5 l1 1 l1 4 c2 -3 5 -4 10 -4 h4 l2 -6 c4 1 7 3 9 5 l1 1 l1 4 c1 -2 2 -3 4 -3" fill="none" stroke="#2dd4bf" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="78" cy="68" r="17" fill="#3d6fa8" stroke="#17293a" strokeWidth="3" />
+    <circle cx="78" cy="63" r="5" fill="#fff" />
+    <path d="M69 77 c1.5 -5.5 5 -8 9 -8 s7.5 2.5 9 8" fill="#fff" />
+  </svg>
 );
 
 export const BookIcon: React.FC<P> = (p) => (
@@ -159,12 +189,6 @@ export const GearIcon: React.FC<P> = (p) => (
 export const TourIcon: React.FC<P> = (p) => (
   <Svg {...p} strokeWidth={p.strokeWidth ?? 1.75}>
       <circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>
-  </Svg>
-);
-/** Instructor console: a desk of sliders — the one who adjusts the case. */
-export const DirectorIcon: React.FC<P> = (p) => (
-  <Svg {...p} strokeWidth={p.strokeWidth ?? 1.75}>
-      <rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M7 8v8M12 8v8M17 8v8"/><path d="M5.5 13h3M10.5 10h3M15.5 14.5h3"/>
   </Svg>
 );
 
