@@ -6,8 +6,7 @@
 
 📄 **L'articolo:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. Se usi Open Vent Sim in un corso, una tesi o un lavoro, [citalo così](#11-come-citare).
 
-<!-- VIDEO IN LINEA: su github.com, trascina qui docs/media/open-vent-sim-teaser.mp4 e cancella il paragrafo dell'anteprima qui sotto. -->
-<p align="center"><a href="docs/media/open-vent-sim-teaser.mp4"><img src="docs/media/teaser-preview.gif" width="820" alt="Open Vent Sim in 90 secondi: le tre macchine, la regia, l'assistenza neurale, la NIV, l'alto flusso, la guida passo passo"></a><br><b><a href="docs/media/open-vent-sim-teaser.mp4">▶ Guarda il video di 90 secondi</a></b> (in inglese)</p>
+<p align="center"><a href="https://fedebarra.github.io/open-vent-sim/video.html"><img src="docs/media/teaser-preview.gif" width="820" alt="Open Vent Sim in 90 secondi: le tre macchine, la regia, l'assistenza neurale, la NIV, l'alto flusso, la guida passo passo"></a><br><b><a href="https://fedebarra.github.io/open-vent-sim/video.html">▶ Guarda il video di 90 secondi</a></b> (in inglese)</p>
 
 > ⚠️ **Solo per la didattica.** Non è un dispositivo medico e non va mai usato per decisioni cliniche.
 
