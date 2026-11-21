@@ -96,9 +96,9 @@ const CSS = `
           linear-gradient(90deg, rgba(45,212,191,.07) 1px, transparent 1px); background-size: 80px 80px; animation: drift 4s linear both; }
   .blob { position: absolute; width: 900px; height: 900px; border-radius: 50%; filter: blur(140px); opacity: .55;
           background: var(--hi); animation: float 4s ease-in-out both; }
-  .wave { position: absolute; left: 0; right: 0; bottom: 210px; height: 160px; opacity: .5; }
+  .wave { position: absolute; left: 0; right: 0; bottom: 70px; height: 160px; opacity: .5; }
   .wave path { fill: none; stroke: var(--hi); stroke-width: 4; stroke-dasharray: 2600; stroke-dashoffset: 2600; animation: draw 1.6s var(--ease) both .2s; }
-  .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; }
+  .center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; text-align: center; }
   .sec { position: absolute; left: 160px; top: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
   .num { font-size: 220px; font-weight: 900; line-height: .9; color: transparent; -webkit-text-stroke: 3px var(--hi);
          animation: slide .6s var(--ease) both; }
@@ -139,7 +139,7 @@ function html(s, d) {
   if (s.card === 'intro') {
     return `<div class="card def" style="--d:${d}s"><div class="grid"></div><div class="blob" style="left:520px;top:-200px"></div>${WAVE}
       <div class="center leave"><img class="logo" src="${ICON}"><div class="brand">${chars('Open Vent Sim', 0.35, 0.04)}<span class="badge">3.8</span></div>
-      <div class="sub" style="animation-delay:1.2s">A free, open-source ventilation simulator for teaching</div></div></div>`;
+      <div class="sub" style="animation-delay:1.2s;line-height:1.35">Teach with realistic, interactive interfaces<br>from VEMS to advanced simulation</div></div></div>`;
   }
   if (s.card === 'outro') {
     const pills = ['Free', 'Open source', 'Runs on your classroom network'].map((p, k) => `<span style="animation-delay:${(0.5 + k * 0.2).toFixed(2)}s">${p}</span>`).join('');
