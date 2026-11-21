@@ -366,6 +366,9 @@ export function flussoAltoFlusso(stato: Pick<StatoVentilatore, 'ambiente' | 'ven
   if (guasto === 'staccata' || guasto === 'dislocata') return { erogato: fgf, alPaziente: 0 }
   return { erogato: fgf, alPaziente: fgf }
 }
+/** NEURO: per quanti secondi di fila sul ripiego suona l'allarme del segnale. */
+const RIPIEGO_ALLARME_SEC = 80
+
 /** Con la cannula ostruita, quanto del flusso impostato l'apparecchio riesce a dare. */
 const QUOTA_OSTRUITA = 0.35
 
@@ -1130,6 +1133,14 @@ export function misura(
           p01: null,
         }
       : { ...m, pausaPerdita: 0 }
+  }
+  // ## NEURO: da quanto la macchina sta sul ripiego
+  //
+  // Un passaggio al supporto di pressione ogni tanto è il catetere che si
+  // muove; ottanta secondi di fila sono un segnale da controllare.
+  if (stato.ventilando && stato.modalita === 'NEURO' && motoreCopre(polmoneOra(stato))) {
+    const suoi = attiRecenti(tSec, polmoneOra(stato), RIPIEGO_ALLARME_SEC).filter((a) => a.innescato)
+    m = { ...m, neuroRipiego: suoi.length >= 3 && suoi.every((a) => a.ripiego) ? 1 : 0 }
   }
   // L'EAdi è del paziente e del catetere, non della macchina: si legge anche
   // in standby e in alto flusso, prima dell'intubazione e dopo l'estubazione.

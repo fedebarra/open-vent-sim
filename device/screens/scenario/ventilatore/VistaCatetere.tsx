@@ -19,6 +19,7 @@ import type { AzioneVentilatore } from './azioni'
 import type { Translate } from '../../../i18n'
 import { Sweep, type SweepChannel } from '../monitor/Sweep'
 import { attivitaDiaframma } from './pressioni'
+import { puntoOnda } from './onde'
 import {
   calibroPerPeso,
   catetereMontato,
@@ -33,6 +34,7 @@ import { creaEcgEsofageo, emg } from './ecgEsofageo'
 
 const COLORE_ECG = '#e2e8f0'
 const COLORE_DIAFRAMMA = '#d9f99d'
+const COLORE_PAW = '#f5c542'
 /** Sopra quanti µV oltre il minimo il diaframma «si vede» sulla derivazione. */
 const SOGLIA_EVIDENZA = 1.5
 
@@ -78,8 +80,22 @@ export function PosizionamentoCatetere({
       evidenzia: forti.includes(k) ? (tt: number) => fasica(tt) > SOGLIA_EVIDENZA : undefined,
       coloreEvidenza: COLORE_DIAFRAMMA,
     })
+    // La Paw accanto all'EAdi, quando la macchina ventila: è la verifica con
+    // l'occlusione di fine espirazione.
+    const paw: SweepChannel[] = stato.ventilando
+      ? [{
+          key: 'paw',
+          color: COLORE_PAW,
+          at: (tt: number) => puntoOnda(tt, stato).paw,
+          range: (): [number, number] => [Math.min(-5, stato.impostazioni.peep - 15), Math.max(25, stato.impostazioni.peep + 20)],
+          label: 'Paw',
+          scale: t('vent.unit.cmH2O'),
+          weight: 1.2,
+        }]
+      : []
     return [
       ...[0, 1, 2, 3].map(derivazione),
+      ...paw,
       {
         key: 'eadi',
         color: COLORE_DIAFRAMMA,
@@ -141,6 +157,19 @@ export function PosizionamentoCatetere({
             </button>
           </div>
           <small>{t('vent.catetere.passo')} {(passo * 10).toFixed(0)} mm</small>
+        </section>
+        <section>
+          <h3>{t('vent.catetere.verifica')}</h3>
+          <button
+            type="button"
+            data-testid="cat-occlusione"
+            className={stato.manovra === 'pausa-espiratoria' ? 'simvent__catetere-azione scelto' : 'simvent__catetere-azione'}
+            disabled={!stato.ventilando || (stato.manovra !== null && stato.manovra !== 'pausa-espiratoria')}
+            onClick={() => agisci({ tipo: 'manovra', manovra: stato.manovra === 'pausa-espiratoria' ? null : 'pausa-espiratoria' })}
+          >
+            {t('vent.manovra.espiratoria')}
+          </button>
+          <small>{t(stato.ventilando ? 'vent.catetere.verificaAiuto' : 'vent.catetere.verificaFerma')}</small>
         </section>
         <p className="simvent__catetere-aiuto">{t('vent.catetere.aiuto')}</p>
       </div>

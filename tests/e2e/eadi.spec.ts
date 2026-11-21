@@ -164,3 +164,65 @@ test('ready case: the console loads «NEURO: titrating the level» and the machi
   await expect(vent.getByTestId('vista-catetere')).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test('tour: the NEURO and catheter steps light up and tick as the learner does them', async ({ browser }) => {
+  const { regia, vent, errors } = await apri(browser);
+  await vent.getByTestId('start-tour').click();
+  await expect(vent.getByTestId('tour-card')).toBeVisible();
+  // the welcome card sits in the middle: past it, the start-up steps light what to touch
+  await vent.getByTestId('tour-next').click();
+  await vent.getByTestId('mode-icu').click();
+  await vent.getByTestId('icu-invasive').click();
+  await vent.getByTestId('patient-confirm').click();
+  await expect(regia.getByTestId('vent-list')).toContainText('Ventilatore');
+  await pazienteCheRespira(regia, '18', '0.6');
+  await regia.getByTestId('tab-diaphragm').click();
+  await regia.getByTestId('cath-profondo').click();
+
+  const card = vent.getByTestId('tour-card');
+  const fatto = vent.getByTestId('tour-try');
+  // the step id, not the title: the card writes titles in capitals
+  const passo = () => vent.locator('.ovs-tour').getAttribute('data-step', { timeout: 5000 });
+  const finoA = async (id: string) => {
+    for (let i = 0; i < 60; i++) {
+      const ora = await passo();
+      if (process.env.OVS_TOUR_DEBUG) console.log('tour:', id, '←', ora, await vent.getByTestId('tour-progress').innerText());
+      if (ora === id) return;
+      await vent.getByTestId('tour-next').click({ timeout: 5000 });
+      await expect.poll(passo).not.toBe(ora);
+    }
+    expect(await passo()).toBe(id);
+  };
+
+  await finoA('neuro');
+  await vent.locator('[data-fam="maniglia-modalita"]').click();
+  await vent.locator('[data-fam="modalita-NEURO"]').click();
+  await expect(fatto).toHaveClass(/is-done/);
+  await vent.locator(CLOSE).click({ timeout: 2000 }).catch(() => {});
+
+  await finoA('neuro-catheter');
+  await vent.getByTestId('vista-catetere').click();
+  await expect(fatto).toHaveClass(/is-done/);
+
+  await finoA('neuro-depth');
+  await vent.getByTestId('cat-inserisci').click();
+  await expect(fatto).toHaveClass(/is-done/);
+
+  await finoA('neuro-leads');
+  await expect(fatto).toHaveClass(/is-done/);
+  await expect(regia.getByTestId('cath-giusto')).toHaveClass(/bg-sky-700/);
+
+  await finoA('neuro-occlusion');
+  await vent.locator('[data-fam="maniglia-ventilazione"]').click();
+  await vent.getByRole('button', { name: /AVVIA LA VENTILAZIONE/i }).click();
+  await vent.locator(CLOSE).click({ timeout: 2000 }).catch(() => {});
+  await vent.waitForTimeout(4000);
+  await vent.getByTestId('cat-occlusione').click();
+  await expect(fatto).toHaveClass(/is-done/);
+  await vent.waitForTimeout(3500);
+  if (SHOTS) await vent.screenshot({ path: `${SHOTS}/tour-occlusione.png` });
+
+  await finoA('neuro-level');
+  await finoA('neuro-state');
+  expect(errors).toEqual([]);
+});

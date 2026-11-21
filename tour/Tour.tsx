@@ -88,7 +88,10 @@ export const Tour: React.FC<TourProps> = ({ active, onClose, context, steps: ele
   const s = tourStrings(language);
   const lang: 'it' | 'en' = language === 'it' ? 'it' : 'en';
 
-  const envKey = `${context.screen}|${context.icuChoice}|${context.ambiente}|${context.vent?.ambiente ?? ''}`;
+  // What the steps' `when` look at: the screen, the machine, and — since the
+  // neural-assist steps — the mode and the EAdi catheter. A step that starts to
+  // apply must enter the list before "Next", or it ends up behind the current one.
+  const envKey = `${context.screen}|${context.icuChoice}|${context.ambiente}|${context.vent?.ambiente ?? ''}|${context.vent?.modalita ?? ''}|${context.vent?.fisiologia?.catetereEAdi ? 1 : 0}`;
   const [currentId, setCurrentId] = useState<string>(ALL[0].id);
   // Steps already shown stay in the list, so "n/N" only moves forward.
   const [seen, setSeen] = useState<string[]>([]);

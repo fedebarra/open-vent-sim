@@ -2,7 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { istantaneaIniziale, applica, statoDa } from '../device/screens/scenario/ventilatore/istantanea';
 import { attiRecenti, campioneMotore, letturaEAdi } from '../device/screens/scenario/ventilatore/motore';
 import { impostazioniVisibili, MODALITA_PER_AMBIENTE, modalitaDisponibile } from '../device/screens/scenario/ventilatore/parametri';
-import type { StatoVentilatore } from '../device/screens/scenario/ventilatore/fisica';
+import { misura, type StatoVentilatore } from '../device/screens/scenario/ventilatore/fisica';
+import { valuta, LIMITI_INIZIALI } from '../device/screens/scenario/ventilatore/allarmi';
+import { puntoOnda } from '../device/screens/scenario/ventilatore/onde';
+import { attivitaDiaframma } from '../device/screens/scenario/ventilatore/pressioni';
 import type { Drive } from '../device/screens/scenario/ventilatore/asincronie';
 
 function stato(imp: Record<string, unknown>, drive: Drive, fis: Record<string, unknown> = {}): StatoVentilatore {
@@ -97,5 +100,42 @@ describe('NEURO: il motore', () => {
     expect(r[2].vt).toBeGreaterThan(r[0].vt * 1.3);
     expect(r[1].pip).toBeGreaterThan(r[0].pip);
     expect(r[2].pip).toBeGreaterThan(r[1].pip);
+  });
+  it('Hering-Breuer: oltre il ginocchio il volume si ferma intorno a 6,5 ml/kg, l’EAdi continua a scendere', () => {
+    const r = [0, 2, 3, 5].map((L) => {
+      const s = stato({ livelloNeuro: L }, { ...D, responsivo: true });
+      return { e: letturaEAdi(120, s)!.picco, vt: media(attiRecenti(120, s, 40).map((a) => a.vti)) };
+    });
+    // la salita sta tutta prima del ginocchio
+    expect(r[1].vt - r[0].vt).toBeGreaterThan(150);
+    expect(r[3].vt - r[2].vt).toBeLessThan(0.2 * (r[1].vt - r[0].vt));
+    expect(r[3].vt).toBeLessThan(6.5 * 70 * 1.1);
+    expect(r[3].e).toBeLessThan(r[2].e);
+    expect(r[2].e).toBeLessThan(r[1].e);
+  });
+});
+
+describe('NEURO: l’allarme del segnale e la verifica con l’occlusione', () => {
+  it('ottanta secondi sul ripiego: suona «segnale EAdi»; con il catetere a posto no', () => {
+    const buono = stato({ livelloNeuro: 1 }, D);
+    const staccato = stato({ livelloNeuro: 1 }, D, { catetereEAdi: 'staccato' });
+    expect(misura(buono, 200, 2, null).neuroRipiego).toBe(0);
+    expect(valuta(buono, misura(buono, 200, 2, null), LIMITI_INIZIALI).map((a) => a.chiave)).not.toContain('segnaleEAdi');
+    expect(misura(staccato, 200, 2, null).neuroRipiego).toBe(1);
+    expect(valuta(staccato, misura(staccato, 200, 2, null), LIMITI_INIZIALI).map((a) => a.chiave)).toContain('segnaleEAdi');
+  });
+  it('in pausa espiratoria lo sforzo fa salire l’EAdi e scendere la Paw nello stesso tempo', () => {
+    const s = { ...stato({ livelloNeuro: 1 }, D), manovra: 'pausa-espiratoria' as const, manovraDa: 118 };
+    let eMax = { t: 0, v: 0 };
+    let pMin = { t: 0, v: Infinity };
+    for (let t = 118.5; t < 121.5; t += 0.01) {
+      const e = attivitaDiaframma(t, s)!;
+      const p = puntoOnda(t, s).paw;
+      if (e > eMax.v) eMax = { t, v: e };
+      if (p < pMin.v) pMin = { t, v: p };
+    }
+    expect(pMin.v).toBeLessThan(5 - 2);
+    expect(eMax.v).toBeGreaterThan(3);
+    expect(Math.abs(pMin.t - eMax.t)).toBeLessThan(0.5);
   });
 });

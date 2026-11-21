@@ -220,6 +220,8 @@ export interface Misure {
   waterLevelPercent: number | null
   /** Alto flusso: il flusso che l'apparecchio misura in uscita, l/min. Lo scrive il pannello, non una tessera. */
   flussoMisurato: number | null
+  /** NEURO: 1 se da 80 secondi gli atti del paziente sono tutti di ripiego (il segnale non è credibile), 0 se no. */
+  neuroRipiego: number | null
   /**
    * La P0.1: quanto scende la pressione nei primi cento millisecondi di uno
    * sforzo a vie occluse, cmH₂O. È il drive, letto senza chiedere niente al
@@ -886,6 +888,12 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     regolabile: false,
     visibile: (c) => c.ambiente === 'alto-flusso',
   },
+  neuroRipiego: {
+    etichetta: 'vent.alarm.segnaleEAdi',
+    unita: 'vent.unit.none',
+    regolabile: false,
+    visibile: () => false,
+  },
   flussoMisurato: {
     etichetta: 'vent.param.fgf',
     unita: 'vent.unit.lMin',
@@ -964,6 +972,7 @@ export const MISURE_VUOTE: Misure = {
   eadiMin: null,
   pausaPerdita: null,
   flussoMisurato: null,
+  neuroRipiego: null,
 }
 
 /**
