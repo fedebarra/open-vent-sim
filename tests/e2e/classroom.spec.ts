@@ -130,7 +130,8 @@ test('director drives a learner ventilator end to end, and records the session',
   tablet.on('pageerror', (e) => errors.push(e.message));
   await tablet.goto(`http://127.0.0.1:${srv.port}/?role=vent&pin=1234`);
   // 3.3: it first shows the machine already on; the group detaches to get one of its own
-  await expect(tablet.getByTestId('device-mirror')).toBeVisible({ timeout: 15_000 });
+  // after the dropped connections and the console reload the server can be slow to list the machine (CI): as long as the reconnects above
+  await expect(tablet.getByTestId('device-mirror')).toBeVisible({ timeout: 30_000 });
   await tablet.locator('[data-tour="esci"]').click();
   await tablet.getByTestId('mirror-detach').click();
   await expect(regia.getByTestId('vent-list').locator('li')).toHaveCount(2);

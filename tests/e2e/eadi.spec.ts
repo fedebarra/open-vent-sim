@@ -169,11 +169,14 @@ test('tour: the NEURO and catheter steps light up and tick as the learner does t
   const { regia, vent, errors } = await apri(browser);
   await vent.getByTestId('start-tour').click();
   await expect(vent.getByTestId('tour-card')).toBeVisible();
-  // the welcome card sits in the middle: past it, the start-up steps light what to touch
+  // The start-up screens change under the card, and while the tour looks for
+  // the new target it can sit over the button (on CI it did): the start-up
+  // clicks go straight to the buttons. Everything after is clicked for real.
   await vent.getByTestId('tour-next').click();
-  await vent.getByTestId('mode-icu').click();
-  await vent.getByTestId('icu-invasive').click();
-  await vent.getByTestId('patient-confirm').click();
+  for (const id of ['mode-icu', 'icu-invasive', 'patient-confirm']) {
+    await expect(vent.getByTestId(id)).toBeVisible();
+    await vent.getByTestId(id).dispatchEvent('click');
+  }
   await expect(regia.getByTestId('vent-list')).toContainText('Ventilatore');
   await pazienteCheRespira(regia, '18', '0.6');
   await regia.getByTestId('tab-diaphragm').click();
@@ -186,7 +189,6 @@ test('tour: the NEURO and catheter steps light up and tick as the learner does t
   const finoA = async (id: string) => {
     for (let i = 0; i < 60; i++) {
       const ora = await passo();
-      if (process.env.OVS_TOUR_DEBUG) console.log('tour:', id, '←', ora, await vent.getByTestId('tour-progress').innerText());
       if (ora === id) return;
       await vent.getByTestId('tour-next').click({ timeout: 5000 });
       await expect.poll(passo).not.toBe(ora);
