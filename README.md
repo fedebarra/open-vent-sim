@@ -2,7 +2,7 @@
 
 **A free, open-source simulator of ICU ventilator, anaesthesia machine and high-flow oxygen — with an instructor console that runs on your classroom's own network.**
 
-[Versione italiana](README.it.md) · Version 3.8.0 — 21 November 2026 · MIT licence
+[Versione italiana](README.it.md) · Version 3.8.1 — 21 November 2026 · MIT licence
 
 📄 **The paper:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. If you use Open Vent Sim in a course, a thesis or a paper, [please cite it](#11-how-to-cite).
 
@@ -67,9 +67,9 @@ Go to **[Releases](https://github.com/fedebarra/open-vent-sim/releases/latest)**
 
 | Your computer | File |
 |---|---|
-| Windows | `OpenVentSim-3.8.0-win-x64.exe` (installer) — or `OpenVentSim-3.8.0-portable.exe` (no install, just run it) |
-| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.8.0-mac-arm64.dmg` |
-| Mac with Intel processor | `OpenVentSim-3.8.0-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.8.1-win-x64.exe` (installer) — or `OpenVentSim-3.8.1-portable.exe` (no install, just run it) |
+| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.8.1-mac-arm64.dmg` |
+| Mac with Intel processor | `OpenVentSim-3.8.1-mac-x64.dmg` |
 
 > If the `.dmg` won't open, download the `.zip` with the same name: double-click to extract, then drag **Open Vent Sim** into Applications.
 
@@ -240,7 +240,7 @@ The log survives closing and reopening the console.
 
 ## 9. What's new
 
-### In the next release
+### 3.8.1 — 21 November 2026
 
 - **New icons**: the machines, the airway (endotracheal tube, NIV mask, high-flow cannula) and the small controls are redrawn so they read as what they are, at any size.
 - **One mark** for the app: two pressure-support breaths of the flow curve, white on teal. It replaces the lung emoji in the title and the blue icon on the desktop.
