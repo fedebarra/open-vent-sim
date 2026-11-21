@@ -1276,6 +1276,12 @@
   border: 1px solid #ef4444;
   color: #fca5a5;
 }
+/* NIV: la macchina in pausa per la maschera staccata. */
+.simvent__neuro--pausa {
+  border: 1px solid #ef4444;
+  background: #7f1d1d;
+  color: #fee2e2;
+}
 /* Alto flusso: la fascia che scorre mentre eroga. */
 .simvent__af-flusso {
   position: relative;

@@ -750,6 +750,11 @@ export function Ventilatore({
                 {t(statoNeuro === 'ripiego' ? 'vent.neuro.ripiego' : 'vent.neuro.backup')}
               </span>
             )}
+            {misure.pausaPerdita === 1 && (
+              <span className="simvent__neuro simvent__neuro--pausa" data-testid="pausa-perdita">
+                {t('vent.perdita.pausa')}
+              </span>
+            )}
             <span className="simvent__vuoto" />
             {!inAltoFlusso && stato.ventilando && (
               <>
@@ -1001,6 +1006,12 @@ export function Ventilatore({
 }
 
 /**
+ * Che cosa fa la NIV oltre il 95% di perdita, come si scrive sulla tessera:
+ * continua, oppure pausa con flusso alto o basso. Per esteso nel `title`.
+ */
+const SIMBOLI_PERDITA = ['\u25B6', '\u2016 \u25B2', '\u2016 \u25BC']
+
+/**
  * Una tessera della barra: si tocca e cresce di due tasti.
  *
  * Niente tastierino e niente cursore. Un tastierino numerico su un iPad chiede
@@ -1040,7 +1051,13 @@ function Manopola({
       <button type="button" className="simvent__manopola-corpo" onClick={onApri} disabled={!operabile}>
         <span className="simvent__etichetta" title={t(def.etichetta)}>{etichettaBreve(t, def.etichetta)}</span>
         <span className="simvent__valore simvent__valore--grande">
-          <b>{scriviValore(chiave, valore)}</b>
+          {chiave === 'perditaEccessiva' ? (
+            <b title={t(`vent.perdita.scelta${Math.round(Number(valore) || 0)}` as TranslationKey)} data-scelta={Math.round(Number(valore) || 0)}>
+              {SIMBOLI_PERDITA[Math.round(Number(valore) || 0)] ?? SIMBOLI_PERDITA[0]}
+            </b>
+          ) : (
+            <b>{scriviValore(chiave, valore)}</b>
+          )}
           <em>{t(def.unita)}</em>
         </span>
       </button>

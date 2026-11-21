@@ -712,7 +712,7 @@ const MechanicsTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; on
       </div>
       {ist.ambiente === 'niv' && (
         <div className="grid grid-cols-2 gap-x-6 gap-y-2 items-end">
-          <Slider testId="sl-mask-leak" label={s.maskLeak} value={leak} min={0} max={200} step={5} live={f.perditaMaschera ?? '–'} nowLabel={s.now} onChange={(v) => { setLeak(v); setLeakOn(true); }} />
+          <Slider testId="sl-mask-leak" label={s.maskLeak} value={leak} min={0} max={400} step={5} live={f.perditaMaschera ?? '–'} nowLabel={s.now} onChange={(v) => { setLeak(v); setLeakOn(true); }} />
           <label className="flex items-center gap-2 text-slate-300 text-xs" title={s.maskLeakHint}><input type="checkbox" data-testid="opt-mask-leak" checked={leakOn} onChange={(e) => setLeakOn(e.target.checked)} className="accent-sky-500" /> {s.maskLeakSet}</label>
         </div>
       )}

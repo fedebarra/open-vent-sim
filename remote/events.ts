@@ -18,6 +18,8 @@ export const EVENT_LIBRARY: EventDef[] = [
   { id: 'tachy', labelKey: 'ev_tachycardia', patch: { vitali: { heartRate: 135, map: 55 } }, rampSec: 30 },
   { id: 'maskleak', labelKey: 'ev_maskleak', patch: { fisiologia: { perditaMaschera: 90 } }, rampSec: 0 },
   { id: 'maskseal', labelKey: 'ev_maskseal', patch: { fisiologia: { perditaMaschera: 10 } }, rampSec: 0 },
+  // 3.8: the mask off the face — over 95% leak; what the machine does is its own setting.
+  { id: 'maskoff', labelKey: 'ev_maskoff', patch: { fisiologia: { perditaMaschera: 400 } }, rampSec: 0 },
   // 3.5: gas exchange. These change the patient, not the numbers: the model makes the SpO₂ and the EtCO₂.
   { id: 'olv-left', labelKey: 'ev_olv_left', patch: { fisiologia: { monopolmonare: 'sinistro' } }, rampSec: 0 },
   { id: 'olv-right', labelKey: 'ev_olv_right', patch: { fisiologia: { monopolmonare: 'destro' } }, rampSec: 0 },

@@ -77,7 +77,7 @@ export type Disinfezione = 'pulito' | 'sporco' | 'non-sicuro'
 export const MODALITA_PER_AMBIENTE: Record<Ambiente, Modalita[]> = {
   anestesia: ['VC', 'PC', 'PS'],
   invasiva: ['VC', 'PC', 'PRVC', 'PS', 'SIMV', 'CPAP', 'PAV', 'NEURO'],
-  niv: ['PS', 'CPAP'],
+  niv: ['PS', 'CPAP', 'PC', 'NEURO'],
   'alto-flusso': ['AF'],
 }
 
@@ -154,6 +154,15 @@ export interface Impostazioni {
    * index si legge solo a flusso quadro.
    */
   formaFlusso: number
+  /**
+   * NIV: che cosa fa la macchina quando la perdita passa il 95% — la maschera
+   * staccata. 0 continua a ventilare, 1 si mette in pausa con un flusso alto,
+   * 2 in pausa con un flusso basso. In pausa non cicla, tiene un flusso
+   * costante e riparte da sola quando la maschera torna a tenere.
+   *
+   * Assente nelle istantanee di prima della 3.8: chi lo legge ripiega su 0.
+   */
+  perditaEccessiva: number
   /** Soglia di ciclaggio a flusso, percentuale del picco. */
   flowCycleOffPercent: number
   backupPressure: number
@@ -245,6 +254,12 @@ export interface Misure {
   eadiPicco: number | null
   /** Il fondo dell'EAdi fra un respiro e l'altro, µV: l'attività tonica, o l'artefatto. */
   eadiMin: number | null
+  /**
+   * NIV: 1 se la macchina è in pausa per la perdita eccessiva (la maschera
+   * staccata), 0 se ventila. Non è una tessera: lo dice la scritta accanto
+   * alla modalità.
+   */
+  pausaPerdita: number | null
 }
 
 export type ChiaveImpostazione = keyof Impostazioni
@@ -339,7 +354,8 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     passo: 1,
     visibile: (c) =>
       (c.ambiente === 'anestesia' && c.modalita === 'PC' && c.respiro === 'meccanica') ||
-      (c.ambiente === 'invasiva' && (c.modalita === 'PC' || c.modalita === 'SIMV')),
+      (c.ambiente === 'invasiva' && (c.modalita === 'PC' || c.modalita === 'SIMV')) ||
+      (c.ambiente === 'niv' && c.modalita === 'PC'),
   },
   frequency: {
     etichetta: 'vent.param.frequency',
@@ -380,7 +396,8 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
         (c.modalita === 'VC' || c.modalita === 'PC') &&
         c.respiro === 'meccanica') ||
       (c.ambiente === 'invasiva' &&
-        (c.modalita === 'VC' || c.modalita === 'PC' || c.modalita === 'PRVC' || c.modalita === 'SIMV')),
+        (c.modalita === 'VC' || c.modalita === 'PC' || c.modalita === 'PRVC' || c.modalita === 'SIMV')) ||
+      (c.ambiente === 'niv' && c.modalita === 'PC'),
   },
   psLevel: {
     etichetta: 'vent.param.psLevel',
@@ -393,7 +410,7 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
       (c.ambiente === 'anestesia' && c.modalita === 'PS' && c.respiro === 'meccanica') ||
       (inIcu(c.ambiente) && (c.modalita === 'PS' || c.modalita === 'SIMV')) ||
       // in NEURO è il supporto su cui la macchina ripiega se il segnale non è credibile
-      (c.ambiente === 'invasiva' && c.modalita === 'NEURO'),
+      (inIcu(c.ambiente) && c.modalita === 'NEURO'),
   },
   triggerFlow: {
     etichetta: 'vent.param.triggerFlow',
@@ -406,7 +423,7 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     visibile: (c) =>
       (c.ambiente === 'anestesia' && c.modalita === 'PS' && c.respiro === 'meccanica') ||
       (c.ambiente === 'invasiva' && c.modalita !== 'CPAP') ||
-      (c.ambiente === 'niv' && c.modalita === 'PS'),
+      (c.ambiente === 'niv' && (c.modalita === 'PS' || c.modalita === 'PC' || c.modalita === 'NEURO')),
   },
   inspiratoryPausePercent: {
     etichetta: 'vent.param.inspiratoryPausePercent',
@@ -429,9 +446,10 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     // Solo dove c'è un atto controllato su cui appoggiarlo: in pressione di
     // supporto e in CPAP il sigh non esiste, perché non c'è una macchina che
     // decide quando insufflare.
+    // In NIV no: la pressione controllata con la maschera è un paziente sveglio.
     visibile: (c) =>
       (c.modalita === 'VC' || c.modalita === 'PC' || c.modalita === 'PRVC' || c.modalita === 'SIMV') &&
-      (c.ambiente === 'invasiva' || c.ambiente === 'niv'),
+      c.ambiente === 'invasiva',
   },
   sighPressure: {
     etichetta: 'vent.param.sighPressure',
@@ -445,7 +463,7 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     visibile: (c) =>
       c.impostazioni.sighRate > 0 &&
       (c.modalita === 'VC' || c.modalita === 'PC' || c.modalita === 'PRVC' || c.modalita === 'SIMV') &&
-      (c.ambiente === 'invasiva' || c.ambiente === 'niv'),
+      c.ambiente === 'invasiva',
   },
   inspiratoryRiseTimeSeconds: {
     etichetta: 'vent.param.inspiratoryRiseTimeSeconds',
@@ -464,7 +482,7 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
       (c.ambiente === 'anestesia' && c.modalita === 'PS' && c.respiro === 'meccanica') ||
       (c.ambiente === 'invasiva' &&
         (c.modalita === 'PC' || c.modalita === 'PRVC' || c.modalita === 'PS' || c.modalita === 'SIMV')) ||
-      (c.ambiente === 'niv' && c.modalita === 'PS'),
+      (c.ambiente === 'niv' && (c.modalita === 'PS' || c.modalita === 'PC' || c.modalita === 'NEURO')),
   },
   flowCycleOffPercent: {
     etichetta: 'vent.param.flowCycleOffPercent',
@@ -475,7 +493,16 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     passo: 5,
     visibile: (c) =>
       (c.ambiente === 'invasiva' && (c.modalita === 'PS' || c.modalita === 'SIMV' || c.modalita === 'PAV' || c.modalita === 'NEURO')) ||
-      (c.ambiente === 'niv' && c.modalita === 'PS'),
+      (c.ambiente === 'niv' && (c.modalita === 'PS' || c.modalita === 'NEURO')),
+  },
+  perditaEccessiva: {
+    etichetta: 'vent.param.perditaEccessiva',
+    unita: 'vent.unit.none',
+    regolabile: true,
+    min: 0,
+    max: 2,
+    passo: 1,
+    visibile: (c) => c.ambiente === 'niv',
   },
   livelloNeuro: {
     etichetta: 'vent.param.livelloNeuro',
@@ -486,7 +513,7 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     min: 0,
     max: 15,
     passo: 0.1,
-    visibile: (c) => c.ambiente === 'invasiva' && c.modalita === 'NEURO',
+    visibile: (c) => inIcu(c.ambiente) && c.modalita === 'NEURO',
   },
   triggerEAdi: {
     etichetta: 'vent.param.triggerEAdi',
@@ -496,7 +523,7 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     min: 0.1,
     max: 2,
     passo: 0.1,
-    visibile: (c) => c.ambiente === 'invasiva' && c.modalita === 'NEURO',
+    visibile: (c) => inIcu(c.ambiente) && c.modalita === 'NEURO',
   },
   pavSupporto: {
     etichetta: 'vent.param.pavSupporto',
@@ -761,6 +788,12 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     regolabile: false,
     visibile: (c) => c.catetereEAdi === true,
   },
+  pausaPerdita: {
+    etichetta: 'vent.param.pausaPerdita',
+    unita: 'vent.unit.none',
+    regolabile: false,
+    visibile: () => false,
+  },
   rcExp: {
     etichetta: 'vent.param.rcExp',
     decimali: 2,
@@ -870,6 +903,7 @@ export const IMPOSTAZIONI_INIZIALI: Impostazioni = {
   sighPressure: 35,
   inspiratoryRiseTimeSeconds: 0.15,
   flowCycleOffPercent: 25,
+  perditaEccessiva: 0,
   pavSupporto: 50,
   livelloNeuro: 0.5,
   triggerEAdi: 0.5,
@@ -920,6 +954,7 @@ export const MISURE_VUOTE: Misure = {
   rcExp: null,
   eadiPicco: null,
   eadiMin: null,
+  pausaPerdita: null,
 }
 
 /**
