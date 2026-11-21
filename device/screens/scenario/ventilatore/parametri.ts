@@ -218,6 +218,8 @@ export interface Misure {
   mac: number | null
   deliveredTemperature: number | null
   waterLevelPercent: number | null
+  /** Alto flusso: il flusso che l'apparecchio misura in uscita, l/min. Lo scrive il pannello, non una tessera. */
+  flussoMisurato: number | null
   /**
    * La P0.1: quanto scende la pressione nei primi cento millisecondi di uno
    * sforzo a vie occluse, cmH₂O. È il drive, letto senza chiedere niente al
@@ -884,6 +886,12 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     regolabile: false,
     visibile: (c) => c.ambiente === 'alto-flusso',
   },
+  flussoMisurato: {
+    etichetta: 'vent.param.fgf',
+    unita: 'vent.unit.lMin',
+    regolabile: false,
+    visibile: () => false,
+  },
 }
 
 /** Le impostazioni con cui si accende un ventilatore che nessuno ha ancora toccato. */
@@ -955,6 +963,7 @@ export const MISURE_VUOTE: Misure = {
   eadiPicco: null,
   eadiMin: null,
   pausaPerdita: null,
+  flussoMisurato: null,
 }
 
 /**

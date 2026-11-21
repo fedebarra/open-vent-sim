@@ -1282,6 +1282,12 @@
   background: #7f1d1d;
   color: #fee2e2;
 }
+/* Alto flusso: il flusso impostato, quando quello misurato non lo raggiunge. */
+.simvent__af-impostato {
+  display: block;
+  font-size: 0.75rem;
+  color: #fbbf24;
+}
 /* Alto flusso: la fascia che scorre mentre eroga. */
 .simvent__af-flusso {
   position: relative;

@@ -47,7 +47,7 @@
  */
 
 import { regioni } from './eit'
-import { autoPeep, type Fisiologia, type StatoVentilatore } from './fisica'
+import { autoPeep, flussoAltoFlusso, type Fisiologia, type StatoVentilatore } from './fisica'
 import { driveEfficace } from './asincronie'
 import type { Misure } from './parametri'
 
@@ -263,6 +263,8 @@ type Quattro = [number, number, number, number]
 // --------------------------------------------------------- costanti --
 
 const PH2O = 47
+/** Alto flusso a bocca aperta: quanto della pressione resta. */
+const BOCCA_APERTA = 1 / 3
 /** VO₂ di base, ml/kg/min. */
 const VO2_ML_KG = 3.5
 /**
@@ -1067,14 +1069,20 @@ function ingressiGrezzi(
     }
   }
   if (stato.ambiente === 'alto-flusso') {
-    const fgf = imp.fgf
+    // Il flusso che arriva al naso: con la cannula ostruita meno, staccata o
+    // fuori dal naso niente (`flussoAltoFlusso`).
+    const fgf = flussoAltoFlusso(stato).alPaziente
     const ve = drive.frequenza * spontaneo
     // Il picco inspiratorio del paziente: circa cinque volte il volume minuto.
     const picco = Math.max(1, (ve / 1000) * 5)
     const set = imp.fio2 / 100
     const fio2 = fgf >= picco ? set : (fgf * set + (picco - fgf) * 0.21) / picco
     const lavaggio = 0.7 * kg * clamp((fgf - 30) / 30, 0, 1)
-    const peep = 0.07 * fgf
+    // La pressione che il flusso fa in faringe: circa 2,7 cmH₂O a 35 l/min a
+    // bocca chiusa (Parke, *Br J Anaesth* 2009, DOI `10.1093/bja/aep280`);
+    // molto meno a bocca aperta, dove il gas trova un'uscita (Groves e Tobin,
+    // *Aust Crit Care* 2007, DOI `10.1016/j.aucc.2007.08.001`): qui un terzo.
+    const peep = 0.07 * fgf * (stato.fisiologia.boccaAperta ? BOCCA_APERTA : 1)
     return {
       ...comune,
       fio2,

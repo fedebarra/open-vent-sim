@@ -70,6 +70,8 @@ export function parseScenario(text: string): ScenarioFile {
   for (const k of FIS_NUMERI) if (finito(d.fisiologia?.[k])) fisiologia[k] = d.fisiologia[k];
   if (d.fisiologia?.monopolmonare === 'sinistro' || d.fisiologia?.monopolmonare === 'destro') fisiologia.monopolmonare = d.fisiologia.monopolmonare;
   if ((CATETERI_EADI as string[]).includes(d.fisiologia?.catetereEAdi)) fisiologia.catetereEAdi = d.fisiologia.catetereEAdi;
+  if (['occlusa', 'staccata', 'dislocata'].includes(d.fisiologia?.cannulaAF)) fisiologia.cannulaAF = d.fisiologia.cannulaAF;
+  if (typeof d.fisiologia?.boccaAperta === 'boolean') fisiologia.boccaAperta = d.fisiologia.boccaAperta;
   const scambio: Partial<ParametriScambio> = {};
   for (const k of Object.keys(PARAMETRI_SCAMBIO) as (keyof ParametriScambio)[]) {
     const x = d.scambio?.[k];
@@ -121,7 +123,7 @@ export function comandiScenario(sc: ScenarioFile, ist: VentIstantanea): { azioni
     azioni,
     paziente: {
       // The catheter is part of the picture: a file without one takes it out.
-      fisiologia: { catetereEAdi: null, ...sc.fisiologia } as ComandoPaziente['fisiologia'],
+      fisiologia: { catetereEAdi: null, cannulaAF: null, boccaAperta: false, ...sc.fisiologia } as ComandoPaziente['fisiologia'],
       drive: sc.drive as ComandoPaziente['drive'],
       asincronia: sc.asincronia,
       vitali: sc.vitali,
