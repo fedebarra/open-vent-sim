@@ -6,7 +6,7 @@
 
 📄 **The paper:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. If you use Open Vent Sim in a course, a thesis or a paper, [please cite it](#11-how-to-cite).
 
-<p align="center"><a href="https://fedebarra.github.io/open-vent-sim/video.html"><img src="docs/media/teaser-preview.gif" width="820" alt="Open Vent Sim in 90 seconds: the three machines, the instructor console, neural assist, NIV, high flow, the guided tour"></a><br><b><a href="https://fedebarra.github.io/open-vent-sim/video.html">▶ Watch the 90-second video</a></b></p>
+<p align="center"><a href="https://fedebarra.github.io/open-vent-sim/video.html"><img src="docs/media/teaser-preview.gif" width="760" alt="Open Vent Sim in 90 seconds: the three machines, the instructor console, neural assist, NIV, high flow, the guided tour"></a><br><b><a href="https://fedebarra.github.io/open-vent-sim/video.html">▶ Watch the 90-second video</a></b></p>
 
 > ⚠️ **For education only.** Not a medical device. Never use it for clinical decisions.
 
@@ -101,7 +101,7 @@ Go to **[Releases](https://github.com/fedebarra/open-vent-sim/releases/latest)**
 
 **2.** The console opens. On the left is everything the learners need: **QR code**, **address** and the **4-digit PIN** (top right, in yellow). The PIN changes every time.
 
-<p align="center"><img src="docs/screenshots/02-regia-empty-en.png" width="820" alt="Empty console with QR, address and PIN"></p>
+<p align="center"><img src="docs/screenshots/02-regia-empty-en.png" width="760" alt="Empty console with QR, address and PIN"></p>
 
 Keep this window open for the whole class: **closing it disconnects the room**.
 
@@ -139,7 +139,7 @@ A small dot appears in the top-right corner: **green** means connected to the in
 
 <p align="center"><img src="docs/screenshots/08-standby-drawer-en.png" width="640" alt="Standby drawer"></p>
 
-<p align="center"><img src="docs/screenshots/09-icu-running-en.png" width="820" alt="Ventilator running"></p>
+<p align="center"><img src="docs/screenshots/09-icu-running-en.png" width="760" alt="Ventilator running"></p>
 
 From now on you see it on the console, waveforms included, and each action appears in the log on the right.
 
@@ -199,13 +199,13 @@ At the top choose **where commands go**: *this ventilator* (selected on the left
 | **Alarms** | The ventilator's alarm limits (low/high, on/off), as in its own Alarms drawer; **Reset to the start-up limits**. In PS, CPAP and PAV there is the **apnoea** time (default 20 s). |
 | **Events** | Ready-made events (bronchospasm, mucus plug, pneumothorax, desaturation, hypercapnia, induction, waking up, NMB reversal…). Fire now or build a timed **sequence**; save it to a file for next time. |
 
-<p align="center"><img src="docs/screenshots/11-regia-async-en.png" width="820" alt="Asynchronies tab"></p>
+<p align="center"><img src="docs/screenshots/11-regia-async-en.png" width="760" alt="Asynchronies tab"></p>
 
 <p align="center"><img src="docs/screenshots/12-learner-asynchrony-en.png" width="640" alt="The learner sees ineffective efforts on the waveforms"></p>
 
-<p align="center"><img src="docs/screenshots/15-regia-events-en.png" width="820" alt="Events and sequence"></p>
+<p align="center"><img src="docs/screenshots/15-regia-events-en.png" width="760" alt="Events and sequence"></p>
 
-<p align="center"><img src="docs/screenshots/23-regia-alarms-en.png" width="820" alt="Alarms tab"></p>
+<p align="center"><img src="docs/screenshots/23-regia-alarms-en.png" width="760" alt="Alarms tab"></p>
 
 **Console on a tablet.** In the left panel open "Open the console on a tablet" and scan the QR with **your** tablet to walk around the room with the console in hand. Don't show it to learners: it gives full control.
 
@@ -215,7 +215,7 @@ At the top choose **where commands go**: *this ventilator* (selected on the left
 2. Run the class.
 3. Press **■ Stop recording**: the log opens.
 
-<p align="center"><img src="docs/screenshots/16-registro-en.png" width="820" alt="Session log"></p>
+<p align="center"><img src="docs/screenshots/16-registro-en.png" width="760" alt="Session log"></p>
 
 - **Session sheet**: title, learners' names, debriefing notes.
 - **Parameters**: SpO₂, EtCO₂, Ppeak, PEEP, VTe, rate, FiO₂ and HR over time. Toggle the coloured pills; ticks at the top mark the actions.
