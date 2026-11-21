@@ -160,6 +160,8 @@ const NEURO_TI_MASSIMO = 2.5
 const NEURO_TI_MASSIMO_PEDIATRICO = 1.5
 /** La costante di tempo con cui la macchina liscia l'EAdi per il ciclaggio, secondi. */
 const NEURO_LISCIATURA = 0.04
+/** Il volume oltre cui il riflesso di Hering-Breuer spegne il drive in NEURO, ml/kg. */
+const VOLUME_HERING_BREUER = 6.5
 /** Più breve di così un atto neurale è un artefatto. */
 const NEURO_TI_MINIMO = 0.25
 /** Quanti atti asincroni di fila per ripiegare sul supporto; su quanti atti si giudica il ritorno, e quanti sincroni servono. */
@@ -935,7 +937,17 @@ function scaricoDalSupporto(stato: StatoVentilatore, ampiezza: number): number {
     // alzando il livello lo sforzo — e con lui l'EAdi — scende.
     const L = Math.min(15, Math.max(0, imp.livelloNeuro ?? 0.5))
     const k = Math.min(0.95, L / (L + nmeDi(stato.fisiologia)))
-    f = Math.pow((1 - k) / 0.5, 0.6)
+    f = Math.pow((1 - k) / 0.5, 0.4)
+    // ## Hering-Breuer: oltre un certo volume il drive si spegne
+    //
+    // In assistenza neurale il volume si autolimita: quando la macchina
+    // amplifica il comando, il polmone che si gonfia oltre i 6-7 ml/kg circa
+    // spegne l'inspirazione nervosa (il riflesso di stiramento). È il
+    // ginocchio della titolazione: alzando il livello il volume smette di
+    // crescere, la Paw si appiattisce e l'EAdi continua a scendere.
+    const tetto = VOLUME_HERING_BREUER * (stato.paziente.pesoKg ?? 70)
+    const atteso = stato.fisiologia.compliance * ampiezza * Math.max(0.35, f) * 0.6 * (1 + L / nmeDi(stato.fisiologia))
+    if (atteso > tetto) return Math.max(0.1, Math.min(1.5, Math.max(0.35, f) * (tetto / atteso)))
   }
   return Math.min(1.5, Math.max(0.35, f))
 }

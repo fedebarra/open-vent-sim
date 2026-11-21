@@ -48,6 +48,7 @@ export type ChiaveAllarme =
   | 'leakPercentage'
   | 'perditaEccessiva'
   | 'ostruzioneAF'
+  | 'segnaleEAdi'
   | 'perditaAF'
   | 'inspiratoryCo2'
   | 'etAgentConcentration'
@@ -164,6 +165,16 @@ export const ALLARMI: Record<ChiaveAllarme, DefinizioneAllarme> = {
   // La cannula ostruita (non riesce a spingere il flusso) e il tubo staccato
   // (il gas esce senza resistenza). La cannula fuori dal naso non suona: per
   // l'apparecchio è tutto in ordine, ed è proprio quello che va insegnato.
+  // ## NEURO: il segnale del diaframma non è credibile da 80 secondi
+  segnaleEAdi: {
+    etichetta: 'vent.alarm.segnaleEAdi',
+    unita: 'vent.unit.none',
+    passo: 0,
+    minimo: 0,
+    massimo: 0,
+    interruttore: true,
+    visibile: (c) => c.modalita === 'NEURO',
+  },
   ostruzioneAF: {
     etichetta: 'vent.alarm.ostruzioneAF',
     unita: 'vent.unit.none',
@@ -251,6 +262,7 @@ export const LIMITI_INIZIALI: LimitiAllarme = {
   leakPercentage: { basso: null, alto: 30, acceso: true },
   perditaEccessiva: { basso: null, alto: null, acceso: true },
   ostruzioneAF: { basso: null, alto: null, acceso: true },
+  segnaleEAdi: { basso: null, alto: null, acceso: true },
   perditaAF: { basso: null, alto: null, acceso: true },
   inspiratoryCo2: { basso: null, alto: 5, acceso: true },
   etAgentConcentration: { basso: 0.1, alto: 5, acceso: true },
@@ -339,6 +351,10 @@ export function valuta(
     const limite = limiti[chiave] ?? LIMITI_INIZIALI[chiave]
     if (!limite?.acceso || !def.visibile(ctx)) continue
 
+    if (chiave === 'segnaleEAdi') {
+      if (misure.neuroRipiego === 1) attivi.push({ chiave, verso: null, valore: null })
+      continue
+    }
     if (chiave === 'ostruzioneAF' || chiave === 'perditaAF') {
       const guasto = stato.fisiologia.cannulaAF
       if ((chiave === 'ostruzioneAF' && guasto === 'occlusa') || (chiave === 'perditaAF' && guasto === 'staccata')) {

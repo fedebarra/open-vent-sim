@@ -68,8 +68,8 @@ export const REGIA_STEPS: TourStep[] = [
     id: 'regia-cases',
     target: ['[data-testid="case-covid-peep"]', '[data-testid="tab-patient"]'],
     done: { click: ['[data-testid^="case-"]'] },
-    it: { title: 'I casi dalla letteratura', body: 'Casi clinici pubblicati, già tarati: un clic imposta paziente, scambio dei gas e macchina come nel lavoro. Sotto compare cosa deve trovare lo studente e il riferimento, con il lavoro e il numero del caso. Il peso lo mette lo studente: i casi sono tarati su 70 kg.', tryIt: 'carica «COVID-19, PEEP decrementale».' },
-    en: { title: 'Cases from the literature', body: 'Published clinical cases, already tuned: one click sets patient, gas exchange and machine as in the paper. Below appear what the learner should find and the reference, with the paper and the case number. The learner enters the weight: the cases are tuned on 70 kg.', tryIt: 'load “COVID-19, decremental PEEP”.' },
+    it: { title: 'I casi dalla letteratura', body: 'Casi clinici pubblicati, già tarati: un clic imposta paziente, scambio dei gas e macchina come nel lavoro — anche NEURO, la NIV con la maschera che perde, l’alto flusso e il catetere da posizionare. Sotto compare cosa deve trovare lo studente e il riferimento, con il lavoro e il numero del caso. Il peso lo mette lo studente: i casi sono tarati su 70 kg.', tryIt: 'carica «COVID-19, PEEP decrementale».' },
+    en: { title: 'Cases from the literature', body: 'Published clinical cases, already tuned: one click sets patient, gas exchange and machine as in the paper — NEURO, NIV with a leaking mask, high flow and the catheter to place included. Below appear what the learner should find and the reference, with the paper and the case number. The learner enters the weight: the cases are tuned on 70 kg.', tryIt: 'load “COVID-19, decremental PEEP”.' },
   },
   {
     id: 'regia-ramp',
@@ -147,10 +147,22 @@ export const REGIA_STEPS: TourStep[] = [
     en: { title: 'Alarms', body: 'The ventilator’s alarm limits, from here: raise, lower, switch off, as from its own Alarms panel. “Reset to the start-up limits” puts back the ones the machine starts with, if a group has moved them all.', tryIt: 'open the Alarms tab.' },
   },
   {
+    id: 'regia-diaphragm',
+    ...tab('diaphragm'),
+    it: { title: 'Il diaframma e il catetere', body: 'Qui monti il catetere dell’EAdi: senza, NEURO resta grigio sul ventilatore. Lo metti a posto, tre passi troppo dentro o troppo fuori, o sfilato: è una profondità vera, e il discente lo corregge dalla schermata «Catetere EAdi». Sotto vedi profondità, profondità giusta e scarto in passi, i numeri dell’EAdi, l’efficienza neuromeccanica (NME), il frenico, sedazione e curaro.', tryIt: 'apri la scheda Diaframma.' },
+    en: { title: 'The diaphragm and the catheter', body: 'Here you mount the EAdi catheter: without it, NEURO stays greyed out on the ventilator. Put it in place, three steps too deep or too shallow, or slipped out: it is a real depth, and the learner corrects it from the “EAdi catheter” screen. Below you see depth, right depth and offset in steps, the EAdi numbers, neuromechanical efficiency (NME), the phrenic nerve, sedation and curare.', tryIt: 'open the Diaphragm tab.' },
+  },
+  {
+    id: 'regia-highflow',
+    target: ['[data-testid="hf-box"]', '[data-testid="tab-mechanics"]'],
+    it: { title: 'L’alto flusso dalla regia', body: 'Con un apparecchio ad alto flusso, nella scheda Sforzo e parete compare la cannula: ostruita o col tubo staccato l’apparecchio suona; fuori dal naso no, e il paziente desatura. «Bocca aperta» toglie due terzi della pressione che il flusso fa. Il ROX, (SpO₂/FiO₂)/FR, è per te: sotto 2,85 a 2 ore, 3,47 a 6 e 3,85 a 12 predice il fallimento; da 4,88 in su il rischio è basso.' },
+    en: { title: 'High flow from the console', body: 'With a high-flow device, the Effort & chest wall tab shows the cannula: blocked or with the tube detached the device alarms; out of the nose it does not, and the patient desaturates. “Mouth open” removes two thirds of the pressure the flow makes. The ROX, (SpO₂/FiO₂)/RR, is for you: below 2.85 at 2 hours, 3.47 at 6 and 3.85 at 12 it predicts failure; from 4.88 up the risk is low.' },
+  },
+  {
     id: 'regia-events',
     ...tab('events'),
-    it: { title: 'Gli eventi', body: 'Broncospasmo, tappo di muco, pneumotorace, maschera spostata… «Ora» lo fa partire subito; «+ Aggiungi» lo mette in una sequenza con i tempi, che si avvia, si mette in pausa e si salva per la lezione dopo.', tryIt: 'apri la scheda Eventi.' },
-    en: { title: 'Events', body: 'Bronchospasm, mucus plug, pneumothorax, displaced mask… “Now” fires it at once; “+ Add” puts it in a timed sequence that you start, pause and save for the next lesson.', tryIt: 'open the Events tab.' },
+    it: { title: 'Gli eventi', body: 'Broncospasmo, tappo di muco, pneumotorace, maschera spostata o staccata… «Ora» lo fa partire subito; «+ Aggiungi» lo mette in una sequenza con i tempi, che si avvia, si mette in pausa e si salva per la lezione dopo.', tryIt: 'apri la scheda Eventi.' },
+    en: { title: 'Events', body: 'Bronchospasm, mucus plug, pneumothorax, displaced or detached mask… “Now” fires it at once; “+ Add” puts it in a timed sequence that you start, pause and save for the next lesson.', tryIt: 'open the Events tab.' },
   },
   {
     id: 'regia-record',

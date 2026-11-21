@@ -127,8 +127,8 @@ export const SCENARI_PRONTI: ScenarioPronto[] = [
     id: 'neuro-titolazione',
     nome: { it: 'NEURO: titolare il livello', en: 'NEURO: titrating the level' },
     nota: {
-      it: 'Catetere a posto, livello 0,3: EAdi intorno a 10 µV e VT basso. Alzando il livello a passi di 0,2–0,3 la Paw e il VT salgono mentre l’EAdi scende: è il paziente che scarica sulla macchina. Il livello adeguato è dove la salita di Paw e VT rallenta; oltre, l’EAdi continua a calare e il volume cresce senza un fondo. Riferimento: VT intorno a 6 ml/kg di peso ideale.',
-      en: 'Catheter in place, level 0.3: EAdi around 10 µV and low VT. Raising the level by 0.2–0.3 Paw and VT rise while EAdi falls: the patient unloads onto the machine. The adequate level is where the rise in Paw and VT slows down; beyond it EAdi keeps falling and volume grows without a ceiling. Target: VT around 6 ml/kg ideal body weight.',
+      it: 'Catetere a posto, livello 0,3: EAdi intorno a 10 µV e VT basso. Alzando il livello a passi di 0,2–0,3 la Paw e il VT salgono mentre l’EAdi scende: è il paziente che scarica sulla macchina. Il livello adeguato è dove la salita di Paw e VT rallenta: oltre il ginocchio il volume si ferma intorno a 6,5 ml/kg (il riflesso di Hering-Breuer spegne l’inspirazione) mentre l’EAdi continua a calare. Riferimento: VT intorno a 6 ml/kg di peso ideale.',
+      en: 'Catheter in place, level 0.3: EAdi around 10 µV and low VT. Raising the level by 0.2–0.3 Paw and VT rise while EAdi falls: the patient unloads onto the machine. The adequate level is where the rise in Paw and VT slows down: past the knee volume stops around 6.5 ml/kg (the Hering-Breuer reflex switches inspiration off) while EAdi keeps falling. Target: VT around 6 ml/kg ideal body weight.',
     },
     riferimento: BRANDER_2009,
     preset: 'polmonite',

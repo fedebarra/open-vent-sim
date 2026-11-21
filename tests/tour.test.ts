@@ -49,6 +49,20 @@ describe('tour steps', () => {
       expect(l).not.toContain('patient');
     }
   });
+  it('3.8: the NEURO steps follow the mode and the catheter; mask off in NIV; the cannula in high flow', () => {
+    const vent = (over: Record<string, unknown>) => ({ ambiente: 'invasiva', modalita: 'PS', fisiologia: {}, allarmi: [], limiti: {}, impostazioni: {}, ...over }) as any;
+    const ps = ids(ctx({ screen: 'running', ambiente: 'invasiva', vent: vent({}) }));
+    expect(ps).toContain('neuro');
+    expect(ps).not.toContain('neuro-catheter');
+    const neuro = ids(ctx({ screen: 'running', ambiente: 'invasiva', vent: vent({ modalita: 'NEURO', fisiologia: { catetereEAdi: 'giusto' } }) }));
+    expect(neuro).toEqual(expect.arrayContaining(['neuro', 'neuro-catheter', 'neuro-depth', 'neuro-leads', 'neuro-occlusion', 'neuro-level', 'neuro-state']));
+    expect(neuro.indexOf('neuro-catheter')).toBe(neuro.indexOf('neuro') + 1);
+    expect(ids(ctx({ screen: 'running', ambiente: 'niv' }))).toEqual(expect.arrayContaining(['neuro', 'niv-mask-off']));
+    const hf = ids(ctx({ screen: 'running', ambiente: 'alto-flusso' }));
+    expect(hf).toContain('hf-cannula');
+    expect(hf).not.toContain('neuro');
+    expect(ids(ctx({ screen: 'running', ambiente: 'anestesia' }))).not.toContain('neuro');
+  });
   it('start-up steps appear only before the machine runs', () => {
     expect(ids(ctx())).toEqual(expect.arrayContaining(['choose', 'icu-choice', 'patient']));
     expect(ids(ctx({ screen: 'setup', ambiente: 'anestesia' }))).not.toContain('icu-choice');

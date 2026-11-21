@@ -1452,3 +1452,11 @@
 /* La fascia sta fra i numeri grandi e la camera dell'acqua. */
 .simvent__altoflusso > .simvent__af-flusso { order: 1; }
 .simvent__altoflusso > .simvent__consumabile { order: 2; }
+/* La pausa espiratoria in corso dalla schermata del catetere. */
+.simvent__catetere-azione.scelto {
+  background: #a16207;
+  border-color: #fbbf24;
+}
+.simvent__catetere-azione:disabled {
+  opacity: 0.45;
+}
