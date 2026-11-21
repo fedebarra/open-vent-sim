@@ -1,4 +1,4 @@
-# Open Vent Sim 3.4
+# Open Vent Sim 3.8
 
 **A free, open-source simulator of ICU ventilator, anaesthesia machine and high-flow oxygen — with an instructor console that runs on your classroom's own network.**
 
