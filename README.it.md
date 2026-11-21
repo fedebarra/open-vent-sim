@@ -1,4 +1,4 @@
-# Open Vent Sim 3.4
+# Open Vent Sim 3.8
 
 **Simulatore gratuito e open-source di ventilatore, macchina d'anestesia e alti flussi — con la regia dell'istruttore sulla rete della tua aula.**
 
