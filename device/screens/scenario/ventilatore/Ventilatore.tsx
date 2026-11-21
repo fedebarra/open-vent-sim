@@ -1638,9 +1638,13 @@ function PannelloAltoFlusso({
   // «fermo con i numeri impostati» sono lo stesso schermo. La fascia sotto i
   // numeri scorre quando l'apparecchio eroga, tanto più in fretta quanto più
   // flusso dà; in riscaldamento scorre piano e ambra; ferma in standby.
-  const eroga = stato.ventilando && stato.impostazioni.fgf > 0
+  // Il numero grande è il flusso **misurato**: con la cannula ostruita scende
+  // sotto quello impostato, che resta scritto accanto.
+  const impostato = stato.impostazioni.fgf
+  const misurato = stato.ventilando ? (misure.flussoMisurato ?? impostato) : impostato
+  const eroga = stato.ventilando && misurato > 0
   const scalda = eroga && !!af?.inRiscaldamento
-  const durata = Math.min(3, Math.max(0.35, 24 / Math.max(1, stato.impostazioni.fgf)))
+  const durata = Math.min(3, Math.max(0.35, 24 / Math.max(1, misurato)))
   return (
     <div className="simvent__altoflusso">
       <div
@@ -1655,8 +1659,13 @@ function PannelloAltoFlusso({
       <div className="simvent__grandi">
         <div>
           <span>{t('vent.param.fgf')}</span>
-          <b>{scriviValore('fgf', stato.impostazioni.fgf)}</b>
+          <b data-testid="af-flusso-misurato">{scriviValore('fgf', misurato)}</b>
           <em>{t('vent.unit.lMin')}</em>
+          {stato.ventilando && Math.abs(misurato - impostato) >= 1 && (
+            <small className="simvent__af-impostato">
+              {t('vent.af.impostato')} {scriviValore('fgf', impostato)}
+            </small>
+          )}
         </div>
         <div>
           <span>{t('vent.param.fio2')}</span>

@@ -28,6 +28,7 @@ import { ALLARMI, LIMITI_INIZIALI, type ChiaveAllarme } from '../device/screens/
 import { NOME_AMBIENTE, NOME_ASINCRONIA, NOME_MODALITA, NOME_PRESET, NOME_MANOVRA, NOME_QUADRO } from '../device/screens/scenario/ventilatore/nomi';
 import { QUADRI_MECCANICA, conQuadro, quadroAcceso, senzaQuadro, type QuadroMeccanica } from '../device/screens/scenario/ventilatore/quadri';
 import { isteresiDi } from '../device/screens/scenario/ventilatore/scambio';
+import { fasciaRox, rox } from './rox';
 
 interface Props { wsUrl: string; regiaKey: string }
 interface LogLine { at: number; vent: string; text: string; source: 'learner' | 'director' | 'device'; kind?: string }
@@ -662,6 +663,43 @@ const AsyncTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; onAppl
   );
 };
 
+// ------------------------------------------------------------ High flow (3.8)
+const GUASTI_AF = [
+  { v: null, k: 'hfOk', id: 'hf-ok' },
+  { v: 'occlusa', k: 'hfOccluded', id: 'hf-occluded' },
+  { v: 'staccata', k: 'hfDetached', id: 'hf-detached' },
+  { v: 'dislocata', k: 'hfOut', id: 'hf-out' },
+] as const;
+
+/** The cannula between the device and the nose, the mouth, and the ROX for the instructor. */
+const AltoFlussoBox: React.FC<{ s: RemoteStrings; ist: VentIstantanea; onApply: (p: Patch, label: string, rampSec: number) => void }> = ({ s, ist, onApply }) => {
+  const f = ist.fisiologia;
+  const guasto = f.cannulaAF ?? null;
+  const aperta = !!f.boccaAperta;
+  const valore = rox((ist.misure as any).spo2 ?? ist.paziente.spo2, ist.impostazioni.fio2, ist.drive.frequenza);
+  const fascia = fasciaRox(valore);
+  const colore = fascia === 'basso' ? 'text-green-400' : fascia === 'alto' ? 'text-red-400' : 'text-amber-300';
+  const btn = (on: boolean) => `px-3 py-1.5 rounded border ${on ? 'bg-sky-700 border-sky-400 text-white' : 'bg-slate-800 border-slate-700 hover:border-sky-500'}`;
+  return (
+    <div className="border border-slate-800 rounded-lg p-3 space-y-2" data-testid="hf-box">
+      <div className="flex flex-wrap gap-2 items-center">
+        <span className="text-slate-400">{s.hfCannula}:</span>
+        {GUASTI_AF.map((g) => (
+          <button key={g.id} data-testid={g.id} onClick={() => onApply({ fisiologia: { cannulaAF: g.v } }, `${s.hfCannula}: ${s[g.k]}`, 0)} className={btn(guasto === g.v)}>{s[g.k]}</button>
+        ))}
+      </div>
+      <p className="text-slate-400 text-xs">{s.hfHint}</p>
+      <div className="flex flex-wrap gap-4 items-center">
+        <label className="flex items-center gap-2 text-slate-300"><input type="checkbox" data-testid="hf-mouth" checked={aperta} onChange={(e) => onApply({ fisiologia: { boccaAperta: e.target.checked } }, e.target.checked ? s.hfMouthOpen : s.hfMouthClosed, 0)} className="accent-sky-500" /> {s.hfMouthOpen}</label>
+        <span className="text-slate-400">ROX</span>
+        <b data-testid="hf-rox" className={`font-mono text-lg ${colore}`}>{valore === null ? '–' : valore.toFixed(2)}</b>
+        <span className="text-xs text-slate-400">{fascia ? s[`rox_${fascia}`] : ''}</span>
+      </div>
+      <p className="text-slate-500 text-xs">{s.roxHint}</p>
+    </div>
+  );
+};
+
 // ------------------------------------------------------------ Mechanics tab
 const MechanicsTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; onApply: (p: Patch, label: string, rampSec: number) => void }> = ({ s, tr, ist, onApply }) => {
   const f = ist.fisiologia;
@@ -694,6 +732,7 @@ const MechanicsTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; on
   }, s.tabMechanics, 0);
   return (
     <div className="space-y-3">
+      {ist.ambiente === 'alto-flusso' && <AltoFlussoBox s={s} ist={ist} onApply={onApply} />}
       <p className="text-slate-400 text-xs">{s.mechIntro}</p>
       <div className="flex flex-wrap gap-1 items-center">
         <span className="text-slate-400 mr-1">{s.mechPictures}:</span>

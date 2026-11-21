@@ -47,6 +47,8 @@ export type ChiaveAllarme =
   | 'measuredFrequency'
   | 'leakPercentage'
   | 'perditaEccessiva'
+  | 'ostruzioneAF'
+  | 'perditaAF'
   | 'inspiratoryCo2'
   | 'etAgentConcentration'
   | 'flussoErogato'
@@ -157,6 +159,29 @@ export const ALLARMI: Record<ChiaveAllarme, DefinizioneAllarme> = {
     interruttore: true,
     visibile: (c) => c.ambiente === 'niv',
   },
+  // ## L'alto flusso: i due guasti che l'apparecchio vede
+  //
+  // La cannula ostruita (non riesce a spingere il flusso) e il tubo staccato
+  // (il gas esce senza resistenza). La cannula fuori dal naso non suona: per
+  // l'apparecchio è tutto in ordine, ed è proprio quello che va insegnato.
+  ostruzioneAF: {
+    etichetta: 'vent.alarm.ostruzioneAF',
+    unita: 'vent.unit.none',
+    passo: 0,
+    minimo: 0,
+    massimo: 0,
+    interruttore: true,
+    visibile: (c) => c.ambiente === 'alto-flusso',
+  },
+  perditaAF: {
+    etichetta: 'vent.alarm.perditaAF',
+    unita: 'vent.unit.none',
+    passo: 0,
+    minimo: 0,
+    massimo: 0,
+    interruttore: true,
+    visibile: (c) => c.ambiente === 'alto-flusso',
+  },
   inspiratoryCo2: {
     etichetta: 'vent.alarm.inspiratoryCo2',
     unita: 'vent.unit.mmHg',
@@ -225,6 +250,8 @@ export const LIMITI_INIZIALI: LimitiAllarme = {
   measuredFrequency: { basso: 5, alto: 35, acceso: true },
   leakPercentage: { basso: null, alto: 30, acceso: true },
   perditaEccessiva: { basso: null, alto: null, acceso: true },
+  ostruzioneAF: { basso: null, alto: null, acceso: true },
+  perditaAF: { basso: null, alto: null, acceso: true },
   inspiratoryCo2: { basso: null, alto: 5, acceso: true },
   etAgentConcentration: { basso: 0.1, alto: 5, acceso: true },
   flussoErogato: { basso: 5, alto: 70, acceso: true },
@@ -312,6 +339,13 @@ export function valuta(
     const limite = limiti[chiave] ?? LIMITI_INIZIALI[chiave]
     if (!limite?.acceso || !def.visibile(ctx)) continue
 
+    if (chiave === 'ostruzioneAF' || chiave === 'perditaAF') {
+      const guasto = stato.fisiologia.cannulaAF
+      if ((chiave === 'ostruzioneAF' && guasto === 'occlusa') || (chiave === 'perditaAF' && guasto === 'staccata')) {
+        attivi.push({ chiave, verso: null, valore: misure.flussoMisurato })
+      }
+      continue
+    }
     if (chiave === 'perditaEccessiva') {
       const perdita = misure.leakPercentage
       if (inPausa || (perdita !== null && perdita > 95)) attivi.push({ chiave, verso: null, valore: perdita })

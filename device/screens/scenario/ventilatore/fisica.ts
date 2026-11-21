@@ -196,6 +196,16 @@ export interface Fisiologia {
    * un lato, uno è bilaterale. Spegne l'EAdi; della Pmus restano gli accessori.
    */
   lesioneFrenico?: number
+  /**
+   * Alto flusso: che cosa non va fra l'apparecchio e il naso (facoltativo,
+   * niente se va tutto bene). `occlusa`: la cannula schiacciata o ostruita,
+   * l'apparecchio non riesce a spingere il flusso. `staccata`: il tubo staccato,
+   * il gas esce libero. `dislocata`: la cannula fuori dal naso — il flusso è
+   * quello di sempre e l'apparecchio non se ne accorge; se ne accorge il paziente.
+   */
+  cannulaAF?: 'occlusa' | 'staccata' | 'dislocata' | null
+  /** Alto flusso: il paziente respira a bocca aperta (facoltativo): la pressione che il flusso fa cala. */
+  boccaAperta?: boolean
 }
 
 export type PresetFisiologia =
@@ -320,6 +330,33 @@ export const RECLUTAMENTO_PRESSIONE = 40
 // quella che `batti()` usa per depositare l'esito e che la barra di
 // avanzamento anima. Due costanti con lo stesso nome e due valori diversi
 // sono una trappola per chi legge: la prima che si trova sembra la risposta.
+
+/**
+ * Il flusso dell'alto flusso, l/min: quello che l'apparecchio misura in uscita
+ * e quello che arriva davvero al naso.
+ *
+ * Con la cannula ostruita l'apparecchio non riesce a spingere: misura meno del
+ * flusso impostato, e lo dice. Con il tubo staccato il gas esce libero — la
+ * misura è giusta, la pressione a valle no, e anche questo lo dice. Con la
+ * cannula fuori dal naso tutto sembra in ordine: è il guasto che si trova
+ * guardando il paziente, non lo schermo.
+ */
+export function flussoAltoFlusso(stato: Pick<StatoVentilatore, 'ambiente' | 'ventilando' | 'impostazioni' | 'fisiologia'>): {
+  erogato: number
+  alPaziente: number
+} {
+  if (stato.ambiente !== 'alto-flusso' || !stato.ventilando) return { erogato: 0, alPaziente: 0 }
+  const fgf = Math.max(0, stato.impostazioni.fgf)
+  const guasto = stato.fisiologia.cannulaAF ?? null
+  if (guasto === 'occlusa') {
+    const erogato = Math.round(fgf * QUOTA_OSTRUITA)
+    return { erogato, alPaziente: erogato }
+  }
+  if (guasto === 'staccata' || guasto === 'dislocata') return { erogato: fgf, alPaziente: 0 }
+  return { erogato: fgf, alPaziente: fgf }
+}
+/** Con la cannula ostruita, quanto del flusso impostato l'apparecchio riesce a dare. */
+const QUOTA_OSTRUITA = 0.35
 
 /** Lo stato dell'apparecchio ad alto flusso, che di ventilazione non ha niente. */
 export interface StatoAltoFlusso {
@@ -1114,6 +1151,7 @@ function misuraMacchina(
     m.deliveredTemperature = insegue(prima.deliveredTemperature ?? TEMPERATURA_AMBIENTE, bersaglio, dtSec, 15)
     m.waterLevelPercent = stato.umidificatore ? Math.round(stato.umidificatore.acqua * 100) : null
     m.spo2 = stato.paziente.spo2
+    m.flussoMisurato = flussoAltoFlusso(stato).erogato
     return m
   }
 

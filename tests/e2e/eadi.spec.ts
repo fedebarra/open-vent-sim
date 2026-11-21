@@ -94,5 +94,18 @@ test('high flow: the band moves while it delivers, and no EAdi', async ({ browse
   await vent.locator(CLOSE).click({ timeout: 2000 }).catch(() => {});
   await vent.waitForTimeout(1500);
   if (SHOTS) await vent.screenshot({ path: `${SHOTS}/af-eroga.png` });
+
+  // the cannula from the console: occluded → less flow and an alarm; out of the nose → silence
+  await regia.getByTestId('tab-mechanics').click();
+  await expect(regia.getByTestId('hf-rox')).not.toHaveText('–');
+  const impostato = Number(await vent.getByTestId('af-flusso-misurato').innerText());
+  await regia.getByTestId('hf-occluded').click();
+  await expect.poll(async () => Number(await vent.getByTestId('af-flusso-misurato').innerText()), { timeout: 15_000 }).toBeLessThan(impostato * 0.5);
+  await expect(vent.locator('body')).toContainText('Flusso ostacolato');
+  if (SHOTS) { await vent.waitForTimeout(800); await vent.screenshot({ path: `${SHOTS}/af-ostruita.png` }); await regia.screenshot({ path: `${SHOTS}/regia-af.png` }); }
+  await regia.getByTestId('hf-out').click();
+  await expect.poll(async () => Number(await vent.getByTestId('af-flusso-misurato').innerText()), { timeout: 15_000 }).toBe(impostato);
+  await expect(vent.locator('body')).not.toContainText('Flusso ostacolato');
+  await expect(vent.locator('body')).not.toContainText('Circuito aperto');
   expect(errors).toEqual([]);
 });
