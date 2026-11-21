@@ -90,6 +90,7 @@ import { creaOnde, nelTrigger, puntoOnda } from './onde'
 // OVS 3.1: loop e pressioni alveolare/muscolare
 import { Loop } from './Loop'
 import { Eit } from './VistaEit'
+import { PosizionamentoCatetere } from './VistaCatetere'
 import { attivitaDiaframma, pressioneAlveolare, pressioneEsofagea, pressioneMuscolare, pressioneTranspolmonare } from './pressioni'
 import { PEEP_MINIMA_RI, RECLUTAMENTO_SECONDI, autoPeep, polmoneOra, type Manovra, type StatoVentilatore } from './fisica'
 import { attiRecenti } from './motore'
@@ -248,7 +249,7 @@ export function Ventilatore({
   // questo vivono qui e non nell'istantanea.
   const [velocita, setVelocita] = useState(VELOCITA_PREDEFINITA)
   // OVS 3.1: che cosa mostra il quadro, e se aggiungere Palv e Pmus.
-  const [vista, setVista] = useState<'curve' | 'loop' | 'eit'>('curve')
+  const [vista, setVista] = useState<'curve' | 'loop' | 'eit' | 'catetere'>('curve')
   const [pressioniExtraScelte, setPressioniExtra] = useState(false)
   const pressioniExtra = pressioniDidattiche && pressioniExtraScelte
   // OVS 3.2: la pressione esofagea e la transpolmonare, dal motore.
@@ -755,8 +756,20 @@ export function Ventilatore({
                 {t('vent.perdita.pausa')}
               </span>
             )}
+            {/* NEURO col catetere montato: la schermata per metterlo a posto. */}
+            {conCatetere && (
+              <button
+                type="button"
+                data-testid="vista-catetere"
+                className={`simvent__catetere-apri${vista === 'catetere' ? ' scelto' : ''}`}
+                aria-pressed={vista === 'catetere'}
+                onClick={() => setVista((v) => (v === 'catetere' ? 'curve' : 'catetere'))}
+              >
+                {t('vent.catetere.titolo')}
+              </button>
+            )}
             <span className="simvent__vuoto" />
-            {!inAltoFlusso && stato.ventilando && (
+            {!inAltoFlusso && stato.ventilando && vista !== 'catetere' && (
               <>
                 {/* La velocità dello schermo: secondi da un bordo all'altro.
                     Numeri e basta, come sulla macchina — la UI resta muta. */}
@@ -806,6 +819,8 @@ export function Ventilatore({
           </div>
           {inAltoFlusso ? (
             <PannelloAltoFlusso stato={stato} misure={misure} t={t} />
+          ) : vista === 'catetere' && conCatetere ? (
+            <PosizionamentoCatetere stato={stato} misure={misure} clock={clockQuadro} t={t} agisci={agisci} />
           ) : stato.ventilando && vista === 'loop' && !inManuale ? (
             <Loop stato={stato} clock={clockQuadro} t={t} />
           ) : stato.ventilando && vista === 'eit' && stato.ambiente === 'invasiva' ? (

@@ -37,6 +37,7 @@
 import { valuta, MODALITA_CON_APNEA, LIMITI_INIZIALI, SILENZIO_SECONDI, conLimiteDellAgente, type AllarmeAttivo, type LimitiAllarme, spostaLimite } from './allarmi'
 import type { AzioneVentilatore } from './azioni'
 import { regolaPrvc, PRVC_PROVA } from './prvc'
+import { catetereA } from './catetere'
 import { RAPPORTI } from './pannello'
 import { attiRecenti, motoreCopre, BLOCCO_SEC, CALDO_SEC } from './motore'
 import { forzaColpo, RITARDO_TOSSE_SEC, scoppiTosse } from './tosse'
@@ -721,6 +722,14 @@ export function applica(
   tSec: number,
 ): { istantanea: VentIstantanea; registro?: string } {
   switch (azione.tipo) {
+    case 'catetere': {
+      // Il discente sposta il catetere che la regia ha montato: la lettura
+      // segue la profondità (`catetere.ts`).
+      if (!istantanea.fisiologia.catetereEAdi || !Number.isFinite(azione.cm)) return { istantanea }
+      const fis = { ...istantanea.fisiologia, ...(azione.via ? { catetereVia: azione.via } : {}) }
+      return { istantanea: { ...istantanea, fisiologia: { ...fis, ...catetereA(azione.cm, fis, istantanea.paziente.pesoKg) } } }
+    }
+
     case 'modalita': {
       if (!MODALITA_PER_AMBIENTE[istantanea.ambiente].includes(azione.modalita)) return { istantanea }
       if (!modalitaDisponibile(azione.modalita, istantanea.fisiologia)) return { istantanea }

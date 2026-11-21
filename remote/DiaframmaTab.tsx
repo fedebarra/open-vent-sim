@@ -11,6 +11,7 @@ import React, { useState } from 'react';
 import type { RemoteStrings } from './strings';
 import type { ComandoPaziente, VentIstantanea } from '../device/remoteTypes';
 import { CATETERI_EADI, NME_MASSIMA, NME_MINIMA, NME_NORMALE, type CatetereEAdi } from '../device/screens/scenario/ventilatore/eadi';
+import { calibroPerPeso, catetereMontato, profonditaGiusta, scarto } from '../device/screens/scenario/ventilatore/catetere';
 
 type Patch = Omit<ComandoPaziente, 'type'>;
 
@@ -38,7 +39,18 @@ export const DiaframmaTab: React.FC<{ s: RemoteStrings; ist: VentIstantanea; onA
   const forza = ist.drive.forza ?? 1;
   const m = ist.misure;
   const btn = (on: boolean) => `px-3 py-1.5 rounded border ${on ? 'bg-sky-700 border-sky-400 text-white' : 'bg-slate-800 border-slate-700 hover:border-sky-500'}`;
-  const metti = (c: CatetereEAdi | null) => onApply({ fisiologia: { catetereEAdi: c } }, c ? `${s.eadiCatheter}: ${s[`cath_${c}`]}` : s.eadiRemove, 0);
+  // The console mounts the catheter at a real depth: right, too deep or too
+  // shallow by three electrode steps, or slipped out of reach. From there the
+  // learner can move it (the device's catheter screen).
+  const peso = ist.paziente.pesoKg;
+  const metti = (c: CatetereEAdi | null) =>
+    onApply(
+      { fisiologia: c ? { ...catetereMontato(c, f, peso), catetereVia: f.catetereVia ?? 'nasale' } : { catetereEAdi: null, catetereCm: null } },
+      c ? `${s.eadiCatheter}: ${s[`cath_${c}`]}` : s.eadiRemove,
+      0,
+    );
+  const giusta = profonditaGiusta(f, peso);
+  const passi = typeof f.catetereCm === 'number' ? scarto(f.catetereCm, giusta, calibroPerPeso(peso)) : null;
   return (
     <div className="space-y-3">
       <p className="text-slate-400 text-xs">{s.eadiIntro}</p>
@@ -51,6 +63,12 @@ export const DiaframmaTab: React.FC<{ s: RemoteStrings; ist: VentIstantanea; onA
         ))}
       </div>
       <p className="text-slate-300 text-sm min-h-[1.25rem]">{catetere ? s[`cathHint_${catetere}`] : s.eadiNoneHint}</p>
+      {catetere && typeof f.catetereCm === 'number' && (
+        <p className="text-xs text-slate-400" data-testid="cath-depth">
+          {s.cathDepth}: <b className="text-white font-mono">{f.catetereCm.toFixed(1)} cm</b> · {s.cathRight}: <b className="font-mono">{giusta.toFixed(1)} cm</b>
+          {passi !== null && <> · <b className={Math.abs(passi) <= 1 ? 'text-green-400' : 'text-amber-300'}>{passi > 0 ? '+' : ''}{passi.toFixed(1)} {s.cathSteps}</b></>}
+        </p>
+      )}
 
       <div className="grid grid-cols-3 gap-2 text-xs">
         <div className="bg-slate-800 rounded px-2 py-1"><div className="text-slate-400">{s.eadiPeak}</div><div data-testid="eadi-peak" className="font-mono text-base">{fmt1(m.eadiPicco)} µV</div></div>

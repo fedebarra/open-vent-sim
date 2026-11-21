@@ -66,7 +66,7 @@ const it = {
 
   tabPatient: 'Paziente', tabAsync: 'Asincronie', tabLung: 'Polmone', tabMachine: 'Macchina', tabAlarms: 'Allarmi', alarmsIntro: 'I limiti d’allarme del ventilatore selezionato, come nel suo pannello Allarmi. Le modifiche finiscono nel registro come azioni della regia.', alarmLow: 'basso', alarmHigh: 'alto', alarmOnLabel: 'attivo', alarmsReset: 'Ripristina i limiti d’avvio', tabEvents: 'Eventi', tabMechanics: 'Sforzo e parete',
   tabDiaphragm: 'Diaframma',
-  eadiIntro: 'Il catetere dell’EAdi e il segnale del diaframma. Con il catetere montato il discente può scegliere NEURO (assistenza neurale) fra le modalità; senza, NEURO resta grigio. Sul ventilatore il segnale si vede solo in NEURO, come lo legge il catetere, errori compresi, e senza mai dire quale errore è. Qui i numeri ci sono sempre.',
+  eadiIntro: 'Il catetere dell’EAdi e il segnale del diaframma. Con il catetere montato il discente può scegliere NEURO (assistenza neurale) fra le modalità; senza, NEURO resta grigio. Sul ventilatore il segnale si vede solo in NEURO, come lo legge il catetere, errori compresi, e senza mai dire quale errore è. Qui i numeri ci sono sempre. Ogni scelta mette il catetere a una profondità vera: il discente lo può spingere o tirare dalla schermata «Catetere EAdi» (in NEURO), leggendo le quattro derivazioni.',
   eadiCatheter: 'Catetere', eadiNone: 'Nessuno', eadiRemove: 'Catetere EAdi tolto', eadiNoneHint: 'Senza catetere NEURO non si può scegliere; se lo si toglie in NEURO la macchina ripiega sul supporto di pressione.',
   cath_giusto: 'Posizione giusta', cath_profondo: 'Troppo profondo', cath_superficiale: 'Troppo superficiale', cath_staccato: 'Dislocato',
   cathHint_giusto: 'Segnale pulito: picco atto per atto, minimo basso fra un respiro e l’altro.',
@@ -141,6 +141,7 @@ const it = {
   ev_ards: 'ARDS reclutabile', ev_normal: 'Ritorno alla normalità', ev_reversal: 'Decurarizzazione',
   ev_tachycardia: 'Tachicardia e ipotensione',
   ev_maskleak: 'NIV: maschera spostata (perdita grande)', ev_maskseal: 'NIV: maschera risistemata', ev_maskoff: 'NIV: maschera staccata (perdita oltre il 95%)',
+  cathDepth: 'Profondità', cathRight: 'giusta', cathSteps: 'passi (+ dentro, − fuori)',
   hfCannula: 'Cannula', hfOk: 'A posto', hfOccluded: 'Ostruita', hfDetached: 'Tubo staccato', hfOut: 'Fuori dal naso',
   hfHint: 'Ostruita: l’apparecchio non riesce a dare il flusso e suona. Tubo staccato: il gas esce libero e suona. Fuori dal naso: per l’apparecchio è tutto in ordine, non suona niente — se ne accorge il paziente (SpO₂, frequenza).',
   hfMouthOpen: 'Bocca aperta', hfMouthClosed: 'Bocca chiusa',
@@ -273,7 +274,7 @@ const en: RemoteStrings = {
 
   tabPatient: 'Patient', tabAsync: 'Asynchronies', tabLung: 'Lung', tabMachine: 'Machine', tabAlarms: 'Alarms', alarmsIntro: 'The alarm limits of the selected ventilator, as in its own Alarms panel. Changes go to the log as instructor actions.', alarmLow: 'low', alarmHigh: 'high', alarmOnLabel: 'on', alarmsReset: 'Reset to the start-up limits', tabEvents: 'Events', tabMechanics: 'Effort & chest wall',
   tabDiaphragm: 'Diaphragm',
-  eadiIntro: 'The EAdi catheter and the diaphragm signal. With the catheter mounted the learner can choose NEURO (neural assist) among the modes; without it NEURO stays greyed out. On the ventilator the signal shows only in NEURO, as the catheter reads it, faults included, never naming the fault. Here the numbers are always shown.',
+  eadiIntro: 'The EAdi catheter and the diaphragm signal. With the catheter mounted the learner can choose NEURO (neural assist) among the modes; without it NEURO stays greyed out. On the ventilator the signal shows only in NEURO, as the catheter reads it, faults included, never naming the fault. Here the numbers are always shown. Each choice puts the catheter at a real depth: the learner can push or pull it from the «EAdi catheter» screen (in NEURO), reading the four leads.',
   eadiCatheter: 'Catheter', eadiNone: 'None', eadiRemove: 'EAdi catheter removed', eadiNoneHint: 'Without a catheter NEURO cannot be chosen; removing it in NEURO makes the machine fall back to pressure support.',
   cath_giusto: 'Right position', cath_profondo: 'Too deep', cath_superficiale: 'Too shallow', cath_staccato: 'Dislodged',
   cathHint_giusto: 'Clean signal: a peak every breath, a low minimum between breaths.',
@@ -348,6 +349,7 @@ const en: RemoteStrings = {
   ev_ards: 'Recruitable ARDS', ev_normal: 'Back to normal', ev_reversal: 'NMB reversal',
   ev_tachycardia: 'Tachycardia and hypotension',
   ev_maskleak: 'NIV: mask displaced (large leak)', ev_maskseal: 'NIV: mask refitted', ev_maskoff: 'NIV: mask off (leak over 95%)',
+  cathDepth: 'Depth', cathRight: 'right', cathSteps: 'steps (+ deeper, − shallower)',
   hfCannula: 'Cannula', hfOk: 'In place', hfOccluded: 'Occluded', hfDetached: 'Tube detached', hfOut: 'Out of the nose',
   hfHint: 'Occluded: the device cannot deliver the flow and alarms. Tube detached: the gas flows out freely and it alarms. Out of the nose: for the device all is fine, nothing alarms — the patient shows it (SpO₂, rate).',
   hfMouthOpen: 'Mouth open', hfMouthClosed: 'Mouth closed',

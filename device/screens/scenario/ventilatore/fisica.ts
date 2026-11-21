@@ -204,6 +204,15 @@ export interface Fisiologia {
    * quello di sempre e l'apparecchio non se ne accorge; se ne accorge il paziente.
    */
   cannulaAF?: 'occlusa' | 'staccata' | 'dislocata' | null
+  /**
+   * Il catetere dell'EAdi: a che profondità è inserito, cm (facoltativo). Chi lo
+   * muove scrive anche `catetereEAdi`, la lettura che ne viene (`catetere.ts`).
+   */
+  catetereCm?: number | null
+  /** La distanza naso–lobo–xifoide del paziente, cm (facoltativa: se manca, dal peso). */
+  nexCm?: number
+  /** Da dove è passato il catetere (facoltativo, nasale se manca). */
+  catetereVia?: 'nasale' | 'orale'
   /** Alto flusso: il paziente respira a bocca aperta (facoltativo): la pressione che il flusso fa cala. */
   boccaAperta?: boolean
 }
