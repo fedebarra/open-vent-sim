@@ -524,10 +524,11 @@ const PatientTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; onAp
   const lang = s.lang as 'it' | 'en';
   const caricaCaso = (p: ScenarioPronto) => {
     const c = comandiScenario(p.scenario, ist);
-    // The picture first (it resets the lung and the drive), then the case over it.
+    // The picture first (it resets the lung and the drive), then the case over
+    // it, then the machine: a mode like NEURO needs the catheter the case mounts.
     onApply({ preset: p.preset }, tr(NOME_PRESET[p.preset]), 0);
-    c.azioni.forEach((a) => azione(a, a.tipo === 'parametro' ? `${a.chiave} → ${a.valore}` : `${s.mode} → ${(a as any).modalita}`));
     onApply(c.paziente, `${s.scenarioLoaded}: ${p.nome[lang]}${c.ambienteDiverso ? ` (${s.scenarioOtherEnv})` : ''}`, 0);
+    c.azioni.forEach((a) => azione(a, a.tipo === 'parametro' ? `${a.chiave} → ${a.valore}` : `${s.mode} → ${(a as any).modalita}`));
     setCaso(p.id);
     const sc = p.scenario;
     setVals((x) => {
@@ -901,8 +902,9 @@ const MachineTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; azio
     try {
       const sc = parseScenario(txt);
       const c = comandiScenario(sc, ist);
-      c.azioni.forEach((a) => azione(a, a.tipo === 'parametro' ? `${a.chiave} → ${a.valore}` : `${s.mode} → ${(a as any).modalita}`));
+      // the patient before the machine: NEURO needs the catheter the file mounts
       onPaziente(c.paziente, `${s.scenarioLoaded}: ${sc.name}${c.ambienteDiverso ? ` (${s.scenarioOtherEnv})` : ''}`, 0);
+      c.azioni.forEach((a) => azione(a, a.tipo === 'parametro' ? `${a.chiave} → ${a.valore}` : `${s.mode} → ${(a as any).modalita}`));
     } catch (e) { window.alert(String(e)); }
   });
   const keys = impostazioniVisibili({ ambiente: ist.ambiente, modalita: ist.modalita, respiro: ist.respiro, impostazioni: ist.impostazioni }) as ChiaveImpostazione[];

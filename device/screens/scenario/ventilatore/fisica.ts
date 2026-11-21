@@ -213,6 +213,8 @@ export interface Fisiologia {
   nexCm?: number
   /** Da dove è passato il catetere (facoltativo, nasale se manca). */
   catetereVia?: 'nasale' | 'orale'
+  /** Quanto il punto giusto del catetere sta sotto (+) o sopra (−) quello della regola NEX, cm (facoltativo, 0). */
+  scartoAnatomicoCm?: number
   /** Alto flusso: il paziente respira a bocca aperta (facoltativo): la pressione che il flusso fa cala. */
   boccaAperta?: boolean
 }

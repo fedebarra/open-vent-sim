@@ -146,3 +146,21 @@ test('catheter: the console mounts it too deep, the learner reads the leads and 
   await expect(vent.getByTestId('vista-catetere-schermo')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
+
+test('ready case: the console loads «NEURO: titrating the level» and the machine is in NEURO with the catheter', async ({ browser }) => {
+  const { regia, vent, errors } = await apri(browser);
+  await vent.getByTestId('mode-icu').click();
+  await vent.getByTestId('icu-invasive').click();
+  await vent.getByTestId('patient-confirm').click();
+  await expect(regia.getByTestId('vent-list')).toContainText('Ventilatore');
+  await regia.getByTestId('tab-patient').click();
+  await regia.getByTestId('case-neuro-titolazione').click();
+  await expect(regia.getByTestId('case-note')).toContainText('Brander');
+  await expect(vent.locator('.simvent__modo-sigla')).toHaveText('NEURO', { timeout: 15_000 });
+  await vent.locator('[data-fam="maniglia-ventilazione"]').click();
+  await vent.getByRole('button', { name: /AVVIA LA VENTILAZIONE/i }).click();
+  await expect(vent.locator('.simvent__barra')).toContainText('0.3');
+  await expect(vent.locator('.simvent__monitoraggio')).toContainText('EAdi picco');
+  await expect(vent.getByTestId('vista-catetere')).toBeVisible();
+  expect(errors).toEqual([]);
+});

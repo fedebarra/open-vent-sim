@@ -140,13 +140,23 @@ export function derivazioniForti(dv: Derivazione[]): number[] {
 /** Quanto sfila il catetere che la regia «stacca»: oltre i cinque passi, il diaframma non si vede. */
 export const SCARTO_SFILATO = -7
 
-/** La profondità giusta per quel paziente, per la via da cui è passato il catetere. cm. */
+/**
+ * La profondità giusta per quel paziente, per la via da cui è passato il
+ * catetere. cm.
+ *
+ * È quella della regola più lo scarto anatomico del paziente
+ * (`scartoAnatomicoCm`, zero se manca): la regola porta vicino, non sempre
+ * sopra. Nella metà dei pazienti il punto giusto sta almeno 2 cm più in
+ * basso, da 3 cm più in alto a 12 più in basso (Barwing, *Intensive Care Med*
+ * 2009, DOI `10.1007/s00134-009-1587-0`).
+ */
 export function profonditaGiusta(
-  fis: { nexCm?: number; catetereVia?: ViaCatetere },
+  fis: { nexCm?: number; catetereVia?: ViaCatetere; scartoAnatomicoCm?: number },
   pesoKg: number | null | undefined,
 ): number {
   const nex = typeof fis.nexCm === 'number' && fis.nexCm > 0 ? fis.nexCm : nexPerPeso(pesoKg)
-  return profonditaCalcolata(nex, fis.catetereVia ?? 'nasale', calibroPerPeso(pesoKg))
+  const scarto = typeof fis.scartoAnatomicoCm === 'number' && Number.isFinite(fis.scartoAnatomicoCm) ? fis.scartoAnatomicoCm : 0
+  return Math.round((profonditaCalcolata(nex, fis.catetereVia ?? 'nasale', calibroPerPeso(pesoKg)) + scarto) * 10) / 10
 }
 
 /**
@@ -156,7 +166,7 @@ export function profonditaGiusta(
  */
 export function catetereA(
   cm: number,
-  fis: { nexCm?: number; catetereVia?: ViaCatetere },
+  fis: { nexCm?: number; catetereVia?: ViaCatetere; scartoAnatomicoCm?: number },
   pesoKg: number | null | undefined,
 ): { catetereCm: number; catetereEAdi: CatetereEAdi } {
   const c = Math.round(Math.min(PROFONDITA_MASSIMA, Math.max(PROFONDITA_MINIMA, cm)) * 10) / 10
@@ -166,7 +176,7 @@ export function catetereA(
 /** Dove la regia mette il catetere quando sceglie come montarlo. */
 export function catetereMontato(
   come: CatetereEAdi,
-  fis: { nexCm?: number; catetereVia?: ViaCatetere },
+  fis: { nexCm?: number; catetereVia?: ViaCatetere; scartoAnatomicoCm?: number },
   pesoKg: number | null | undefined,
 ): { catetereCm: number; catetereEAdi: CatetereEAdi } {
   const passi = come === 'staccato' ? SCARTO_SFILATO : SCARTO_DI_PARTENZA[come]

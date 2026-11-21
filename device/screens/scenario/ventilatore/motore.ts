@@ -158,6 +158,8 @@ const NEURO_CAMPIONI_TRIGGER = 3
 /** Il Ti massimo, secondi: adulto e bambino (sotto i 30 kg). */
 const NEURO_TI_MASSIMO = 2.5
 const NEURO_TI_MASSIMO_PEDIATRICO = 1.5
+/** La costante di tempo con cui la macchina liscia l'EAdi per il ciclaggio, secondi. */
+const NEURO_LISCIATURA = 0.04
 /** Più breve di così un atto neurale è un artefatto. */
 const NEURO_TI_MINIMO = 0.25
 /** Quanti atti asincroni di fila per ripiegare sul supporto; su quanti atti si giudica il ritorno, e quanti sincroni servono. */
@@ -1046,6 +1048,9 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
   // subito, sale piano. Il ripiego sul supporto parte acceso senza catetere.
   const neuro = p.neuro
   let eBase = Number.POSITIVE_INFINITY
+  // L'EAdi lisciata su cui la macchina misura picco e discesa: l'increspatura
+  // del segnale non deve chiudere l'atto prima del picco.
+  let eLiscia = 0
   let eSopra = 0
   let ePicco = 0
   let eAtto = 0
@@ -1104,7 +1109,8 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
     const { valore: pmus, attivo, tosse: inTosse } = pmusDi(p.sforzi, t, cursore)
     const eOra = p.eadi ? eadiA(p, t, cursoreEAdi) : 0
     if (neuro) {
-      if (!Number.isFinite(eBase)) eBase = eOra
+      if (!Number.isFinite(eBase)) (eBase = eOra), (eLiscia = eOra)
+      eLiscia += (eOra - eLiscia) * Math.min(1, PASSO / NEURO_LISCIATURA)
       eBase += (eOra - eBase) * Math.min(1, PASSO / (eOra < eBase ? 0.05 : 20))
       eSopra = p.eadi && eOra > eBase + neuro.soglia ? eSopra + 1 : 0
       if (eSopra === 1) eInizioSopra = t
@@ -1182,7 +1188,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         atTif = p.Tif
         atVt = p.vt
         atMotrice = modalita === 'PS' || modalita === 'PAV' || modalita === 'NEURO' ? stato.impostazioni.backupPressure : p.motrice
-        ePicco = eOra
+        ePicco = eLiscia
         eAtto = eBase
         if (!controllata && tipoAtto === 'pressione') {
           const parti = String(stato.impostazioni.backupIERatio).split(':').map(Number)
@@ -1310,7 +1316,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         }
       } else if (tipoAtto === 'neurale' && neuro) {
         // NEURO: la Paw ha la forma dell'EAdi, scalata dal livello.
-        ePicco = Math.max(ePicco, eOra)
+        ePicco = Math.max(ePicco, eLiscia)
         const voluta = peep + neuro.livello * Math.max(0, eOra - eAtto)
         paw = Math.min(neuro.tetto, voluta)
         if (voluta > neuro.tetto && attoCorrente) attoCorrente.tettoNeuro = true
@@ -1319,8 +1325,11 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         flussoPicco = Math.max(flussoPicco, Q)
         const ampiezza = ePicco - eAtto
         const quota = ampiezza < NEURO_PICCO_BASSO ? NEURO_CICLAGGIO_BASSO : NEURO_CICLAGGIO
-        const scesa = eOra < ePicco && eOra - eAtto <= quota * ampiezza
-        const spinge = palv > paw + CICLAGGIO_PRESSIONE
+        const scesa = eLiscia < ePicco && eLiscia - eAtto <= quota * ampiezza
+        // Il paziente che spinge chiude l'atto: ma non nei primi istanti, quando
+        // la Paw parte dalla PEEP e una Palv più alta è l'aria intrappolata
+        // (l'auto-PEEP della BPCO), non una spinta.
+        const spinge = dentro > NEURO_TI_MINIMO && palv > paw + CICLAGGIO_PRESSIONE
         if ((dentro > 0.05 && scesa) || spinge || dentro > neuro.tiMax) {
           fase = 2
           fineInsp = t
@@ -1367,7 +1376,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         const visto = Q + RESIDUO_PERDITA_INSP * p.perdita * fluttua(t) * Math.sqrt(Math.max(0, paw))
         flussoPicco = Math.max(flussoPicco, visto)
         if (tipoAtto === 'supporto') {
-          if (neuro) ePicco = Math.max(ePicco, eOra)
+          if (neuro) ePicco = Math.max(ePicco, eLiscia)
           fiT.push(dentro)
           fiQ.push(Q)
           const ciclaFlusso = dentro > p.salita && visto <= flussoPicco * p.ciclaggio
