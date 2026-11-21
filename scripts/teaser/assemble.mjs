@@ -139,7 +139,7 @@ function html(s, d) {
   if (s.card === 'intro') {
     return `<div class="card def" style="--d:${d}s"><div class="grid"></div><div class="blob" style="left:520px;top:-200px"></div>${WAVE}
       <div class="center leave"><img class="logo" src="${ICON}"><div class="brand">${chars('Open Vent Sim', 0.35, 0.04)}<span class="badge">3.8</span></div>
-      <div class="sub" style="animation-delay:1.2s;line-height:1.35">Teach with realistic, interactive interfaces<br>from VEMS to advanced simulation</div></div></div>`;
+      <div class="sub" style="animation-delay:1.2s">Realistic, Interactive Ventilator Simulator for VEMS and High-Fidelity Simulation</div></div></div>`;
   }
   if (s.card === 'outro') {
     const pills = ['Free', 'Open source', 'Runs on your classroom network'].map((p, k) => `<span style="animation-delay:${(0.5 + k * 0.2).toFixed(2)}s">${p}</span>`).join('');
