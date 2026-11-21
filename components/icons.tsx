@@ -55,8 +55,7 @@ export const RecordIcon: React.FC<P & { active?: boolean }> = ({ active, ...p })
 );
 
 // ---------------------------------------------------------------------------
-// The big tiles (3.8.1): illustrated, filled, in the same family as the
-// equipment drawn on the patient figure. They keep their own colours: they sit
+// The big tiles: illustrated and filled. They keep their own colours: they sit
 // on coloured tiles, where a line icon read as something else (an easel, a
 // radio on wheels, a voice, an insect). Checked at 24 px for unwanted readings.
 // ---------------------------------------------------------------------------
