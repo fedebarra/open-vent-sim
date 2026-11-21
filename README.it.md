@@ -2,7 +2,7 @@
 
 **Simulatore gratuito e open-source di ventilatore, macchina d'anestesia e alti flussi — con la regia dell'istruttore sulla rete della tua aula.**
 
-[English version](README.md) · Versione 3.8.1 — 21 novembre 2026 · Licenza MIT
+[English version](README.md) · Versione 3.8.2 — 21 novembre 2026 · Licenza MIT
 
 📄 **L'articolo:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. Se usi Open Vent Sim in un corso, una tesi o un lavoro, [citalo così](#11-come-citare).
 
@@ -67,9 +67,9 @@ Vai alla pagina **[Releases](https://github.com/fedebarra/open-vent-sim/releases
 
 | Il tuo computer | File da scaricare |
 |---|---|
-| Windows | `OpenVentSim-3.8.1-win-x64.exe` (installazione) — oppure `OpenVentSim-3.8.1-portable.exe` (senza installare, si apre e basta) |
-| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.8.1-mac-arm64.dmg` |
-| Mac con processore Intel | `OpenVentSim-3.8.1-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.8.2-win-x64.exe` (installazione) — oppure `OpenVentSim-3.8.2-portable.exe` (senza installare, si apre e basta) |
+| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.8.2-mac-arm64.dmg` |
+| Mac con processore Intel | `OpenVentSim-3.8.2-mac-x64.dmg` |
 
 > Se il `.dmg` non si apre, scarica il `.zip` con lo stesso nome: doppio clic per estrarlo, poi trascina **Open Vent Sim** in Applicazioni.
 
@@ -239,6 +239,11 @@ Il registro resta salvato anche se chiudi e riapri la regia.
 | Voglio l'interfaccia vecchia (2.x) | Nel browser aggiungi `?legacy=1` all'indirizzo, da soli. |
 
 ## 9. Novità
+
+### 3.8.2 — 21 novembre 2026
+
+- La prima schermata dell'app desktop (Istruttore, Ventilatore, Da solo) ha icone illustrate come le tessere delle macchine, allineate in alto.
+- Il video del README si apre in una pagina che lo riproduce.
 
 ### 3.8.1 — 21 novembre 2026
 
