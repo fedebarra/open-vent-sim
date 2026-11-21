@@ -6,8 +6,7 @@
 
 📄 **L'articolo:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. Se usi Open Vent Sim in un corso, una tesi o un lavoro, [citalo così](#11-come-citare).
 
-<!-- VIDEO IN LINEA: su github.com, trascina qui docs/media/open-vent-sim-teaser.mp4 e cancella il paragrafo dell'anteprima qui sotto. -->
-<p align="center"><a href="docs/media/open-vent-sim-teaser.mp4"><img src="docs/media/teaser-preview.gif" width="820" alt="Open Vent Sim in 90 secondi: le tre macchine, la regia, l'assistenza neurale, la NIV, l'alto flusso, la guida passo passo"></a><br><b><a href="docs/media/open-vent-sim-teaser.mp4">▶ Guarda il video di 90 secondi</a></b> (in inglese)</p>
+<p align="center"><a href="https://fedebarra.github.io/open-vent-sim/video.html"><img src="docs/media/teaser-preview.gif" width="760" alt="Open Vent Sim in 90 secondi: le tre macchine, la regia, l'assistenza neurale, la NIV, l'alto flusso, la guida passo passo"></a><br><b><a href="https://fedebarra.github.io/open-vent-sim/video.html">▶ Guarda il video di 90 secondi</a></b> (in inglese)</p>
 
 > ⚠️ **Solo per la didattica.** Non è un dispositivo medico e non va mai usato per decisioni cliniche.
 
@@ -102,7 +101,7 @@ Vai alla pagina **[Releases](https://github.com/fedebarra/open-vent-sim/releases
 
 **2.** Si apre la regia. A sinistra trovi tutto quello che serve agli studenti: **QR code**, **indirizzo** e **PIN di 4 cifre** (in alto a destra, in giallo). Il PIN cambia a ogni avvio.
 
-<p align="center"><img src="docs/screenshots/02-regia-empty.png" width="820" alt="Regia vuota con QR, indirizzo e PIN"></p>
+<p align="center"><img src="docs/screenshots/02-regia-empty.png" width="760" alt="Regia vuota con QR, indirizzo e PIN"></p>
 
 Lascia questa finestra aperta per tutta la lezione: **se la chiudi, l'aula si scollega**.
 
@@ -140,7 +139,7 @@ In alto a destra compare un pallino: **verde** vuol dire collegato alla regia (t
 
 <p align="center"><img src="docs/screenshots/08-standby-drawer.png" width="640" alt="Pannello Standby"></p>
 
-<p align="center"><img src="docs/screenshots/09-icu-running.png" width="820" alt="Ventilatore in funzione"></p>
+<p align="center"><img src="docs/screenshots/09-icu-running.png" width="760" alt="Ventilatore in funzione"></p>
 
 Da questo momento lo vedi in regia, curve comprese, e ogni sua azione compare nel registro a destra.
 
@@ -200,13 +199,13 @@ In alto scegli **a chi mandare** i comandi: *questo ventilatore* (quello selezio
 | **Allarmi** | I limiti d'allarme del ventilatore (basso/alto, acceso/spento), come dal suo pannello Allarmi; **Ripristina i limiti d'avvio**. In PS, CPAP e PAV c'è il tempo di **apnea** (20 s di serie). |
 | **Eventi** | Eventi pronti (broncospasmo, tappo di muco, pneumotorace, desaturazione, ipercapnia, induzione, risveglio, decurarizzazione…). Si lanciano subito oppure si mettono in **sequenza** con i tempi, e la sequenza si salva su file per la prossima volta. |
 
-<p align="center"><img src="docs/screenshots/11-regia-async.png" width="820" alt="Scheda Asincronie"></p>
+<p align="center"><img src="docs/screenshots/11-regia-async.png" width="760" alt="Scheda Asincronie"></p>
 
 <p align="center"><img src="docs/screenshots/12-learner-asynchrony.png" width="640" alt="Lo studente vede gli sforzi inefficaci sulle curve"></p>
 
-<p align="center"><img src="docs/screenshots/15-regia-events.png" width="820" alt="Eventi e sequenza"></p>
+<p align="center"><img src="docs/screenshots/15-regia-events.png" width="760" alt="Eventi e sequenza"></p>
 
-<p align="center"><img src="docs/screenshots/23-regia-alarms.png" width="820" alt="Scheda Allarmi"></p>
+<p align="center"><img src="docs/screenshots/23-regia-alarms.png" width="760" alt="Scheda Allarmi"></p>
 
 **Regia sul tablet.** Nel riquadro a sinistra apri «Apri la regia su un tablet» e inquadra il QR con il **tuo** tablet: avrai la regia in mano mentre giri per l'aula. Non mostrarlo agli studenti, perché dà il controllo completo.
 
@@ -216,7 +215,7 @@ In alto scegli **a chi mandare** i comandi: *questo ventilatore* (quello selezio
 2. Conduci la lezione.
 3. Premi **■ Ferma registrazione**: si apre il registro.
 
-<p align="center"><img src="docs/screenshots/16-registro.png" width="820" alt="Registro della sessione"></p>
+<p align="center"><img src="docs/screenshots/16-registro.png" width="760" alt="Registro della sessione"></p>
 
 - **La scheda del giro**: titolo, nomi dei discenti, note del debriefing.
 - **Parametri**: SpO₂, EtCO₂, Ppeak, PEEP, VTe, frequenza, FiO₂ e HR nel tempo. Accendi e spegni le pastiglie colorate; le tacche in alto segnano le azioni.
