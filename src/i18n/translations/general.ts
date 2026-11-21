@@ -1,7 +1,7 @@
 
 export const en = {
-  ventilatorName: "🫁 Open Vent Sim",
-  startupTitle: "🫁 Open Vent Sim",
+  ventilatorName: "Open Vent Sim",
+  startupTitle: "Open Vent Sim",
   startupSubtitle: "The Open-Source Ventilator Simulator",
   powerButton: "⚡",
   powerOffButton: "⏻",
@@ -161,8 +161,8 @@ export const en = {
 };
 
 export const it = {
-  ventilatorName: "🫁 Open Vent Sim",
-  startupTitle: "🫁 Open Vent Sim",
+  ventilatorName: "Open Vent Sim",
+  startupTitle: "Open Vent Sim",
   startupSubtitle: "Il Simulatore di Ventilatore Open-Source",
   powerButton: "⚡",
   powerOffButton: "⏻",

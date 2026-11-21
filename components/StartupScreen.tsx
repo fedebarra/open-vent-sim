@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { OperatingMode, ICUSubMode } from '../types';
 import { useLanguage } from '../src/contexts/LanguageContext'; // Corrected path
 import { Footer } from './Footer'; // Import the common Footer
-import { AnesthesiaMachineIcon, IcuVentilatorIcon, HighFlowIcon, BookIcon, GearIcon, ExpandIcon, CollapseIcon, TourIcon } from './icons';
+import { AnesthesiaMachineIcon, IcuVentilatorIcon, HighFlowIcon, BookIcon, GearIcon, ExpandIcon, CollapseIcon, TourIcon, BrandMark } from './icons';
 
 interface StartupScreenProps {
   onSelectMode: (mode: OperatingMode, subMode?: ICUSubMode) => void;
@@ -20,7 +20,7 @@ interface StartupScreenProps {
 interface ModeButtonProps {
   label: string;
   onClick: () => void;
-  colorScheme: 'teal' | 'blue' | 'grey';
+  colorScheme: 'teal' | 'blue' | 'violet';
   icon: React.ReactNode;
   testId?: string;
 }
@@ -37,14 +37,15 @@ const ModeButton: React.FC<ModeButtonProps> = ({label, onClick, colorScheme, ico
                      hover:shadow-xl hover:shadow-teal-500/50 hover:from-teal-500 hover:to-teal-600`;
   const blueScheme = `bg-gradient-to-br from-sky-600 to-sky-700 border-2 border-sky-800 text-white
                       hover:shadow-xl hover:shadow-sky-500/50 hover:from-sky-500 hover:to-sky-600`;
-  const greyScheme = `bg-gradient-to-br from-neutral-600 to-neutral-700 border-2 border-neutral-800 text-white
-                      hover:shadow-xl hover:shadow-neutral-500/50 hover:from-neutral-500 hover:to-neutral-600`;
+  // High flow was grey, and a grey tile reads as disabled.
+  const violetScheme = `bg-gradient-to-br from-violet-600 to-violet-700 border-2 border-violet-800 text-white
+                      hover:shadow-xl hover:shadow-violet-500/50 hover:from-violet-500 hover:to-violet-600`;
 
 
   let selectedScheme = '';
   if (colorScheme === 'teal') selectedScheme = tealScheme;
   else if (colorScheme === 'blue') selectedScheme = blueScheme;
-  else if (colorScheme === 'grey') selectedScheme = greyScheme;
+  else if (colorScheme === 'violet') selectedScheme = violetScheme;
 
 
   return (
@@ -60,16 +61,17 @@ const ModeButton: React.FC<ModeButtonProps> = ({label, onClick, colorScheme, ico
   );
 };
 
-const LanguageFlagButton: React.FC<{flagEmoji: string, onClick: () => void, isActive: boolean, title: string}> = ({flagEmoji, onClick, isActive, title}) => (
+// Languages as text, not flag emoji: Windows has no flag emoji and showed the letters anyway.
+const LanguageButton: React.FC<{code: string, onClick: () => void, isActive: boolean, title: string}> = ({code, onClick, isActive, title}) => (
   <button
     onClick={onClick}
     title={title}
-    className={`px-2.5 py-1.5 mx-1.5 rounded-md text-lg transition-all duration-200
-                ${isActive
-                  ? 'bg-gray-200 text-gray-800 ring-2 ring-gray-400 ring-offset-1 ring-offset-gray-800 scale-110'
-                  : 'bg-gray-600 hover:bg-gray-500 opacity-75 hover:opacity-100'}`}
+    aria-pressed={isActive}
+    data-testid={`lang-${code.toLowerCase()}`}
+    className={`px-3 py-1.5 text-sm font-semibold tracking-wider transition-colors duration-200
+                ${isActive ? 'bg-teal-500 text-gray-900' : 'bg-transparent text-gray-300 hover:bg-gray-700'}`}
   >
-    {flagEmoji}
+    {code}
   </button>
 );
 
@@ -150,7 +152,8 @@ export const StartupScreen: React.FC<StartupScreenProps> = ({ onSelectMode, onOp
       <div className="flex-grow flex flex-col justify-center items-center text-center pt-10 md:pt-0"> {/* Added padding top for small screens */}
         <div className="mb-6">
             <div className="flex items-center justify-center mb-3">
-              <h1 className="text-5xl md:text-7xl font-bold text-white" style={{textShadow: '2px 2px 8px rgba(255, 255, 255, 0.3)'}}>
+              <h1 className="flex items-center gap-4 text-5xl md:text-7xl font-bold text-white" style={{textShadow: '2px 2px 8px rgba(255, 255, 255, 0.3)'}}>
+                <BrandMark className="w-12 h-12 md:w-20 md:h-20 shrink-0" />
                 {t.startupTitle}
               </h1>
             </div>
@@ -162,9 +165,9 @@ export const StartupScreen: React.FC<StartupScreenProps> = ({ onSelectMode, onOp
         <div className="flex flex-col items-center w-full">
             <p className="text-lg md:text-xl text-gray-400 mb-5">{t.selectOperatingModeTitle}</p>
             <div className="flex flex-col sm:flex-row items-stretch justify-center gap-4 lg:gap-6 w-full sm:w-auto">
-              <ModeButton testId="mode-anesthesia" label={t.anesthesiaModeName} onClick={() => onSelectMode('anesthesia')} colorScheme="teal" icon={<AnesthesiaMachineIcon strokeWidth={1.3} />} />
-              <ModeButton testId="mode-icu" label={t.intensiveCareModeName} onClick={() => onSelectMode('icu')} colorScheme="blue" icon={<IcuVentilatorIcon strokeWidth={1.3} />} />
-              <ModeButton testId="mode-highflow" label={t.highFlowOxygenatorButton} onClick={() => onSelectMode('icu', 'high-flow')} colorScheme="grey" icon={<HighFlowIcon strokeWidth={1.3} />} />
+              <ModeButton testId="mode-anesthesia" label={t.anesthesiaModeName} onClick={() => onSelectMode('anesthesia')} colorScheme="teal" icon={<AnesthesiaMachineIcon />} />
+              <ModeButton testId="mode-icu" label={t.intensiveCareModeName} onClick={() => onSelectMode('icu')} colorScheme="blue" icon={<IcuVentilatorIcon />} />
+              <ModeButton testId="mode-highflow" label={t.highFlowOxygenatorButton} onClick={() => onSelectMode('icu', 'high-flow')} colorScheme="violet" icon={<HighFlowIcon />} />
             </div>
 
             <div className="mt-8 mb-4 w-full md:w-auto flex flex-col md:flex-row gap-3 items-center">
@@ -208,8 +211,10 @@ export const StartupScreen: React.FC<StartupScreenProps> = ({ onSelectMode, onOp
         </div>
         {/* Language Buttons Group */}
         <div className="flex items-center">
-            <LanguageFlagButton flagEmoji="🇬🇧" onClick={() => setLanguage('en')} isActive={language === 'en'} title="English" />
-            <LanguageFlagButton flagEmoji="🇮🇹" onClick={() => setLanguage('it')} isActive={language === 'it'} title="Italiano" />
+            <div className="flex rounded-full border border-gray-600 overflow-hidden" role="group" aria-label="Language">
+              <LanguageButton code="IT" onClick={() => setLanguage('it')} isActive={language === 'it'} title="Italiano" />
+              <LanguageButton code="EN" onClick={() => setLanguage('en')} isActive={language === 'en'} title="English" />
+            </div>
         </div>
       </div>
 

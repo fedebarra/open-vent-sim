@@ -7,18 +7,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createLink } from './link';
 import { rt } from './strings';
 import { useLanguage } from '../src/contexts/LanguageContext';
-import { DirectorIcon, LearnerDeviceIcon, SoloIcon } from '../components/icons';
+import { BrandMark, DirectorIcon, LearnerDeviceIcon, SoloIcon } from '../components/icons';
 
 const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { language, setLanguage } = useLanguage();
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6">
-      <div className="absolute top-3 right-3 flex gap-1">
+      <div className="absolute top-3 right-3 flex rounded-full border border-slate-700 overflow-hidden">
         {(['it', 'en'] as const).map((l) => (
-          <button key={l} onClick={() => setLanguage(l)} className={`px-2 py-1 rounded text-sm ${language === l ? 'bg-sky-700' : 'bg-slate-800'}`}>{l === 'it' ? '🇮🇹 IT' : '🇬🇧 EN'}</button>
+          <button key={l} onClick={() => setLanguage(l)} aria-pressed={language === l} className={`px-3 py-1 text-sm font-semibold tracking-wider ${language === l ? 'bg-teal-500 text-slate-900' : 'text-slate-300 hover:bg-slate-800'}`}>{l.toUpperCase()}</button>
         ))}
       </div>
-      <div className="text-4xl font-bold mb-1">🫁 Open Vent Sim</div>
+      <div className="flex items-center gap-3 text-4xl font-bold mb-1"><BrandMark size={44} /> Open Vent Sim</div>
       {children}
     </div>
   );

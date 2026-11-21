@@ -332,9 +332,9 @@ export const DeviceApp: React.FC<DeviceAppProps> = ({
       <Shell onBack={esci} back={s.back}>
         <p className="text-xl md:text-2xl text-gray-300 mb-8 text-center">{s.icuTitle}</p>
         <div className="flex flex-col sm:flex-row gap-5 justify-center">
-          <Card testId="icu-invasive" onClick={() => setAmbiente('invasiva')} icon={<IntubatedIcon size={84} strokeWidth={1.3} />} title={s.invasive} desc={s.invasiveDesc}
+          <Card testId="icu-invasive" onClick={() => setAmbiente('invasiva')} icon={<IntubatedIcon size={84} />} title={s.invasive} desc={s.invasiveDesc}
             cls="from-sky-600 to-sky-700 border-sky-800 hover:from-sky-500 hover:to-sky-600" />
-          <Card testId="icu-niv" onClick={() => setAmbiente('niv')} icon={<NivMaskIcon size={84} strokeWidth={1.3} />} title={s.niv} desc={s.nivDesc}
+          <Card testId="icu-niv" onClick={() => setAmbiente('niv')} icon={<NivMaskIcon size={84} />} title={s.niv} desc={s.nivDesc}
             cls="from-amber-600 to-amber-700 border-amber-800 hover:from-amber-500 hover:to-amber-600" />
         </div>
       </Shell>

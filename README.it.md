@@ -2,11 +2,12 @@
 
 **Simulatore gratuito e open-source di ventilatore, macchina d'anestesia e alti flussi — con la regia dell'istruttore sulla rete della tua aula.**
 
-🇬🇧 [English version](README.md) · 📅 Versione 3.8.0 — 21 novembre 2026 · Licenza MIT
+[English version](README.md) · Versione 3.8.1 — 21 novembre 2026 · Licenza MIT
 
 📄 **L'articolo:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. Se usi Open Vent Sim in un corso, una tesi o un lavoro, [citalo così](#11-come-citare).
 
-<p align="center"><img src="docs/screenshots/10-regia-live.png" width="820" alt="La regia vede il ventilatore dello studente in diretta"></p>
+<!-- VIDEO IN LINEA: su github.com, trascina qui docs/media/open-vent-sim-teaser.mp4 e cancella il paragrafo dell'anteprima qui sotto. -->
+<p align="center"><a href="docs/media/open-vent-sim-teaser.mp4"><img src="docs/media/teaser-preview.gif" width="820" alt="Open Vent Sim in 90 secondi: le tre macchine, la regia, l'assistenza neurale, la NIV, l'alto flusso, la guida passo passo"></a><br><b><a href="docs/media/open-vent-sim-teaser.mp4">▶ Guarda il video di 90 secondi</a></b> (in inglese)</p>
 
 > ⚠️ **Solo per la didattica.** Non è un dispositivo medico e non va mai usato per decisioni cliniche.
 
@@ -41,6 +42,16 @@
 - **Niente internet, niente account**: funziona sulla rete locale della tua aula. Nessun dato esce dalla stanza.
 - Italiano e inglese.
 
+### Come si vede
+
+<table>
+<tr><td width="50%" valign="top"><img src="docs/gifs/g1-waves.gif" width="100%" alt="Curve da un vero motore del respiro"><br><sub>Curve da un vero motore del respiro</sub></td><td width="50%" valign="top"><img src="docs/gifs/g2-asynchrony.gif" width="100%" alt="La regia carica un caso pubblicato: lo studente vede l’asincronia, mai il suo nome"><br><sub>La regia carica un caso pubblicato: lo studente vede l’asincronia, mai il suo nome</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/gifs/g3-cough-alarm.gif" width="100%" alt="Il paziente tossisce: la Paw arriva al limite e suona l’allarme"><br><sub>Il paziente tossisce: la Paw arriva al limite e suona l’allarme</sub></td><td width="50%" valign="top"><img src="docs/gifs/g4-eit.gif" width="100%" alt="EIT con pendelluft e PEEP trial"><br><sub>EIT con pendelluft e PEEP trial</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/gifs/g5-catheter.gif" width="100%" alt="Assistenza neurale: lo studente mette a posto il catetere EAdi leggendo quattro derivazioni ECG esofagee"><br><sub>Assistenza neurale: lo studente mette a posto il catetere EAdi leggendo quattro derivazioni ECG esofagee</sub></td><td width="50%" valign="top"><img src="docs/gifs/g6-neuro.gif" width="100%" alt="NEURO: la pressione segue il diaframma"><br><sub>NEURO: la pressione segue il diaframma</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/gifs/g7-niv-mask-off.gif" width="100%" alt="NIV: la maschera si stacca, la macchina va in pausa e suona"><br><sub>NIV: la maschera si stacca, la macchina va in pausa e suona</sub></td><td width="50%" valign="top"><img src="docs/gifs/g8-highflow.gif" width="100%" alt="Alto flusso: la regia ostruisce la cannula e l’apparecchio lo dice"><br><sub>Alto flusso: la regia ostruisce la cannula e l’apparecchio lo dice</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/gifs/g9-tour.gif" width="100%" alt="Una guida passo passo su ogni schermata"><br><sub>Una guida passo passo su ogni schermata</sub></td><td width="50%"></td></tr>
+</table>
+
 ## 2. Che cosa ti serve
 
 | Chi | Che cosa |
@@ -57,9 +68,9 @@ Vai alla pagina **[Releases](https://github.com/fedebarra/open-vent-sim/releases
 
 | Il tuo computer | File da scaricare |
 |---|---|
-| Windows | `OpenVentSim-3.8.0-win-x64.exe` (installazione) — oppure `OpenVentSim-3.8.0-portable.exe` (senza installare, si apre e basta) |
-| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.8.0-mac-arm64.dmg` |
-| Mac con processore Intel | `OpenVentSim-3.8.0-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.8.1-win-x64.exe` (installazione) — oppure `OpenVentSim-3.8.1-portable.exe` (senza installare, si apre e basta) |
+| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.8.1-mac-arm64.dmg` |
+| Mac con processore Intel | `OpenVentSim-3.8.1-mac-x64.dmg` |
 
 > Se il `.dmg` non si apre, scarica il `.zip` con lo stesso nome: doppio clic per estrarlo, poi trascina **Open Vent Sim** in Applicazioni.
 
@@ -229,6 +240,12 @@ Il registro resta salvato anche se chiudi e riapri la regia.
 | Voglio l'interfaccia vecchia (2.x) | Nel browser aggiungi `?legacy=1` all'indirizzo, da soli. |
 
 ## 9. Novità
+
+### 3.8.1 — 21 novembre 2026
+
+- **Icone nuove**: le macchine, le vie aeree (tubo endotracheale, maschera NIV, cannula ad alto flusso) e i comandi piccoli sono ridisegnati perché si leggano per quello che sono, a ogni dimensione.
+- **Un marchio solo** per l'app: due atti di flusso in pressione di supporto, bianchi su teal. Sostituisce l'emoji del polmone nel titolo e l'icona azzurra sul desktop.
+- **Lingue come testo** (IT · EN) invece delle bandiere emoji, che Windows non mostra.
 
 ### 3.8.0 — 21 novembre 2026
 

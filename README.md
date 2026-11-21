@@ -2,11 +2,12 @@
 
 **A free, open-source simulator of ICU ventilator, anaesthesia machine and high-flow oxygen — with an instructor console that runs on your classroom's own network.**
 
-🇮🇹 [Versione italiana](README.it.md) · 📅 Version 3.8.0 — 21 November 2026 · MIT licence
+[Versione italiana](README.it.md) · Version 3.8.1 — 21 November 2026 · MIT licence
 
 📄 **The paper:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. If you use Open Vent Sim in a course, a thesis or a paper, [please cite it](#11-how-to-cite).
 
-<p align="center"><img src="docs/screenshots/10-regia-live-en.png" width="820" alt="The instructor console showing a learner's ventilator live"></p>
+<!-- VIDEO IN LINEA: su github.com, trascina qui docs/media/open-vent-sim-teaser.mp4 e cancella il paragrafo dell'anteprima qui sotto. -->
+<p align="center"><a href="docs/media/open-vent-sim-teaser.mp4"><img src="docs/media/teaser-preview.gif" width="820" alt="Open Vent Sim in 90 seconds: the three machines, the instructor console, neural assist, NIV, high flow, the guided tour"></a><br><b><a href="docs/media/open-vent-sim-teaser.mp4">▶ Watch the 90-second video</a></b></p>
 
 > ⚠️ **For education only.** Not a medical device. Never use it for clinical decisions.
 
@@ -41,6 +42,16 @@
 - **No internet, no accounts**: it runs on your room's local network. No data leaves the room.
 - English and Italian.
 
+### See it in action
+
+<table>
+<tr><td width="50%" valign="top"><img src="docs/gifs/g1-waves-en.gif" width="100%" alt="Waveforms from a real breathing engine"><br><sub>Waveforms from a real breathing engine</sub></td><td width="50%" valign="top"><img src="docs/gifs/g2-asynchrony-en.gif" width="100%" alt="The console loads a published case: the learner sees the asynchrony, never its name"><br><sub>The console loads a published case: the learner sees the asynchrony, never its name</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/gifs/g3-cough-alarm-en.gif" width="100%" alt="The patient coughs: Paw hits the limit and the alarm sounds"><br><sub>The patient coughs: Paw hits the limit and the alarm sounds</sub></td><td width="50%" valign="top"><img src="docs/gifs/g4-eit-en.gif" width="100%" alt="EIT with pendelluft and PEEP trial"><br><sub>EIT with pendelluft and PEEP trial</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/gifs/g5-catheter-en.gif" width="100%" alt="Neural assist: the learner pulls the EAdi catheter into place by reading four oesophageal ECG leads"><br><sub>Neural assist: the learner pulls the EAdi catheter into place by reading four oesophageal ECG leads</sub></td><td width="50%" valign="top"><img src="docs/gifs/g6-neuro-en.gif" width="100%" alt="NEURO: the pressure follows the diaphragm"><br><sub>NEURO: the pressure follows the diaphragm</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/gifs/g7-niv-mask-off-en.gif" width="100%" alt="NIV: the mask comes off, the machine pauses and alarms"><br><sub>NIV: the mask comes off, the machine pauses and alarms</sub></td><td width="50%" valign="top"><img src="docs/gifs/g8-highflow-en.gif" width="100%" alt="High flow: the instructor blocks the cannula and the device says so"><br><sub>High flow: the instructor blocks the cannula and the device says so</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/gifs/g9-tour-en.gif" width="100%" alt="A guided tour on every screen"><br><sub>A guided tour on every screen</sub></td><td width="50%"></td></tr>
+</table>
+
 ## 2. What you need
 
 | Who | What |
@@ -57,9 +68,9 @@ Go to **[Releases](https://github.com/fedebarra/open-vent-sim/releases/latest)**
 
 | Your computer | File |
 |---|---|
-| Windows | `OpenVentSim-3.8.0-win-x64.exe` (installer) — or `OpenVentSim-3.8.0-portable.exe` (no install, just run it) |
-| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.8.0-mac-arm64.dmg` |
-| Mac with Intel processor | `OpenVentSim-3.8.0-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.8.1-win-x64.exe` (installer) — or `OpenVentSim-3.8.1-portable.exe` (no install, just run it) |
+| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.8.1-mac-arm64.dmg` |
+| Mac with Intel processor | `OpenVentSim-3.8.1-mac-x64.dmg` |
 
 > If the `.dmg` won't open, download the `.zip` with the same name: double-click to extract, then drag **Open Vent Sim** into Applications.
 
@@ -229,6 +240,12 @@ The log survives closing and reopening the console.
 | I want the old (2.x) interface | In the browser, add `?legacy=1` to the address (stand-alone only). |
 
 ## 9. What's new
+
+### 3.8.1 — 21 November 2026
+
+- **New icons**: the machines, the airway (endotracheal tube, NIV mask, high-flow cannula) and the small controls are redrawn so they read as what they are, at any size.
+- **One mark** for the app: two pressure-support breaths of the flow curve, white on teal. It replaces the lung emoji in the title and the blue icon on the desktop.
+- **Languages as text** (IT · EN) instead of flag emoji, which Windows does not show.
 
 ### 3.8.0 — 21 November 2026
 
