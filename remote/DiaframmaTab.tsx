@@ -1,11 +1,11 @@
 /**
  * Director console, "Diaphragm" tab (OVS 3.8): the EAdi catheter and what the
- * diaphragm signal says. The console mounts the catheter (on any patient, also
- * in standby and on high flow), chooses where it sits — right, too deep, too
- * shallow, dislodged — and drives what changes the signal: the patient's
- * neuromechanical efficiency, a phrenic nerve lesion, sedation and curare.
- * The learner's screen shows the signal as the catheter reads it; the name of
- * the fault lives here, not there.
+ * diaphragm signal says. The console mounts the catheter — which makes the
+ * NEURO mode selectable on the learner's machine — chooses where it sits
+ * (right, too deep, too shallow, dislodged) and drives what changes the
+ * signal: the patient's neuromechanical efficiency, a phrenic nerve lesion,
+ * sedation and curare. The learner's screen shows the signal only in NEURO, as
+ * the catheter reads it; the name of the fault lives here, not there.
  */
 import React, { useState } from 'react';
 import type { RemoteStrings } from './strings';

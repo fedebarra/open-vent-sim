@@ -91,14 +91,15 @@ import { creaOnde, nelTrigger, puntoOnda } from './onde'
 import { Loop } from './Loop'
 import { Eit } from './VistaEit'
 import { attivitaDiaframma, pressioneAlveolare, pressioneEsofagea, pressioneMuscolare, pressioneTranspolmonare } from './pressioni'
-import { pressioneStimata } from './eadi'
-import { PEEP_MINIMA_RI, RECLUTAMENTO_SECONDI, autoPeep, type Manovra, type StatoVentilatore } from './fisica'
+import { PEEP_MINIMA_RI, RECLUTAMENTO_SECONDI, autoPeep, polmoneOra, type Manovra, type StatoVentilatore } from './fisica'
+import { attiRecenti } from './motore'
 import { pendenzaCapnogramma } from './scambio'
 import { CIRCUITI_PER_AMBIENTE, MANOVRA_SECONDI, type VentIstantanea } from './istantanea'
 import type { TranslationKey } from '../../../i18n/it'
 import type { Circuito } from '../../paziente/presidiFigura'
 import {
   MODALITA_PER_AMBIENTE,
+  modalitaDisponibile,
   PARAMETRI,
   limitiAltoFlusso,
   scriviValore,
@@ -111,11 +112,9 @@ import {
 
 /** I colori delle tre curve: sono quelli convenzionali, non una scelta. */
 /**
- * Il colore dell'EAdi e della stima: nostri, lontani da quelli delle altre
- * corsie. Il fondo scala dell'EAdi si sceglie fra questi, µV.
+ * Il colore dell'EAdi: nostro, lontano da quelli delle altre corsie. Il fondo scala dell'EAdi si sceglie fra questi, µV.
  */
 const COLORE_EADI = '#d9f99d'
-const COLORE_STIMA = '#94a3b8'
 const SCALE_EADI = [12, 20, 40, 80, 120]
 
 const COLORI = { paw: '#ffb300', flusso: '#4caf50', volume: '#00b0ff', co2: '#e5e7eb' }
@@ -255,13 +254,8 @@ export function Ventilatore({
   // OVS 3.2: la pressione esofagea e la transpolmonare, dal motore.
   const [esofageaScelta, setEsofagea] = useState(false)
   const esofagea = pressioniDidattiche && esofageaScelta
-  // OVS 3.8: la pressione che l'assistenza neurale darebbe, sovrapposta alla
-  // Paw, e a che livello. È un aiuto di lettura di questo schermo, come le
-  // altre viste: non cambia la macchina.
-  const [stimaScelta, setStima] = useState(false)
-  const [livelloStima, setLivelloStima] = useState(1)
-  const conCatetere = !!stato.fisiologia.catetereEAdi
-  const stima = conCatetere && stimaScelta
+  // OVS 3.8: l'EAdi si vede in assistenza neurale, con il catetere montato.
+  const conCatetere = !!stato.fisiologia.catetereEAdi && stato.modalita === 'NEURO'
   const [congelato, setCongelato] = useState<number | null>(null)
   const [cursore, setCursore] = useState<number | null>(null)
 
@@ -478,6 +472,7 @@ export function Ventilatore({
   // e quello che li supera si taglia — un picco fuori scala si legge come tale.
   const corsiaEAdi: SweepChannel | null = useMemo(() => {
     if (!conCatetere) return null
+    const motore = polmoneOra(stato)
     const picco = misure.eadiPicco ?? 10
     const fondo = SCALE_EADI.find((x) => x >= picco * 1.15) ?? SCALE_EADI[SCALE_EADI.length - 1]
     return {
@@ -487,6 +482,13 @@ export function Ventilatore({
       range: (): [number, number] => [0, fondo],
       label: 'EAdi',
       scale: t('vent.unit.microV'),
+      // Il segno del trigger neurale: un pallino dove il diaframma ha aperto l'atto.
+      marks: (da: number, a: number) =>
+        stato.ventilando
+          ? attiRecenti(a, motore, Math.max(1, a - da) + 1)
+              .filter((x) => x.apertura === 'neurale' && x.inizio >= da)
+              .map((x) => x.inizio)
+          : [],
       value:
         alCursore && cursore !== null
           ? (attivitaDiaframma(cursore, stato) ?? 0).toFixed(1)
@@ -534,11 +536,6 @@ export function Ventilatore({
         },
       ]
     }
-    // La stima della pressione dall'EAdi, sotto la Paw: `PEEP + livello ×
-    // (EAdi − EAdi min)`, fino al limite alto meno cinque.
-    const peep = stato.impostazioni.peep
-    const tetto = Math.max(peep + 5, (stato.pressioneMassima ?? 40) - 5)
-    const eadiMin = misure.eadiMin ?? 0
     return [
       {
         key: 'paw',
@@ -548,14 +545,6 @@ export function Ventilatore({
         label: 'Paw',
         scale: t('vent.unit.cmH2O'),
         value: alCursore ? alCursore.paw.toFixed(1) : scriviValore('pPeak', misure.pPeak),
-        ...(stima
-          ? {
-              ombra: {
-                color: COLORE_STIMA,
-                at: (tt: number) => pressioneStimata(attivitaDiaframma(tt, stato) ?? 0, eadiMin, livelloStima, peep, tetto),
-              },
-            }
-          : {}),
       },
       {
         key: 'flusso',
@@ -631,7 +620,17 @@ export function Ventilatore({
         : []),
       ...(corsiaEAdi ? [corsiaEAdi] : []),
     ]
-  }, [onde, pawAMano, flussoAMano, capno, inManuale, inAltoFlusso, misure, scale, alCursore, t, pressioniExtra, esofagea, stato, cursore, corsiaEAdi, stima, livelloStima])
+  }, [onde, pawAMano, flussoAMano, capno, inManuale, inAltoFlusso, misure, scale, alCursore, t, pressioniExtra, esofagea, stato, cursore, corsiaEAdi])
+
+  // NEURO: su che cosa sta andando la macchina adesso — il supporto su cui ha
+  // ripiegato, o il backup. Dall'ultimo atto.
+  const statoNeuro = useMemo(() => {
+    if (stato.modalita !== 'NEURO' || !stato.ventilando) return null
+    const ultimo = attiRecenti(clock(), polmoneOra(stato), 15).pop()
+    if (!ultimo) return null
+    return ultimo.ripiego ? 'ripiego' : ultimo.apertura === 'macchina' ? 'backup' : null
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stato, misure])
 
   const impostazioni = impostazioniDaMostrare(stato)
   const gruppi = gruppiMonitoraggio(ctx, stato.gas?.agenti.length ?? 0)
@@ -746,6 +745,11 @@ export function Ventilatore({
             <span className="simvent__modo-nome">
               {inManuale ? t('vent.mode.MAN') : t(NOME_MODALITA[stato.modalita])}
             </span>
+            {statoNeuro && (
+              <span className={`simvent__neuro simvent__neuro--${statoNeuro}`} data-testid="neuro-stato">
+                {t(statoNeuro === 'ripiego' ? 'vent.neuro.ripiego' : 'vent.neuro.backup')}
+              </span>
+            )}
             <span className="simvent__vuoto" />
             {!inAltoFlusso && stato.ventilando && (
               <>
@@ -784,19 +788,6 @@ export function Ventilatore({
                     )}
                   </div>
                 )}
-                {/* OVS 3.8: la stima della pressione dall'EAdi, e il suo livello. */}
-                {!inManuale && vista === 'curve' && conCatetere && (
-                  <div className="simvent__velocita" role="group">
-                    <button type="button" data-testid="vista-stima" className={stima ? 'scelto' : ''} aria-pressed={stima} onClick={() => setStima((x) => !x)}>{t('vent.vista.stima')}</button>
-                    {stima && (
-                      <>
-                        <button type="button" data-testid="stima-meno" aria-label="−" onClick={() => setLivelloStima((x) => Math.max(0.1, Math.round((x - 0.1) * 10) / 10))}>−</button>
-                        <span className="simvent__livello" data-testid="stima-livello">{livelloStima.toFixed(1)}</span>
-                        <button type="button" data-testid="stima-piu" aria-label="+" onClick={() => setLivelloStima((x) => Math.min(4, Math.round((x + 0.1) * 10) / 10))}>+</button>
-                      </>
-                    )}
-                  </div>
-                )}
                 <button
                   type="button"
                   className={`simvent__congela${congelato !== null ? ' simvent__congela--attivo' : ''}`}
@@ -809,16 +800,7 @@ export function Ventilatore({
             )}
           </div>
           {inAltoFlusso ? (
-            <>
-              <PannelloAltoFlusso stato={stato} misure={misure} t={t} />
-              {/* Con il catetere l'EAdi è l'unica curva vera dell'alto flusso:
-                  lo sforzo che cresce prima che serva il tubo. */}
-              {corsiaEAdi && (
-                <div className="simvent__quadro simvent__quadro--eadi" data-testid="eadi-sola">
-                  <Sweep key="eadi-af" channels={[corsiaEAdi]} clock={clockQuadro} seconds={velocita} />
-                </div>
-              )}
-            </>
+            <PannelloAltoFlusso stato={stato} misure={misure} t={t} />
           ) : stato.ventilando && vista === 'loop' && !inManuale ? (
             <Loop stato={stato} clock={clockQuadro} t={t} />
           ) : stato.ventilando && vista === 'eit' && stato.ambiente === 'invasiva' ? (
@@ -850,7 +832,7 @@ export function Ventilatore({
               )}
             </div>
           ) : corsiaEAdi ? (
-            // In standby il paziente respira lo stesso: col catetere si vede.
+            // In standby in NEURO il paziente respira lo stesso: col catetere si vede.
             <div className="simvent__quadro simvent__quadro--eadi" data-testid="eadi-sola">
               <div className="simvent__spento simvent__spento--sopra">{t('vent.state.standby')}</div>
               <Sweep key="eadi-standby" channels={[corsiaEAdi]} clock={clockQuadro} seconds={velocita} />
@@ -1267,18 +1249,25 @@ function CassettoModalita({
 }) {
   return (
     <div className="simvent__scelte simvent__scelte--colonna">
-      {MODALITA_PER_AMBIENTE[stato.ambiente].map((m: Modalita) => (
-        <button
-          key={m}
-          type="button"
-          className={stato.modalita === m ? 'scelto' : ''}
-          data-fam={`modalita-${m}`}
-          onClick={() => agisci({ tipo: 'modalita', modalita: m })}
-        >
-          <b>{m}</b>
-          <span>{t(NOME_MODALITA[m])}</span>
-        </button>
-      ))}
+      {MODALITA_PER_AMBIENTE[stato.ambiente].map((m: Modalita) => {
+        // L'assistenza neurale chiede il catetere: senza, la modalità c'è ma
+        // non si sceglie.
+        const manca = !modalitaDisponibile(m, stato.fisiologia)
+        return (
+          <button
+            key={m}
+            type="button"
+            className={stato.modalita === m ? 'scelto' : ''}
+            data-fam={`modalita-${m}`}
+            disabled={manca}
+            onClick={() => agisci({ tipo: 'modalita', modalita: m })}
+          >
+            <b>{m}</b>
+            <span>{t(NOME_MODALITA[m])}</span>
+            {manca && <small>{t('vent.mode.serveCatetere')}</small>}
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -1626,8 +1615,26 @@ function PannelloAltoFlusso({
   // quando esiste anche in terapia intensiva sta là, e qui si legge da lì.
   const umi = stato.umidificatore
   const limiti = af ? limitiAltoFlusso(af.interfaccia) : null
+  // ## Si vede che eroga
+  //
+  // L'alto flusso non ha curve: senza qualcosa che si muove, «in funzione» e
+  // «fermo con i numeri impostati» sono lo stesso schermo. La fascia sotto i
+  // numeri scorre quando l'apparecchio eroga, tanto più in fretta quanto più
+  // flusso dà; in riscaldamento scorre piano e ambra; ferma in standby.
+  const eroga = stato.ventilando && stato.impostazioni.fgf > 0
+  const scalda = eroga && !!af?.inRiscaldamento
+  const durata = Math.min(3, Math.max(0.35, 24 / Math.max(1, stato.impostazioni.fgf)))
   return (
     <div className="simvent__altoflusso">
+      <div
+        className={`simvent__af-flusso${eroga ? ' simvent__af-flusso--attivo' : ''}${scalda ? ' simvent__af-flusso--scalda' : ''}`}
+        style={{ '--af-durata': `${scalda ? durata * 2.5 : durata}s` } as CSSProperties}
+        data-testid="af-flusso"
+        data-attivo={eroga ? 'si' : 'no'}
+        aria-hidden="true"
+      >
+        <span>{eroga ? (scalda ? t('vent.af.riscalda') : t('vent.af.eroga')) : t('vent.state.standby')}</span>
+      </div>
       <div className="simvent__grandi">
         <div>
           <span>{t('vent.param.fgf')}</span>

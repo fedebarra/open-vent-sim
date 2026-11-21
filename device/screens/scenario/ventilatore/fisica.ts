@@ -1222,7 +1222,7 @@ function misuraMacchina(
     // 4-bis) restano sui numeri dell'atto che hanno.
     const dalMotore =
       motoreCopre(statoMotore) &&
-      (modalita === 'PS' || modalita === 'CPAP' || modalita === 'PAV' || imp.triggerControllata === 1)
+      (modalita === 'PS' || modalita === 'CPAP' || modalita === 'PAV' || modalita === 'NEURO' || imp.triggerControllata === 1)
     const atti = dalMotore ? attiRecenti(tSec, statoMotore, 20) : []
     // ## Nessun atto contato è un numero, non un ripiego (OVS 3.3)
     //
@@ -1319,7 +1319,7 @@ function misuraMacchina(
     // corrente espirato — perché è così che si calcola al letto, e un RSBI che
     // non torna con i due numeri accanto sarebbe un terzo numero da spiegare.
     // In apnea gli atti sono quelli di backup, della macchina: niente RSBI.
-    if ((modalita === 'PS' || modalita === 'CPAP' || modalita === 'PAV') && spontanea > 0) {
+    if ((modalita === 'PS' || modalita === 'CPAP' || modalita === 'PAV' || modalita === 'NEURO') && spontanea > 0) {
       const f = m.measuredFrequency ?? 0
       const vtL = (m.volumeExpired ?? 0) / 1000
       m.rsbi = f > 0 && vtL > 0.02 ? Math.round(f / vtL) : null

@@ -52,7 +52,7 @@ export type Ambiente = 'anestesia' | 'invasiva' | 'niv' | 'alto-flusso'
 
 /** Le modalità di ventilazione. `AF` è l'alto flusso, che modalità non è. */
 // OVS 3.1: PRVC — pressure-regulated volume control (a PC breath whose pressure adapts to reach the set volume).
-export type Modalita = 'VC' | 'PC' | 'PRVC' | 'PS' | 'SIMV' | 'CPAP' | 'PAV' | 'AF'
+export type Modalita = 'VC' | 'PC' | 'PRVC' | 'PS' | 'SIMV' | 'CPAP' | 'PAV' | 'NEURO' | 'AF'
 
 /**
  * Meccanica o manuale — cioè: chi spinge l'aria dentro.
@@ -76,9 +76,17 @@ export type Disinfezione = 'pulito' | 'sporco' | 'non-sicuro'
  */
 export const MODALITA_PER_AMBIENTE: Record<Ambiente, Modalita[]> = {
   anestesia: ['VC', 'PC', 'PS'],
-  invasiva: ['VC', 'PC', 'PRVC', 'PS', 'SIMV', 'CPAP', 'PAV'],
+  invasiva: ['VC', 'PC', 'PRVC', 'PS', 'SIMV', 'CPAP', 'PAV', 'NEURO'],
   niv: ['PS', 'CPAP'],
   'alto-flusso': ['AF'],
+}
+
+/**
+ * Se una modalità si può scegliere adesso. L'assistenza neurale chiede il
+ * catetere dell'EAdi: senza, nell'elenco c'è ma è spenta.
+ */
+export function modalitaDisponibile(m: Modalita, fisiologia: { catetereEAdi?: unknown }): boolean {
+  return m !== 'NEURO' || !!fisiologia.catetereEAdi
 }
 
 /** Quello che una mano gira. */
@@ -119,6 +127,15 @@ export interface Impostazioni {
    * Le istantanee salvate prima della 3.2 non l'hanno: chi lo legge ripiega su 50.
    */
   pavSupporto: number
+  /**
+   * NEURO, l'assistenza neurale: quanti cmH₂O per ogni µV di EAdi sopra il
+   * minimo. Partenza tipica nell'adulto 0,5-1.
+   *
+   * Assente nelle istantanee di prima della 3.8: chi lo legge ripiega su 0,5.
+   */
+  livelloNeuro: number
+  /** NEURO: di quanti µV l'EAdi deve salire sopra il minimo per aprire l'atto. 0,5 se manca. */
+  triggerEAdi: number
   /**
    * Il trigger è aperto anche negli atti controllati: **assistita-controllata**.
    *
@@ -334,7 +351,7 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     passo: 1,
     visibile: (c) =>
       (c.ambiente === 'anestesia' && c.respiro === 'meccanica') ||
-      (inIcu(c.ambiente) && c.modalita !== 'CPAP' && c.modalita !== 'PAV'),
+      (inIcu(c.ambiente) && c.modalita !== 'CPAP' && c.modalita !== 'PAV' && c.modalita !== 'NEURO'),
   },
   peep: {
     etichetta: 'vent.param.peep',
@@ -374,7 +391,9 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     passo: 1,
     visibile: (c) =>
       (c.ambiente === 'anestesia' && c.modalita === 'PS' && c.respiro === 'meccanica') ||
-      (inIcu(c.ambiente) && (c.modalita === 'PS' || c.modalita === 'SIMV')),
+      (inIcu(c.ambiente) && (c.modalita === 'PS' || c.modalita === 'SIMV')) ||
+      // in NEURO è il supporto su cui la macchina ripiega se il segnale non è credibile
+      (c.ambiente === 'invasiva' && c.modalita === 'NEURO'),
   },
   triggerFlow: {
     etichetta: 'vent.param.triggerFlow',
@@ -455,8 +474,29 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     max: 70,
     passo: 5,
     visibile: (c) =>
-      (c.ambiente === 'invasiva' && (c.modalita === 'PS' || c.modalita === 'SIMV' || c.modalita === 'PAV')) ||
+      (c.ambiente === 'invasiva' && (c.modalita === 'PS' || c.modalita === 'SIMV' || c.modalita === 'PAV' || c.modalita === 'NEURO')) ||
       (c.ambiente === 'niv' && c.modalita === 'PS'),
+  },
+  livelloNeuro: {
+    etichetta: 'vent.param.livelloNeuro',
+    decimali: 1,
+    unita: 'vent.unit.cmH2OuV',
+    regolabile: true,
+    grande: true,
+    min: 0,
+    max: 15,
+    passo: 0.1,
+    visibile: (c) => c.ambiente === 'invasiva' && c.modalita === 'NEURO',
+  },
+  triggerEAdi: {
+    etichetta: 'vent.param.triggerEAdi',
+    decimali: 1,
+    unita: 'vent.unit.microV',
+    regolabile: true,
+    min: 0.1,
+    max: 2,
+    passo: 0.1,
+    visibile: (c) => c.ambiente === 'invasiva' && c.modalita === 'NEURO',
   },
   pavSupporto: {
     etichetta: 'vent.param.pavSupporto',
@@ -494,7 +534,7 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     min: 5,
     max: 40,
     passo: 1,
-    visibile: (c) => inIcu(c.ambiente) && (c.modalita === 'PS' || c.modalita === 'CPAP' || c.modalita === 'PAV'),
+    visibile: (c) => inIcu(c.ambiente) && (c.modalita === 'PS' || c.modalita === 'CPAP' || c.modalita === 'PAV' || c.modalita === 'NEURO'),
   },
   backupFrequency: {
     etichetta: 'vent.param.backupFrequency',
@@ -503,13 +543,13 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     min: 5,
     max: 30,
     passo: 1,
-    visibile: (c) => inIcu(c.ambiente) && (c.modalita === 'PS' || c.modalita === 'CPAP' || c.modalita === 'PAV'),
+    visibile: (c) => inIcu(c.ambiente) && (c.modalita === 'PS' || c.modalita === 'CPAP' || c.modalita === 'PAV' || c.modalita === 'NEURO'),
   },
   backupIERatio: {
     etichetta: 'vent.param.backupIERatio',
     unita: 'vent.unit.none',
     regolabile: true,
-    visibile: (c) => inIcu(c.ambiente) && (c.modalita === 'PS' || c.modalita === 'CPAP' || c.modalita === 'PAV'),
+    visibile: (c) => inIcu(c.ambiente) && (c.modalita === 'PS' || c.modalita === 'CPAP' || c.modalita === 'PAV' || c.modalita === 'NEURO'),
   },
   fgf: {
     etichetta: 'vent.param.fgf',
@@ -682,6 +722,7 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
       (c.modalita === 'PS' ||
         c.modalita === 'CPAP' ||
         c.modalita === 'PAV' ||
+        c.modalita === 'NEURO' ||
         c.modalita === 'SIMV' ||
         ((c.modalita === 'VC' || c.modalita === 'PC' || c.modalita === 'PRVC') && c.impostazioni?.triggerControllata === 1)),
   },
@@ -697,7 +738,7 @@ export const PARAMETRI: Record<ChiaveParametro, DefinizioneParametro> = {
     decimali: 0,
     unita: 'vent.unit.perMinL',
     regolabile: false,
-    visibile: (c) => c.ambiente === 'invasiva' && (c.modalita === 'PS' || c.modalita === 'CPAP' || c.modalita === 'PAV'),
+    visibile: (c) => c.ambiente === 'invasiva' && (c.modalita === 'PS' || c.modalita === 'CPAP' || c.modalita === 'PAV' || c.modalita === 'NEURO'),
   },
   flowIndex: {
     etichetta: 'vent.param.flowIndex',
@@ -830,6 +871,8 @@ export const IMPOSTAZIONI_INIZIALI: Impostazioni = {
   inspiratoryRiseTimeSeconds: 0.15,
   flowCycleOffPercent: 25,
   pavSupporto: 50,
+  livelloNeuro: 0.5,
+  triggerEAdi: 0.5,
   triggerControllata: 0,
   formaFlusso: 0,
   backupPressure: 15,

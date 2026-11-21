@@ -66,8 +66,8 @@ const it = {
 
   tabPatient: 'Paziente', tabAsync: 'Asincronie', tabLung: 'Polmone', tabMachine: 'Macchina', tabAlarms: 'Allarmi', alarmsIntro: 'I limiti d’allarme del ventilatore selezionato, come nel suo pannello Allarmi. Le modifiche finiscono nel registro come azioni della regia.', alarmLow: 'basso', alarmHigh: 'alto', alarmOnLabel: 'attivo', alarmsReset: 'Ripristina i limiti d’avvio', tabEvents: 'Eventi', tabMechanics: 'Sforzo e parete',
   tabDiaphragm: 'Diaframma',
-  eadiIntro: 'Il catetere dell’EAdi e il segnale del diaframma. Lo si può montare su qualunque paziente, anche in standby e in alto flusso: lo schermo mostra il segnale come lo legge il catetere, errori compresi, e non dice mai quale errore è.',
-  eadiCatheter: 'Catetere', eadiNone: 'Nessuno', eadiRemove: 'Catetere EAdi tolto', eadiNoneHint: 'Senza catetere la corsia dell’EAdi non c’è.',
+  eadiIntro: 'Il catetere dell’EAdi e il segnale del diaframma. Con il catetere montato il discente può scegliere NEURO (assistenza neurale) fra le modalità; senza, NEURO resta grigio. Sul ventilatore il segnale si vede solo in NEURO, come lo legge il catetere, errori compresi, e senza mai dire quale errore è. Qui i numeri ci sono sempre.',
+  eadiCatheter: 'Catetere', eadiNone: 'Nessuno', eadiRemove: 'Catetere EAdi tolto', eadiNoneHint: 'Senza catetere NEURO non si può scegliere; se lo si toglie in NEURO la macchina ripiega sul supporto di pressione.',
   cath_giusto: 'Posizione giusta', cath_profondo: 'Troppo profondo', cath_superficiale: 'Troppo superficiale', cath_staccato: 'Dislocato',
   cathHint_giusto: 'Segnale pulito: picco atto per atto, minimo basso fra un respiro e l’altro.',
   cathHint_profondo: 'Segnale più piccolo; se il paziente spinge in espirazione compare un’attività espiratoria (gli addominali).',
@@ -268,8 +268,8 @@ const en: RemoteStrings = {
 
   tabPatient: 'Patient', tabAsync: 'Asynchronies', tabLung: 'Lung', tabMachine: 'Machine', tabAlarms: 'Alarms', alarmsIntro: 'The alarm limits of the selected ventilator, as in its own Alarms panel. Changes go to the log as instructor actions.', alarmLow: 'low', alarmHigh: 'high', alarmOnLabel: 'on', alarmsReset: 'Reset to the start-up limits', tabEvents: 'Events', tabMechanics: 'Effort & chest wall',
   tabDiaphragm: 'Diaphragm',
-  eadiIntro: 'The EAdi catheter and the diaphragm signal. It can be mounted on any patient, also in standby and on high flow: the screen shows the signal as the catheter reads it, faults included, and never names the fault.',
-  eadiCatheter: 'Catheter', eadiNone: 'None', eadiRemove: 'EAdi catheter removed', eadiNoneHint: 'Without a catheter there is no EAdi lane.',
+  eadiIntro: 'The EAdi catheter and the diaphragm signal. With the catheter mounted the learner can choose NEURO (neural assist) among the modes; without it NEURO stays greyed out. On the ventilator the signal shows only in NEURO, as the catheter reads it, faults included, never naming the fault. Here the numbers are always shown.',
+  eadiCatheter: 'Catheter', eadiNone: 'None', eadiRemove: 'EAdi catheter removed', eadiNoneHint: 'Without a catheter NEURO cannot be chosen; removing it in NEURO makes the machine fall back to pressure support.',
   cath_giusto: 'Right position', cath_profondo: 'Too deep', cath_superficiale: 'Too shallow', cath_staccato: 'Dislodged',
   cathHint_giusto: 'Clean signal: a peak every breath, a low minimum between breaths.',
   cathHint_profondo: 'Smaller signal; if the patient pushes out during expiration an expiratory activity appears (the abdominal muscles).',

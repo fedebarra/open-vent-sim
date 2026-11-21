@@ -91,6 +91,7 @@ import {
   IMPOSTAZIONI_INIZIALI,
   MISURE_VUOTE,
   MODALITA_PER_AMBIENTE,
+  modalitaDisponibile,
   PARAMETRI,
   type Ambiente,
   type Impostazioni,
@@ -722,6 +723,7 @@ export function applica(
   switch (azione.tipo) {
     case 'modalita': {
       if (!MODALITA_PER_AMBIENTE[istantanea.ambiente].includes(azione.modalita)) return { istantanea }
+      if (!modalitaDisponibile(azione.modalita, istantanea.fisiologia)) return { istantanea }
       // PRVC parte dall'atto di prova e da lì si regola da sé (prvc.ts).
       if (azione.modalita === 'PRVC' && istantanea.modalita !== 'PRVC') {
         return { istantanea: { ...istantanea, modalita: 'PRVC', prvcAtti: 0, impostazioni: { ...istantanea.impostazioni, pressureTarget: PRVC_PROVA } } }

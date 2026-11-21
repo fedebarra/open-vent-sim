@@ -222,14 +222,3 @@ export function piccoEMinimo(campioni: ArrayLike<number>, finestra = 10): Misura
   }
   return { picco, minimo }
 }
-
-/**
- * La stima della pressione che l'assistenza neurale darebbe con quel livello:
- * `PEEP + livello × (EAdi − EAdi minima)`, cmH₂O, fino al tetto. È la curva che
- * si sovrappone alla Paw mentre si ventila in un altro modo: mostra quanto
- * aiuto chiede il diaframma, atto per atto, anche negli sforzi che la macchina
- * non vede.
- */
-export function pressioneStimata(eadi: number, eadiMin: number, livello: number, peep: number, tetto: number): number {
-  return Math.min(tetto, peep + Math.max(0, livello) * Math.max(0, eadi - eadiMin))
-}

@@ -77,7 +77,7 @@ export interface DefinizioneAllarme {
 }
 
 /** Le modalità in cui si aspetta il respiro del paziente: lì l'apnea si sorveglia. */
-export const MODALITA_CON_APNEA: readonly string[] = ['PS', 'CPAP', 'PAV']
+export const MODALITA_CON_APNEA: readonly string[] = ['PS', 'CPAP', 'PAV', 'NEURO']
 
 export const ALLARMI: Record<ChiaveAllarme, DefinizioneAllarme> = {
   pPeak: {

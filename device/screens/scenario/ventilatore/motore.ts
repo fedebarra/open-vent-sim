@@ -137,6 +137,34 @@ const SALITA_SENZA_SOVRA = 0.1
  */
 const R_SFIATO = 20
 const APERTURA_SFIATO = 0.3
+/**
+ * ## L'assistenza neurale (NEURO)
+ *
+ * La Paw segue l'EAdi istante per istante: `PEEP + livello × (EAdi − EAdi min)`.
+ * L'atto lo apre il primo fra il segnale nervoso che sale sopra il minimo e il
+ * trigger pneumatico; si chiude quando l'EAdi scende al 70% del picco
+ * dell'atto (al 40% con un segnale piccolo). Il tetto è il limite alto della
+ * pressione meno cinque. Se il segnale non è credibile — atti che il trigger
+ * pneumatico apre senza attività del diaframma, o «atti» di pochi centesimi di
+ * secondo fatti da un artefatto — la macchina ripiega sul supporto di
+ * pressione, e torna quando il segnale torna a coincidere con gli sforzi.
+ */
+const NEURO_CICLAGGIO = 0.7
+const NEURO_CICLAGGIO_BASSO = 0.4
+/** Sotto questi µV sopra il minimo il picco è «piccolo»: si cicla più in basso. */
+const NEURO_PICCO_BASSO = 2
+/** Quanti campioni di fila sopra la soglia per aprire: un artefatto di un campione no. */
+const NEURO_CAMPIONI_TRIGGER = 3
+/** Il Ti massimo, secondi: adulto e bambino (sotto i 30 kg). */
+const NEURO_TI_MASSIMO = 2.5
+const NEURO_TI_MASSIMO_PEDIATRICO = 1.5
+/** Più breve di così un atto neurale è un artefatto. */
+const NEURO_TI_MINIMO = 0.25
+/** Quanti atti asincroni di fila per ripiegare sul supporto; su quanti atti si giudica il ritorno, e quanti sincroni servono. */
+const NEURO_ASINCRONI_PER_PS = 3
+const NEURO_FINESTRA_RITORNO = 10
+const NEURO_SINCRONI_PER_TORNARE = 7
+
 /** In pressione di supporto un atto non dura più di così: il ciclaggio di sicurezza. */
 const TI_MASSIMO_PS = 3
 /** Sopra la pressione bersaglio di tanto, la macchina cicla: il paziente spinge. */
@@ -249,6 +277,12 @@ export interface AttoMotore {
    * allunga, ed è il numero che dice quanto tempo serve all'espirazione.
    */
   rcEsp: number | null
+  /** Chi ha aperto l'atto: il segnale del diaframma, il trigger pneumatico, o la macchina. */
+  apertura: 'neurale' | 'pneumatico' | 'macchina'
+  /** NEURO: l'atto è del supporto di pressione su cui la macchina ha ripiegato. */
+  ripiego: boolean
+  /** NEURO: la macchina ha tagliato l'atto al tetto di pressione. */
+  tettoNeuro: boolean
 }
 
 /** Uno sforzo del paziente: salita, tenuta, discesa. Ampiezza negativa = espirio attivo. */
@@ -324,6 +358,8 @@ interface Parametri {
   autoTrigger: number[]
   /** il limite alto della pressione di picco: lì la macchina, se il paziente tossisce, smette di spingere. */
   pMax: number
+  /** NEURO: livello (cmH₂O/µV), soglia del trigger (µV), Ti massimo e tetto (cmH₂O); null negli altri modi. */
+  neuro: { livello: number; soglia: number; tiMax: number; tetto: number } | null
   /** Il catetere dell'EAdi e come legge il paziente; null senza catetere. */
   eadi: {
     catetere: CatetereEAdi
@@ -493,7 +529,7 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
     (modalita === 'VC' || modalita === 'PC' || modalita === 'PRVC') && imp.triggerControllata === 1
   const elenco = elencoAsincronie(stato.asincronia).map((x) => ({ ...x, quota: quotaEfficace(x, imp.triggerFlow) }))
   const dellAtto = (i: number) => asincroniaDellAtto(i + SPOSTA_INDICE, elenco, stato.seme)
-  const spontanea = modalita === 'PS' || modalita === 'CPAP' || modalita === 'PAV'
+  const spontanea = modalita === 'PS' || modalita === 'CPAP' || modalita === 'PAV' || modalita === 'NEURO'
   // Gli sforzi del treno, per indice: in assistita-controllata le asincronie del
   // paziente stanno su di loro (vedi sotto).
   const ancoreTreno: { indice: number; t: number }[] = []
@@ -785,6 +821,15 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
     vt: imp.volume,
     motrice: imp.pressureTarget,
     ps: modalita === 'CPAP' ? 0 : imp.psLevel,
+    neuro:
+      modalita === 'NEURO'
+        ? {
+            livello: Math.min(15, Math.max(0, imp.livelloNeuro ?? 0.5)),
+            soglia: Math.min(2, Math.max(0.1, imp.triggerEAdi ?? 0.5)),
+            tiMax: (stato.paziente.pesoKg ?? 70) < 30 ? NEURO_TI_MASSIMO_PEDIATRICO : NEURO_TI_MASSIMO,
+            tetto: Math.max(imp.peep + 5, (Number.isFinite(stato.pressioneMassima ?? NaN) ? (stato.pressioneMassima as number) : 40) - 5),
+          }
+        : null,
     salita: Math.max(0.02, imp.inspiratoryRiseTimeSeconds),
     ciclaggio: Math.min(0.9, Math.max(0.05, imp.flowCycleOffPercent / 100)),
     trigger: Math.max(0.3, imp.triggerFlow),
@@ -850,6 +895,14 @@ function scaricoDalSupporto(stato: StatoVentilatore, ampiezza: number): number {
   } else if (modalita === 'PAV') {
     const k = Math.min(0.95, Math.max(0.05, (imp.pavSupporto ?? 50) / 100))
     f = Math.pow((1 - k) / 0.5, 0.6)
+  } else if (modalita === 'NEURO') {
+    // L'assistenza neurale è una PAV sul segnale: la macchina mette
+    // `livello × EAdi` e il paziente `NME × EAdi`, quindi la quota della
+    // macchina è `livello / (livello + NME)`. Il paziente scarica come in PAV:
+    // alzando il livello lo sforzo — e con lui l'EAdi — scende.
+    const L = Math.min(15, Math.max(0, imp.livelloNeuro ?? 0.5))
+    const k = Math.min(0.95, L / (L + nmeDi(stato.fisiologia)))
+    f = Math.pow((1 - k) / 0.5, 0.6)
   }
   return Math.min(1.5, Math.max(0.35, f))
 }
@@ -867,6 +920,10 @@ function volumeRiferimento(stato: StatoVentilatore, C: number, R: number, Ti: nu
     return Math.max(100, C * imp.pressureTarget * (1 - Math.exp(-Ti / tau)))
   }
   if (modalita === 'PS') return Math.max(100, C * (imp.psLevel + sforzo * 0.6))
+  if (modalita === 'NEURO') {
+    const L = Math.max(0, imp.livelloNeuro ?? 0.5)
+    return Math.max(100, C * sforzo * 0.6 * (1 + L / nmeDi(stato.fisiologia)))
+  }
   return Math.max(100, C * sforzo * 0.6)
 }
 
@@ -885,7 +942,7 @@ function ritornoDi(p: Parametri): (v: number) => number {
 /** Il ciclo della macchina: impostato, o di backup in apnea. */
 function periodoMacchina(stato: StatoVentilatore): number {
   const { modalita, impostazioni } = stato
-  if (modalita === 'PS' || modalita === 'CPAP' || modalita === 'PAV') {
+  if (modalita === 'PS' || modalita === 'CPAP' || modalita === 'PAV' || modalita === 'NEURO') {
     return 60 / Math.max(1, impostazioni.backupFrequency)
   }
   return 60 / Math.max(1, impostazioni.frequency)
@@ -921,7 +978,7 @@ interface Blocco {
   atti: AttoMotore[]
 }
 
-type Tipo = 'controllato' | 'volume' | 'pressione' | 'supporto' | 'pav' | 'cpap'
+type Tipo = 'controllato' | 'volume' | 'pressione' | 'supporto' | 'pav' | 'neurale' | 'cpap'
 
 /**
  * Integra un blocco: da `inizio − CALDO_SEC` a `inizio + BLOCCO_SEC`.
@@ -949,6 +1006,20 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
 
   const { modalita, C, R, peep } = p
   const cursoreEAdi = { i: 0 }
+  // ## Lo stato dell'assistenza neurale
+  //
+  // Il minimo dell'EAdi lo segue la macchina come lo segue chi guarda: scende
+  // subito, sale piano. Il ripiego sul supporto parte acceso senza catetere.
+  const neuro = p.neuro
+  let eBase = Number.POSITIVE_INFINITY
+  let eSopra = 0
+  let ePicco = 0
+  let eAtto = 0
+  let eInizioSopra = Number.NEGATIVE_INFINITY
+  let ripiego = neuro !== null && p.eadi === null
+  let asincroniFila = 0
+  const esiti: boolean[] = []
+  let apertura: AttoMotore['apertura'] = 'macchina'
   const controllata = modalita === 'VC' || modalita === 'PC' || modalita === 'PRVC' || modalita === 'SIMV'
   const cursore = { i: 0 }
   const ritorno = ritornoDi(p)
@@ -992,6 +1063,13 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
   for (let s = 0; s <= passi; s++) {
     const t = t0 + s * PASSO
     const { valore: pmus, attivo, tosse: inTosse } = pmusDi(p.sforzi, t, cursore)
+    const eOra = p.eadi ? eadiA(p, t, cursoreEAdi) : 0
+    if (neuro) {
+      if (!Number.isFinite(eBase)) eBase = eOra
+      eBase += (eOra - eBase) * Math.min(1, PASSO / (eOra < eBase ? 0.05 : 20))
+      eSopra = p.eadi && eOra > eBase + neuro.soglia ? eSopra + 1 : 0
+      if (eSopra === 1) eInizioSopra = t
+    }
     // Quello che il regolatore ha già visto dello sforzo: la Pmus, in ritardo.
     pmusVisto += (pmus - pmusVisto) * Math.min(1, PASSO / TAU_REGOLATORE)
     const palvSenza = peep + ritorno(V)
@@ -1027,6 +1105,11 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         if (inAttesa !== null) {
           if (t >= inAttesa) parte = 'paziente'
         } else if (puo && sforzoValido && flussoVisto > p.trigger) inAttesa = t + RITARDO_TRIGGER
+        // Il trigger neurale, in gara con quello pneumatico: vince chi arriva prima.
+        if (!parte && neuro && !ripiego && eSopra >= NEURO_CAMPIONI_TRIGGER) {
+          parte = 'paziente'
+          apertura = 'neurale'
+        } else if (parte === 'paziente') apertura = 'pneumatico'
         if (!parte && autoIdx < p.autoTrigger.length && t >= p.autoTrigger[autoIdx]) {
           parte = 'paziente'
           autoIdx++
@@ -1036,7 +1119,10 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
       if (parte) {
         inAttesa = null
         innescato = parte === 'paziente'
-        sforzoInnesco = innescato ? attivo : null
+        if (!innescato) apertura = 'macchina'
+        // Il segnale arriva prima della forza: lo sforzo che il trigger neurale
+        // ha visto comincia un ritardo elettromeccanico più in là.
+        sforzoInnesco = innescato ? (attivo ?? (apertura === 'neurale' ? pmusDi(p.sforzi, t + RITARDO_ELETTROMECCANICO, { i: cursore.i }).attivo : null)) : null
         // Che atto è
         if (modalita === 'VC') tipoAtto = 'volume'
         else if (modalita === 'PC' || modalita === 'PRVC') tipoAtto = 'pressione'
@@ -1046,12 +1132,15 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
           const dovuto = parte === 'macchina' || t >= prossimoMandatorio - p.Ttot * 0.25
           tipoAtto = dovuto ? (p.psSimv > 0 ? 'pressione' : 'volume') : 'supporto'
         } else if (modalita === 'PAV') tipoAtto = innescato ? 'pav' : 'pressione'
+        else if (modalita === 'NEURO') tipoAtto = innescato ? (ripiego ? 'supporto' : 'neurale') : 'pressione'
         else tipoAtto = innescato ? 'supporto' : 'pressione'
         // In PS l'atto di backup è un atto in pressione col livello di backup.
         atTi = p.Ti
         atTif = p.Tif
         atVt = p.vt
-        atMotrice = modalita === 'PS' || modalita === 'PAV' ? stato.impostazioni.backupPressure : p.motrice
+        atMotrice = modalita === 'PS' || modalita === 'PAV' || modalita === 'NEURO' ? stato.impostazioni.backupPressure : p.motrice
+        ePicco = eOra
+        eAtto = eBase
         if (!controllata && tipoAtto === 'pressione') {
           const parti = String(stato.impostazioni.backupIERatio).split(':').map(Number)
           atTi = p.Ttot * ((parti[0] || 1) / ((parti[0] || 1) + (parti[1] || 2)))
@@ -1089,6 +1178,8 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         if (!attoCorrente || attoCorrente.vte >= attoCorrente.vti * 0.5) vDisplay = 0
         if (attoCorrente) chiudiAtto(attoCorrente, palvSenza, p, out, inizio)
         attoCorrente = nuovoAtto(t, innescato, peep, palvSenza)
+        attoCorrente.apertura = apertura
+        attoCorrente.ripiego = neuro !== null && innescato && ripiego
         // La P0.1: lo sforzo che ha aperto l'atto, cento millisecondi dopo
         // che è cominciato. È quella che la macchina misura occludendo.
         if (innescato && sforzoInnesco) attoCorrente.p01 = sforzoInnesco.ampiezza * formaA(sforzoInnesco, 0.1)
@@ -1143,6 +1234,23 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
           fase = 2
           fineInsp = t
         }
+      } else if (tipoAtto === 'neurale' && neuro) {
+        // NEURO: la Paw ha la forma dell'EAdi, scalata dal livello.
+        ePicco = Math.max(ePicco, eOra)
+        const voluta = peep + neuro.livello * Math.max(0, eOra - eAtto)
+        paw = Math.min(neuro.tetto, voluta)
+        if (voluta > neuro.tetto && attoCorrente) attoCorrente.tettoNeuro = true
+        if (p.perdita > 0) paw = pressioneConPerdita(paw, palv, R, p.perdita * fluttua(t))
+        Q = (paw - palv) / R
+        flussoPicco = Math.max(flussoPicco, Q)
+        const ampiezza = ePicco - eAtto
+        const quota = ampiezza < NEURO_PICCO_BASSO ? NEURO_CICLAGGIO_BASSO : NEURO_CICLAGGIO
+        const scesa = eOra < ePicco && eOra - eAtto <= quota * ampiezza
+        const spinge = palv > paw + CICLAGGIO_PRESSIONE
+        if ((dentro > 0.05 && scesa) || spinge || dentro > neuro.tiMax) {
+          fase = 2
+          fineInsp = t
+        }
       } else if (tipoAtto === 'pav') {
         // PAV: la macchina amplifica lo sforzo. Paw − PEEP = k/(1−k) · Pmus.
         const k = p.pavGuadagno
@@ -1185,6 +1293,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         const visto = Q + RESIDUO_PERDITA_INSP * p.perdita * fluttua(t) * Math.sqrt(Math.max(0, paw))
         flussoPicco = Math.max(flussoPicco, visto)
         if (tipoAtto === 'supporto') {
+          if (neuro) ePicco = Math.max(ePicco, eOra)
           fiT.push(dentro)
           fiQ.push(Q)
           const ciclaFlusso = dentro > p.salita && visto <= flussoPicco * p.ciclaggio
@@ -1292,6 +1401,22 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
       if (fase !== 2) attoCorrente.palvFineInsp = peep + ritorno(V)
       if (fase === 2 && fineInsp === t) {
         attoCorrente.fineInsp = t
+        // NEURO: l'atto era sincrono con il diaframma? Un atto aperto dal
+        // trigger pneumatico senza attività vicina, o un «atto» brevissimo
+        // aperto da un artefatto, non lo è.
+        if (neuro && innescato) {
+          const ti = t - attoCorrente.inizio
+          const attivita = p.eadi !== null && Math.abs(eInizioSopra - attoCorrente.inizio) < 0.35 && ePicco - eAtto > neuro.soglia + 0.5
+          const sincrono = attivita && ti >= NEURO_TI_MINIMO
+          esiti.push(sincrono)
+          if (esiti.length > NEURO_FINESTRA_RITORNO) esiti.shift()
+          asincroniFila = sincrono ? 0 : asincroniFila + 1
+          if (!ripiego && asincroniFila >= NEURO_ASINCRONI_PER_PS) ripiego = true
+          else if (ripiego && p.eadi !== null && esiti.length >= NEURO_FINESTRA_RITORNO && esiti.filter(Boolean).length >= NEURO_SINCRONI_PER_TORNARE) {
+            ripiego = false
+            asincroniFila = 0
+          }
+        }
         if (tipoAtto === 'supporto') attoCorrente.flowIndex = flowIndex(fiT, fiQ)
       }
       // RCexp: al 75% del corrente uscito, il volume che resta diviso il flusso.
@@ -1317,7 +1442,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
       // L'artefatto cardiaco sulla Pes c'è sempre: il cuore sta sopra l'esofago.
       out.pes[q] = p.pesBase + V / p.Ccw - pmus + cardiaco(t - 0.08, p.cardio.frequenza) * 1
       out.fase[q] = fase
-      if (out.eadi) out.eadi[q] = eadiA(p, t, cursoreEAdi)
+      if (out.eadi) out.eadi[q] = eOra
       // Gli spigoli del volume controllato: il flusso quadro che parte e che
       // si ferma. Sono veri, e chi campiona non li deve arrotondare.
       if (tipoAtto === 'volume' && fase !== fasePrima) out.spigolo[q] = 1
@@ -1389,6 +1514,9 @@ function nuovoAtto(t: number, innescato: boolean, peep: number, palv: number): A
     vieChiuse: false,
     vPerso: 0,
     vPersoInsp: 0,
+    apertura: innescato ? 'pneumatico' : 'macchina',
+    ripiego: false,
+    tettoNeuro: false,
   }
 }
 
@@ -1474,7 +1602,7 @@ export function motoreCopre(stato: StatoVentilatore): boolean {
   if (!stato.ventilando) return false
   if (stato.ambiente === 'alto-flusso') return false
   if (stato.ambiente === 'anestesia' && stato.respiro === 'manuale') return false
-  return ['VC', 'PC', 'PRVC', 'PS', 'CPAP', 'SIMV', 'PAV'].includes(stato.modalita)
+  return ['VC', 'PC', 'PRVC', 'PS', 'CPAP', 'SIMV', 'PAV', 'NEURO'].includes(stato.modalita)
 }
 
 /** Il campione del motore a `tSec`, interpolato fra i due passi vicini. */
