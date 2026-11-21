@@ -48,7 +48,7 @@ export function scenarioDa(ist: VentIstantanea, name: string): ScenarioFile {
   };
 }
 
-const FIS_NUMERI = ['compliance', 'complianceParete', 'reclutabilita', 'resistenza', 'sforzoEspiratorio', 'limitazioneFlusso', 'secrezioni', 'oscillazioniCardiache', 'aperturaVie', 'pesBasale', 'perditaMaschera', 'isteresi', 'sovradistensione', 'nme', 'lesioneFrenico'] as const;
+const FIS_NUMERI = ['compliance', 'complianceParete', 'reclutabilita', 'resistenza', 'sforzoEspiratorio', 'limitazioneFlusso', 'secrezioni', 'oscillazioniCardiache', 'aperturaVie', 'pesBasale', 'perditaMaschera', 'isteresi', 'sovradistensione', 'nme', 'lesioneFrenico', 'catetereCm', 'nexCm'] as const;
 const DRIVE_NUMERI = ['frequenza', 'intensita', 'forza', 'variabilita', 'espirioAttivo'] as const;
 
 const finito = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -72,6 +72,7 @@ export function parseScenario(text: string): ScenarioFile {
   if ((CATETERI_EADI as string[]).includes(d.fisiologia?.catetereEAdi)) fisiologia.catetereEAdi = d.fisiologia.catetereEAdi;
   if (['occlusa', 'staccata', 'dislocata'].includes(d.fisiologia?.cannulaAF)) fisiologia.cannulaAF = d.fisiologia.cannulaAF;
   if (typeof d.fisiologia?.boccaAperta === 'boolean') fisiologia.boccaAperta = d.fisiologia.boccaAperta;
+  if (d.fisiologia?.catetereVia === 'nasale' || d.fisiologia?.catetereVia === 'orale') fisiologia.catetereVia = d.fisiologia.catetereVia;
   const scambio: Partial<ParametriScambio> = {};
   for (const k of Object.keys(PARAMETRI_SCAMBIO) as (keyof ParametriScambio)[]) {
     const x = d.scambio?.[k];
@@ -123,7 +124,7 @@ export function comandiScenario(sc: ScenarioFile, ist: VentIstantanea): { azioni
     azioni,
     paziente: {
       // The catheter is part of the picture: a file without one takes it out.
-      fisiologia: { catetereEAdi: null, cannulaAF: null, boccaAperta: false, ...sc.fisiologia } as ComandoPaziente['fisiologia'],
+      fisiologia: { catetereEAdi: null, catetereCm: null, cannulaAF: null, boccaAperta: false, ...sc.fisiologia } as ComandoPaziente['fisiologia'],
       drive: sc.drive as ComandoPaziente['drive'],
       asincronia: sc.asincronia,
       vitali: sc.vitali,

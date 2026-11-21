@@ -89,6 +89,11 @@ export type AzioneVentilatore =
   | { tipo: 'disinfezione' }
   /** Il circuito montato: solo in standby, e l'autotest torna da rifare. */
   | { tipo: 'circuito'; circuito: Circuito }
+  /**
+   * Il catetere dell'EAdi spinto o tirato fino a quella profondità, cm, e la
+   * via da cui passa. Solo se la regia l'ha montato.
+   */
+  | { tipo: 'catetere'; cm: number; via?: 'nasale' | 'orale' }
 
 /** Il nome con cui l'azione finisce nel registro. */
 export function nomeAzione(azione: AzioneVentilatore): string {
@@ -133,5 +138,7 @@ export function nomeAzione(azione: AzioneVentilatore): string {
       return 'vent-disinfezione'
     case 'circuito':
       return `vent-circuito:${azione.circuito}`
+    case 'catetere':
+      return `vent-catetere:${azione.cm}`
   }
 }

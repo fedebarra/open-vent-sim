@@ -109,3 +109,40 @@ test('high flow: the band moves while it delivers, and no EAdi', async ({ browse
   await expect(vent.locator('body')).not.toContainText('Circuito aperto');
   expect(errors).toEqual([]);
 });
+
+test('catheter: the console mounts it too deep, the learner reads the leads and pulls it into place', async ({ browser }) => {
+  const { regia, vent, errors } = await apri(browser);
+  await vent.getByTestId('mode-icu').click();
+  await vent.getByTestId('icu-invasive').click();
+  await vent.getByTestId('patient-confirm').click();
+  await expect(regia.getByTestId('vent-list')).toContainText('Ventilatore');
+  await pazienteCheRespira(regia, '18', '0.6');
+  await regia.getByTestId('tab-diaphragm').click();
+  await regia.getByTestId('cath-profondo').click();
+  await expect(regia.getByTestId('cath-depth')).toContainText('+3.0');
+
+  // NEURO, then the catheter screen (only there)
+  await expect(vent.getByTestId('vista-catetere')).toHaveCount(0);
+  await vent.locator('[data-fam="maniglia-modalita"]').click();
+  await vent.locator('[data-fam="modalita-NEURO"]').click();
+  await vent.locator(CLOSE).click({ timeout: 2000 }).catch(() => {});
+  await vent.getByTestId('vista-catetere').click();
+  await expect(vent.getByTestId('vista-catetere-schermo')).toBeVisible();
+  const calcolata = await vent.getByTestId('cat-calcolata').innerText();
+  const prima = parseFloat(await vent.getByTestId('cat-cm').innerText());
+  await vent.waitForTimeout(5000);
+  if (SHOTS) await vent.screenshot({ path: `${SHOTS}/catetere-profondo.png` });
+
+  // three steps out: back to the calculated depth, and the console sees it right
+  for (let i = 0; i < 3; i++) await vent.getByTestId('cat-tira').click();
+  await expect.poll(async () => parseFloat(await vent.getByTestId('cat-cm').innerText())).toBeCloseTo(prima - 4.8, 1);
+  await expect(vent.getByTestId('cat-cm')).toHaveText(calcolata);
+  await expect(regia.getByTestId('cath-giusto')).toHaveClass(/bg-sky-700/);
+  await vent.waitForTimeout(5000);
+  if (SHOTS) await vent.screenshot({ path: `${SHOTS}/catetere-giusto.png` });
+
+  // back to the curves
+  await vent.getByTestId('vista-catetere').click();
+  await expect(vent.getByTestId('vista-catetere-schermo')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});

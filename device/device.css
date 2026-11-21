@@ -1276,6 +1276,109 @@
   border: 1px solid #ef4444;
   color: #fca5a5;
 }
+/* Il posizionamento del catetere dell'EAdi: tracce a sinistra, comandi a destra. */
+.simvent__catetere-apri {
+  padding: 0.25rem 0.7rem;
+  border-radius: 0.5rem;
+  border: 1px solid #3f4a5e;
+  background: transparent;
+  color: #d9f99d;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.simvent__catetere-apri.scelto {
+  background: #365314;
+  border-color: #d9f99d;
+}
+.simvent__catetere {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  gap: 0.75rem;
+}
+.simvent__catetere-tracce {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.simvent__catetere-comandi {
+  flex: 0 0 17rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+}
+.simvent__catetere-comandi section {
+  background: #121a2a;
+  border: 1px solid #1f2a3d;
+  border-radius: 0.75rem;
+  padding: 0.7rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.simvent__catetere-comandi h3 {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8a97ad;
+}
+.simvent__catetere-riga {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #cbd5e1;
+}
+.simvent__catetere-riga small,
+.simvent__catetere-comandi small {
+  color: #8a97ad;
+  font-size: 0.72rem;
+}
+.simvent__catetere-scelta {
+  display: flex;
+  gap: 0.4rem;
+}
+.simvent__catetere-scelta button,
+.simvent__catetere-azione {
+  flex: 1 1 0;
+  padding: 0.45rem 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #3f4a5e;
+  background: #1a2335;
+  color: #e2e8f0;
+  font-size: 0.8rem;
+}
+.simvent__catetere-scelta button.scelto {
+  border-color: #d9f99d;
+  color: #d9f99d;
+}
+.simvent__catetere-azione {
+  background: #365314;
+  border-color: #65a30d;
+  font-weight: 600;
+}
+.simvent__catetere-cm {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.9rem;
+  color: #f8fafc;
+}
+.simvent__catetere-aiuto {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: #8a97ad;
+}
+@media (max-width: 900px) {
+  .simvent__catetere {
+    flex-direction: column;
+  }
+  .simvent__catetere-comandi {
+    flex: 0 0 auto;
+  }
+}
 /* NIV: la macchina in pausa per la maschera staccata. */
 .simvent__neuro--pausa {
   border: 1px solid #ef4444;

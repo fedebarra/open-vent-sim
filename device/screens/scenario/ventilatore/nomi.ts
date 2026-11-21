@@ -257,6 +257,8 @@ export function voceRegistro(kind: string): TranslationKey[] | null {
       return ['vent.log.umidificatoreOff']
     case 'vent-potenza':
       return ['vent.log.potenza']
+    case 'vent-catetere':
+      return ['vent.log.catetere']
     case 'vent-disinfezione':
       return ['vent.log.disinfezione']
     case 'vent-circuito':
