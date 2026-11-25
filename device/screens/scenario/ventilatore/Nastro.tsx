@@ -194,6 +194,7 @@ export function Nastro({
 function effetti(chiave: ChiaveImpostazione, stato: StatoVentilatore, ora: ValoreImpostazione): string {
   const i = { ...stato.impostazioni, [chiave]: ora }
   if (stato.modalita !== 'VC' && stato.modalita !== 'PRVC') return ''
-  if (chiave === 'volume') return `${(Number(i.volume) / stato.paziente.pesoKg).toFixed(1)} ml/kg`
+  const peso = stato.paziente.pesoKg
+  if (chiave === 'volume' && peso) return `${(Number(i.volume) / peso).toFixed(1)} ml/kg`
   return ''
 }
