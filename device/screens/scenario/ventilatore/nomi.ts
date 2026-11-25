@@ -243,6 +243,8 @@ export function voceRegistro(kind: string): TranslationKey[] | null {
         : ['vent.log.riempi', AGENTI[coda as Agente]?.etichetta ?? 'vent.gas.canister']
     case 'vent-limite':
       return ['vent.log.limite', ALLARMI[coda as ChiaveAllarme]?.etichetta ?? 'vent.log.ventilatore']
+    case 'vent-limite-iniziale':
+      return ['vent.log.limiteIniziale', ALLARMI[coda as ChiaveAllarme]?.etichetta ?? 'vent.log.ventilatore']
     case 'vent-allarme':
       return ['vent.log.allarme', ALLARMI[coda as ChiaveAllarme]?.etichetta ?? 'vent.log.ventilatore']
     case 'vent-limiti-iniziali':

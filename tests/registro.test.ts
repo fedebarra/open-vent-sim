@@ -27,6 +27,7 @@ describe('session log', () => {
   it('derives alarm on/off lines', () => {
     const out = vociAllarmi(['pPeak'], ['volumeMinute'], 5, 'v1', (k) => k, 'Allarme', 'Rientrato');
     expect(out.map((x) => x.text).sort()).toEqual(['Allarme: volumeMinute', 'Rientrato: pPeak']);
+    expect(vociAllarmi(['pPeak'], ['pPeak'], 5, 'v1', (k) => k, 'Allarme', 'Rientrato', ['pPeak']).map((v) => v.text)).toEqual(['Allarme: pPeak']);
   });
   it('exports CSV with quoted fields', () => {
     const r = nuovoRegistro(0);

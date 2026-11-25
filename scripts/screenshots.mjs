@@ -76,6 +76,15 @@ for (const [name, go] of [
   await p.getByRole('button', { name: /AVVIA LA VENTILAZIONE|START VENTILATION/i }).click();
   await p.waitForTimeout(8000); await shot(p, '25-anesthesia-manual'); await c.close(); }
 
+// red and yellow alarm limits, and a setting waiting to be confirmed
+{ const c = await ctx(1180, 820); const p = await c.newPage(); await p.goto(`${base}/`); await p.getByText(/Usa senza regia|Use without instructor/).click();
+  await startIcu(p); await p.waitForTimeout(9000);
+  await p.locator('[data-fam="manopola-peep"] button').click(); for (let i = 0; i < 3; i++) await p.keyboard.press('ArrowRight');
+  await shot(p, '27-tape'); await p.keyboard.press('Escape');
+  await p.locator('[data-fam="maniglia-allarmi"]').click(); await p.locator('[data-fam="soglia-pPeak-preAlto"]').focus();
+  for (let i = 0; i < 20; i++) await p.keyboard.press('ArrowLeft');
+  await p.waitForTimeout(2500); await shot(p, '26-alarms'); await c.close(); }
+
 // 6. guided tour
 { const c = await ctx(1366, 860); const p = await c.newPage(); await p.goto(`${base}/`); await p.getByText(/Usa senza regia|Use without instructor/).click();
   await p.getByTestId('start-tour').click(); await shot(p, '20-tour'); await c.close(); }

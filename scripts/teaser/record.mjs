@@ -123,7 +123,7 @@ await pick(regia);
 await regia.getByTestId('tab-patient').click();
 await regia.getByTestId('case-niv-bpco-perdita').click();
 const tile = vent.locator('[data-fam="manopola-perditaEccessiva"]');
-await tile.locator('.simvent__manopola-corpo').click(); await tile.getByRole('button', { name: '+' }).click(); await tile.locator('.simvent__passi-conferma').click();
+await tile.locator('.simvent__manopola-corpo').click(); await vent.locator('.simvent__nastro').getByRole('button', { name: '+' }).click(); await vent.locator('.simvent__passi-conferma').click();
 await vent.waitForTimeout(9000);
 await scene(vent, 'niv', 5000);
 await regia.getByTestId('tab-events').click();

@@ -1,8 +1,8 @@
-# Open Vent Sim 3.8
+# Open Vent Sim 3.9
 
 **Simulatore gratuito e open-source di ventilatore, macchina d'anestesia e alti flussi — con la regia dell'istruttore sulla rete della tua aula.**
 
-[English version](README.md) · Versione 3.8.2 — 21 novembre 2026 · Licenza MIT
+[English version](README.md) · Versione 3.9.0 — 25 novembre 2026 · Licenza MIT
 
 📄 **L'articolo:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. Se usi Open Vent Sim in un corso, una tesi o un lavoro, [citalo così](#11-come-citare).
 
@@ -67,9 +67,9 @@ Vai alla pagina **[Releases](https://github.com/fedebarra/open-vent-sim/releases
 
 | Il tuo computer | File da scaricare |
 |---|---|
-| Windows | `OpenVentSim-3.8.2-win-x64.exe` (installazione) — oppure `OpenVentSim-3.8.2-portable.exe` (senza installare, si apre e basta) |
-| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.8.2-mac-arm64.dmg` |
-| Mac con processore Intel | `OpenVentSim-3.8.2-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.9.0-win-x64.exe` (installazione) — oppure `OpenVentSim-3.9.0-portable.exe` (senza installare, si apre e basta) |
+| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.9.0-mac-arm64.dmg` |
+| Mac con processore Intel | `OpenVentSim-3.9.0-mac-x64.dmg` |
 
 > Se il `.dmg` non si apre, scarica il `.zip` con lo stesso nome: doppio clic per estrarlo, poi trascina **Open Vent Sim** in Applicazioni.
 
@@ -155,6 +155,15 @@ La macchina d'anestesia parte in **volume controllato**, in standby; la ventilaz
 
 <p align="center"><img src="docs/screenshots/25-anesthesia-manual.png" width="640" alt="Anestesia, ventilazione manuale"></p>
 
+### Regolare, allarmi e suoni
+
+- **Cambiare un parametro**: tocca una casella in basso. Sopra la riga appare un nastro: trascinalo, o usa − e +, la rotellina o le frecce. In **giallo** il valore non è ancora attivo. Si conferma con **✓**, con un secondo tocco sulla casella o con Invio; toccare fuori, Esc o 6 secondi senza confermare lasciano quello di prima. Dalla regia il cambio è immediato.
+- **Allarmi**: per ogni misura le soglie **rosse** stanno sopra la barra e le **gialle** sotto. Trascina una linguetta, o toccala e usa − e +. La rossa spinge la gialla. Il trattino bianco è la misura di adesso, l'ombra l'escursione degli ultimi due minuti. **↺** riporta una riga ai valori d'avvio, **Ripristina tutti** tutte.
+- **Suoni**: il respiro è sintetizzato dal flusso della curva, quindi segue tempi, pause, tosse e asincronie. Rosso e giallo hanno motivi diversi. I due volumi sono in fondo al pannello Allarmi; la campana zittisce gli allarmi, non il respiro. Il suono parte al primo tocco sullo schermo.
+
+<p align="center"><img src="docs/screenshots/27-tape.png" width="640" alt="Un parametro in attesa di conferma"></p>
+<p align="center"><img src="docs/screenshots/26-alarms.png" width="640" alt="I limiti d'allarme rossi e gialli"></p>
+
 ### Curve, loop e pressioni nascoste
 
 Sopra le curve ci sono i tasti **Curve / Loop** e, se abilitato, **Palv·Pmus**:
@@ -196,7 +205,7 @@ In alto scegli **a chi mandare** i comandi: *questo ventilatore* (quello selezio
 | **Macchina** | Modalità, parametri, avvio/standby, silenzio allarmi, pause inspiratoria ed espiratoria: come se li toccasse lo studente (nel registro risultano fatti dalla regia). |
 | **Sforzo e parete** | Quadri che si sommano al polmone (obesità, addome teso, chiusura delle vie aeree, sforzo vigoroso…), la forma dello sforzo, lo sforzo che risponde al supporto; in NIV la **perdita della maschera**; in alto flusso la **cannula** (ostruita, tubo staccato, fuori dal naso), la **bocca aperta** e l'indice **ROX** per il docente. |
 | **Diaframma** | Monti il **catetere dell'EAdi** (a posto, troppo profondo, troppo superficiale, dislocato: una profondità vera che poi il discente corregge), efficienza neuromeccanica, lesione del frenico, sedazione e curaro. Senza catetere NEURO è grigio sul ventilatore. |
-| **Allarmi** | I limiti d'allarme del ventilatore (basso/alto, acceso/spento), come dal suo pannello Allarmi; **Ripristina i limiti d'avvio**. In PS, CPAP e PAV c'è il tempo di **apnea** (20 s di serie). |
+| **Allarmi** | I limiti d'allarme del ventilatore (soglie rosse e gialle, acceso/spento), come dal suo pannello Allarmi; ↺ riporta una riga ai valori d'avvio, **Ripristina i limiti d'avvio**. In PS, CPAP e PAV c'è il tempo di **apnea** (20 s di serie). |
 | **Eventi** | Eventi pronti (broncospasmo, tappo di muco, pneumotorace, desaturazione, ipercapnia, induzione, risveglio, decurarizzazione…). Si lanciano subito oppure si mettono in **sequenza** con i tempi, e la sequenza si salva su file per la prossima volta. |
 
 <p align="center"><img src="docs/screenshots/11-regia-async.png" width="760" alt="Scheda Asincronie"></p>
@@ -239,6 +248,13 @@ Il registro resta salvato anche se chiudi e riapri la regia.
 | Voglio l'interfaccia vecchia (2.x) | Nel browser aggiungi `?legacy=1` all'indirizzo, da soli. |
 
 ## 9. Novità
+
+### 3.9.0 — 25 novembre 2026
+
+- **Allarmi gialli e rossi**: ogni misura ha soglie rosse e gialle da trascinare col dito, con la misura di adesso e l'escursione degli ultimi due minuti. ↺ per riga e ripristino generale. I gialli partono preimpostati e larghi; le sessioni salvate prima restano valide.
+- **I parametri si confermano**: si regolano su un nastro sopra la barra, e il valore resta in giallo finché non lo confermi con ✓. Senza conferma, dopo 6 secondi resta quello di prima. Dalla regia il cambio resta immediato.
+- **Il respiro si sente**: soffio e valvole sintetizzati dal flusso della curva, in sincrono con Ti, pause, tosse e asincronie. Due suoni d'allarme diversi per giallo e rosso, volumi separati. Il silenzio ferma gli allarmi, non il respiro.
+- La scheda **Allarmi** della regia muove anche le soglie gialle; nel registro c'è la gravità, e il passaggio da giallo a rosso è una riga.
 
 ### 3.8.2 — 21 novembre 2026
 

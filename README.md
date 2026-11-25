@@ -1,8 +1,8 @@
-# Open Vent Sim 3.8
+# Open Vent Sim 3.9
 
 **A free, open-source simulator of ICU ventilator, anaesthesia machine and high-flow oxygen — with an instructor console that runs on your classroom's own network.**
 
-[Versione italiana](README.it.md) · Version 3.8.2 — 21 November 2026 · MIT licence
+[Versione italiana](README.it.md) · Version 3.9.0 — 25 November 2026 · MIT licence
 
 📄 **The paper:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. If you use Open Vent Sim in a course, a thesis or a paper, [please cite it](#11-how-to-cite).
 
@@ -67,9 +67,9 @@ Go to **[Releases](https://github.com/fedebarra/open-vent-sim/releases/latest)**
 
 | Your computer | File |
 |---|---|
-| Windows | `OpenVentSim-3.8.2-win-x64.exe` (installer) — or `OpenVentSim-3.8.2-portable.exe` (no install, just run it) |
-| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.8.2-mac-arm64.dmg` |
-| Mac with Intel processor | `OpenVentSim-3.8.2-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.9.0-win-x64.exe` (installer) — or `OpenVentSim-3.9.0-portable.exe` (no install, just run it) |
+| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.9.0-mac-arm64.dmg` |
+| Mac with Intel processor | `OpenVentSim-3.9.0-mac-x64.dmg` |
 
 > If the `.dmg` won't open, download the `.zip` with the same name: double-click to extract, then drag **Open Vent Sim** into Applications.
 
@@ -155,6 +155,15 @@ The anaesthesia machine starts in **volume control**, in standby; **Manual** (ba
 
 <p align="center"><img src="docs/screenshots/25-anesthesia-manual-en.png" width="640" alt="Anaesthesia, manual ventilation"></p>
 
+### Settings, alarms and sounds
+
+- **Changing a setting**: tap a box at the bottom. A tape appears above the row: drag it, or use − and +, the wheel or the arrow keys. While **yellow** the value is not active yet. Confirm with **✓**, a second tap on the box or Enter; tapping outside, Esc or 6 seconds without confirming keep the old one. From the console the change is immediate.
+- **Alarms**: for each measurement the **red** limits are above the bar and the **yellow** ones below. Drag a tab, or tap it and use − and +. Red pushes yellow. The white mark is the value now, the shade its range over the last two minutes. **↺** puts one row back to its start-up values, **Reset all** every row.
+- **Sounds**: the breath is synthesised from the flow waveform, so it follows timing, holds, cough and asynchronies. Red and yellow sound different. The two volumes are at the bottom of the Alarms panel; the bell silences the alarms, not the breath. Sound starts at the first touch on the screen.
+
+<p align="center"><img src="docs/screenshots/27-tape-en.png" width="640" alt="A setting waiting to be confirmed"></p>
+<p align="center"><img src="docs/screenshots/26-alarms-en.png" width="640" alt="Red and yellow alarm limits"></p>
+
 ### Waves, loops and hidden pressures
 
 Above the waveforms there are the **Waves / Loops** buttons and, when enabled, **Palv·Pmus**:
@@ -196,7 +205,7 @@ At the top choose **where commands go**: *this ventilator* (selected on the left
 | **Machine** | Mode, settings, start/standby, silence alarms, inspiratory and expiratory holds: applied as if the learner touched them (logged as instructor actions). |
 | **Effort & chest wall** | Pictures that add to the lung (obesity, tense abdomen, airway closure, vigorous effort…), the shape of the effort, an effort that responds to support; in NIV the **mask leak**; in high flow the **cannula** (blocked, tube detached, out of the nose), **mouth open** and the **ROX** index for the instructor. |
 | **Diaphragm** | Mount the **EAdi catheter** (in place, too deep, too shallow, dislodged: a real depth the learner then corrects), neuromechanical efficiency, phrenic lesion, sedation and curare. Without the catheter NEURO is greyed out on the ventilator. |
-| **Alarms** | The ventilator's alarm limits (low/high, on/off), as in its own Alarms drawer; **Reset to the start-up limits**. In PS, CPAP and PAV there is the **apnoea** time (default 20 s). |
+| **Alarms** | The ventilator's alarm limits (red and yellow thresholds, on/off), as in its own Alarms drawer; ↺ puts one row back to its start-up values, **Reset to the start-up limits**. In PS, CPAP and PAV there is the **apnoea** time (default 20 s). |
 | **Events** | Ready-made events (bronchospasm, mucus plug, pneumothorax, desaturation, hypercapnia, induction, waking up, NMB reversal…). Fire now or build a timed **sequence**; save it to a file for next time. |
 
 <p align="center"><img src="docs/screenshots/11-regia-async-en.png" width="760" alt="Asynchronies tab"></p>
@@ -239,6 +248,13 @@ The log survives closing and reopening the console.
 | I want the old (2.x) interface | In the browser, add `?legacy=1` to the address (stand-alone only). |
 
 ## 9. What's new
+
+### 3.9.0 — 25 November 2026
+
+- **Yellow and red alarms**: each measurement has red and yellow limits to drag with a finger, with the value now and its range over the last two minutes. ↺ per row and a general reset. The yellow ones start preset and wide; sessions saved earlier stay valid.
+- **Settings are confirmed**: they are adjusted on a tape above the bar, and the value stays yellow until you confirm it with ✓. Without confirming, after 6 seconds the old one stays. From the console the change is still immediate.
+- **You can hear the breath**: airflow and valves synthesised from the flow waveform, in step with Ti, holds, cough and asynchronies. Different alarm sounds for yellow and red, separate volumes. Silence stops the alarms, not the breath.
+- The console's **Alarms** tab also moves the yellow limits; the log shows the severity, and going from yellow to red is a line.
 
 ### 3.8.2 — 21 November 2026
 

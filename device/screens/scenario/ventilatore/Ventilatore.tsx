@@ -44,7 +44,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { oraDellAula } from '../monitor/orologio'
 import { Sweep, type SweepChannel } from '../monitor/Sweep'
 import { createCapnoWaveform, VITALS_VUOTI } from '../monitor/sources'
-import { createMonitorSound } from '../monitor/sound'
 import { Icon } from '../../../components/Icon'
 import { useT, type Translate } from '../../../i18n'
 import { Cartuccia, Canister, CameraAcqua } from './Consumabili'
@@ -54,7 +53,6 @@ import {
   VELOCITA_PREDEFINITA,
   VELOCITA_SCHERMO,
   assestaScala,
-  giraParametro,
   gruppiMonitoraggio,
   impostazioniDaMostrare,
   maniglie,
@@ -71,8 +69,14 @@ import {
   NOME_MODALITA,
   NOME_RESPIRO,
 } from './nomi'
+import { ATTESA_CONFERMA_MS, Nastro, passoDa, type ValoreImpostazione } from './Nastro'
+import { creaSuono, leggiVolumi, scriviVolumi, type Volumi } from './suono'
+import { RigheAllarmi, type Escursioni } from './RigheAllarmi'
 import {
   ALLARMI,
+  gravitaDi,
+  gravitaMassima,
+  valoreDa,
   silenzioRimasto,
   type AllarmeAttivo,
   type ChiaveAllarme,
@@ -227,19 +231,35 @@ export function Ventilatore({
   }
   const [scelta, setScelta] = useState<ChiaveImpostazione | null>(null)
   /**
-   * Quante volte si è girato il valore della tessera aperta.
+   * Il valore girato e **non ancora confermato**: la macchina non lo sa.
    *
-   * Serve solo a **riarmare il timer** di chiusura: la tessera con i tasti
-   * fuori si richiude da sola dopo qualche secondo di inattività — come la
-   * manopola di un apparecchio vero, che esce dalla modalità di regolazione —
-   * e ogni tocco su più o meno riparte il conto.
+   * Sta qui e non nell'istantanea: finché non si conferma è una cosa di questo
+   * schermo. Toccare fuori, Esc o sei secondi fermi lo buttano.
    */
+  const [attesa, setAttesa] = useState<ValoreImpostazione | null>(null)
+  /** Riarma la miccia a ogni tocco. */
   const [giri, setGiri] = useState(0)
+  const chiudiNastro = () => {
+    setScelta(null)
+    setAttesa(null)
+  }
   useEffect(() => {
     if (scelta === null) return
-    const id = window.setTimeout(() => setScelta(null), 6000)
+    const id = window.setTimeout(chiudiNastro, ATTESA_CONFERMA_MS)
     return () => window.clearTimeout(id)
   }, [scelta, giri])
+  // Chi conduce ha cambiato lo stesso parametro, o la tessera non c'è più: la modifica decade.
+  const valoreMacchina = scelta === null ? null : stato.impostazioni[scelta]
+  const vistoPrima = useRef<{ chiave: ChiaveImpostazione | null; valore: ValoreImpostazione | null }>({ chiave: null, valore: null })
+  useEffect(() => {
+    const prima = vistoPrima.current
+    vistoPrima.current = { chiave: scelta, valore: valoreMacchina }
+    if (scelta !== null && prima.chiave === scelta && prima.valore !== valoreMacchina) chiudiNastro()
+  }, [scelta, valoreMacchina])
+  useEffect(() => {
+    if (scelta !== null) chiudiNastro()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo quando cambia la macchina
+  }, [stato.modalita, stato.respiro, stato.ambiente])
 
   // ## Il quadro delle curve è **dell'apparecchio**, non del paziente
   //
@@ -304,14 +324,17 @@ export function Ventilatore({
   const inManuale = stato.ambiente === 'anestesia' && stato.respiro === 'manuale'
   const inAltoFlusso = stato.ambiente === 'alto-flusso'
 
-  // ## Il suono è quello del monitor
+  // ## Il suono è di questo apparecchio: il respiro dal flusso, e due allarmi
   //
-  // Stesso modulo, stessa voce: due apparecchi nella stessa stanza che
-  // allarmano con due timbri diversi si leggono come due guasti diversi. Si
-  // accende **al primo tocco**, perché l'attivazione utente si consuma e un
-  // browser non fa suonare niente prima.
-  const suono = useMemo(() => createMonitorSound(), [])
+  // Si accende **al primo tocco**: un browser non fa suonare niente prima.
+  const suono = useMemo(() => creaSuono(), [])
   useEffect(() => () => suono.dispose(), [suono])
+  const [volumi, setVolumiStato] = useState<Volumi>(leggiVolumi)
+  useEffect(() => suono.setVolumi(volumi), [suono, volumi])
+  const cambiaVolumi = (v: Volumi) => {
+    setVolumiStato(v)
+    scriviVolumi(v)
+  }
 
   // ## Il conto alla rovescia del silenzio deve **scorrere**
   //
@@ -328,27 +351,21 @@ export function Ventilatore({
     return () => window.clearInterval(id)
   }, [zittito])
 
+  // La voce la decide la regia, per tutta la sessione: spenta, si tace qualunque
+  // cosa dica il permesso del browser. Il silenzio ferma gli allarmi, non il respiro.
+  const voceAllarme = suoniAttivi && !zittito ? gravitaMassima(allarmi) : null
   useEffect(() => {
-    // La voce del ventilatore, non quella del monitor: in stanza sono due
-    // macchine, e quando suona questa il team deve girarsi verso il tubo.
-    // E la voce la decide la regia, per tutta la sessione: spenta, niente
-    // allarme qui — qualunque cosa dica il permesso del browser.
-    suono.setAlarm(suoniAttivi && allarmi.length > 0 && !zittito ? 'ventilatore' : null)
-  }, [suono, allarmi.length, zittito, suoniAttivi])
+    suono.setAlarm(voceAllarme)
+  }, [suono, voceAllarme])
 
   // La regia ha tolto la voce: si tace subito, non al prossimo allarme.
   useEffect(() => {
     if (!suoniAttivi) suono.disable()
+    else if (navigator.userActivation?.hasBeenActive) suono.enable()
   }, [suoniAttivi, suono])
 
   const accendiSuono = () => {
-    // Il permesso del browser si prende comunque al primo tocco — così quando
-    // la regia riaccende la voce c'è subito — ma da spento si resta muti.
-    if (!suono.enabled()) {
-      void suono.enable().then(() => {
-        if (!suoniAttiviRef.current) suono.disable()
-      })
-    }
+    if (suoniAttiviRef.current && !suono.enabled()) suono.enable()
   }
   const suoniAttiviRef = useRef(suoniAttivi)
   suoniAttiviRef.current = suoniAttivi
@@ -356,6 +373,30 @@ export function Ventilatore({
     accendiSuono()
     if (operabile) onAzione(azione)
   }
+
+  const confermaNastro = () => {
+    if (scelta !== null && attesa !== null) agisci({ tipo: 'parametro', chiave: scelta, valore: attesa })
+    chiudiNastro()
+  }
+  // Da tastiera: frecce, Invio, Esc. L'ascoltatore legge sempre l'ultima versione.
+  const tastiera = useRef<(e: KeyboardEvent) => void>(() => {})
+  tastiera.current = (e) => {
+    if (scelta === null || !operabile || e.target instanceof HTMLInputElement) return
+    const verso = e.key === 'ArrowUp' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowDown' || e.key === 'ArrowLeft' ? -1 : 0
+    if (e.key === 'Escape') chiudiNastro()
+    else if (e.key === 'Enter') confermaNastro()
+    else if (verso) {
+      const v = passoDa(scelta, stato, attesa ?? stato.impostazioni[scelta], verso)
+      setGiri((n) => n + 1)
+      setAttesa(v === stato.impostazioni[scelta] ? null : v)
+    } else return
+    e.preventDefault()
+  }
+  useEffect(() => {
+    const ascolta = (e: KeyboardEvent) => tastiera.current(e)
+    window.addEventListener('keydown', ascolta)
+    return () => window.removeEventListener('keydown', ascolta)
+  }, [])
 
   // Le curve si rifanno solo quando cambia qualcosa che le riguarda: `creaOnde`
   // chiude sopra lo stato, e ricrearla ad ogni render azzererebbe la memoria di
@@ -424,6 +465,19 @@ export function Ventilatore({
     },
     [onde, stato.fisiologia.compliance, stato.fisiologia.resistenza],
   )
+
+  // Il respiro che si sente è il flusso della curva, con l'orologio **vero**:
+  // congelare lo schermo ferma il disegno, non la macchina.
+  const flussoSuono = useRef<() => number | null>(() => null)
+  flussoSuono.current = () => {
+    if (!stato.ventilando) return null
+    if (inAltoFlusso) return stato.impostazioni.fgf
+    return inManuale ? flussoAMano(clockRef.current()) : onde.flusso(clockRef.current())
+  }
+  useEffect(() => {
+    // Col pallone non ci sono valvole che scattano, e in alto flusso non ci sono fasi.
+    suono.setFlusso(() => flussoSuono.current(), !inManuale && !inAltoFlusso)
+  }, [suono, inManuale, inAltoFlusso])
 
   // Memorizzata: un oggetto nuovo ad ogni render rifarebbe le corsie ad ogni
   // render, e con loro tutto quello che ci sta attaccato.
@@ -638,18 +692,51 @@ export function Ventilatore({
 
   const agente = stato.gas?.agenti[0] ?? null
 
+  // Da dove a dove è andata ogni misura negli ultimi due minuti: il pannello allarmi ci
+  // disegna l'ombra. Si raccoglie anche a pannello chiuso, o all'apertura sarebbe vuota.
+  const storia = useRef<{ sec: number; valori: Partial<Record<ChiaveAllarme, number>> }[]>([])
+  useEffect(() => {
+    if (!stato.ventilando) {
+      storia.current = []
+      return
+    }
+    const sec = clock()
+    const valori: Partial<Record<ChiaveAllarme, number>> = {}
+    for (const k of Object.keys(ALLARMI) as ChiaveAllarme[]) {
+      const v = valoreDa(k, stato, misure)
+      if (v !== null) valori[k] = v
+    }
+    storia.current = [...storia.current.filter((x) => x.sec > sec - 120 && x.sec <= sec), { sec, valori }]
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- basta un punto per ogni misura nuova
+  }, [misure, stato.ventilando])
+  const escursioni = (): Escursioni => {
+    const giro: Escursioni = {}
+    for (const { valori } of storia.current) {
+      for (const [k, v] of Object.entries(valori) as [ChiaveAllarme, number][]) {
+        const prima = giro[k]
+        giro[k] = prima ? [Math.min(prima[0], v), Math.max(prima[1], v)] : [v, v]
+      }
+    }
+    return giro
+  }
+  const gravitaMisura = new Map<string, 'giallo' | 'rosso'>()
+  for (const a of allarmi) {
+    const m = ALLARMI[a.chiave]?.misura
+    if (m) gravitaMisura.set(m, gravitaDi(a))
+  }
+
   return (
     <div
       className={`simvent simvent--${stato.ambiente} ${riserva}`.trim()}
       onPointerDown={(e) => {
         accendiSuono()
-        // Toccare fuori dalla tessera aperta la chiude: è il gesto naturale
-        // per dire «ho finito», e senza questo la tessera restava allargata
-        // finché non la si ritoccava — che in aula si legge come un guasto.
-        if (scelta !== null && !(e.target as HTMLElement).closest('.simvent__manopola')) {
-          setScelta(null)
+        // Toccare fuori dal nastro annulla: il valore della macchina resta quello.
+        if (scelta !== null && !(e.target as HTMLElement).closest('.simvent__manopola, .simvent__nastro')) {
+          chiudiNastro()
         }
       }}
+      // Sui tablet il permesso dell'audio arriva al rilascio, non al tocco.
+      onClick={accendiSuono}
       data-operabile={operabile ? 'si' : 'no'}
     >
       <header className="simvent__testata">
@@ -685,7 +772,7 @@ export function Ventilatore({
         )}
         <span className="simvent__vuoto" />
         {allarmi.length > 0 && (
-          <span className={`simvent__allarme${zittito ? ' simvent__allarme--zitto' : ''}`}>
+          <span className={`simvent__allarme${gravitaMassima(allarmi) === 'giallo' ? ' simvent__allarme--giallo' : ''}${zittito ? ' simvent__allarme--zitto' : ''}`}>
             {allarmi.map((a) => t(ALLARMI[a.chiave].etichetta)).join(' · ')}
             {zittito && <em>{silenzioRimasto(silenziatoFinoA, clock())}s</em>}
           </span>
@@ -870,10 +957,11 @@ export function Ventilatore({
                 <h3>{t(g.titolo)}</h3>
                 <div className="simvent__tessere">
                   {g.chiavi.map((k) => (
-                    <div key={k} className="simvent__tessera">
+                    <div key={k} className={`simvent__tessera${gravitaMisura.has(k) ? ` simvent__tessera--${gravitaMisura.get(k)}` : ''}`}>
                       <span className="simvent__etichetta">{t(PARAMETRI[k].etichetta)}</span>
                       <span className="simvent__valore">
                         <b style={coloreDellAgente(k, stato.gas?.agenti)}>
+                          {gravitaMisura.has(k) ? (gravitaMisura.get(k) === 'rosso' ? '!! ' : '! ') : ''}
                           {scriviValore(k, misure[k])}
                           {/* compliance dinamica: sugli atti del paziente, quelli che hanno la P0.1 */}
                           {k === 'compliance' && misure.p01 !== null && misure.compliance !== null ? '*' : ''}
@@ -909,26 +997,46 @@ export function Ventilatore({
         </aside>
       </div>
 
-      <div className="simvent__barra">
-        {impostazioni.map((k) => (
-          <Manopola
-            key={k}
-            chiave={k}
+      <div className="simvent__barra-cornice">
+        {scelta !== null && operabile && impostazioni.includes(scelta) && (
+          <Nastro
+            key={scelta}
+            chiave={scelta}
             stato={stato}
-            aperta={scelta === k}
-            operabile={operabile}
-            onApri={() => {
-              accendiSuono()
-              setScelta(scelta === k ? null : k)
-            }}
-            onGira={(verso) => {
+            ora={attesa ?? stato.impostazioni[scelta]}
+            inAttesa={attesa !== null}
+            giri={giri}
+            scrivi={(v) => scriviImpostazione(scelta, v)}
+            onValore={(v) => {
               setGiri((n) => n + 1)
-              agisci(giraParametro(k, stato, verso))
+              setAttesa(v === stato.impostazioni[scelta] ? null : v)
             }}
-            onConferma={() => setScelta(null)}
+            onConferma={confermaNastro}
             t={t}
           />
-        ))}
+        )}
+        <div className="simvent__barra">
+          {impostazioni.map((k) => (
+            <Manopola
+              key={k}
+              chiave={k}
+              valore={scelta === k && attesa !== null ? attesa : stato.impostazioni[k]}
+              inAttesa={scelta === k && attesa !== null}
+              aperta={scelta === k}
+              operabile={operabile}
+              onTocca={() => {
+                accendiSuono()
+                // Il secondo tocco sulla tessera vale come la spunta.
+                if (scelta === k) confermaNastro()
+                else {
+                  setAttesa(null)
+                  setScelta(k)
+                }
+              }}
+              t={t}
+            />
+          ))}
+        </div>
       </div>
 
       {(cassetto ?? cassettoVia) && (
@@ -940,7 +1048,7 @@ export function Ventilatore({
             onClick={chiudiCassetto}
           />
           <aside
-            className={`simvent__cassetto${cassetto ? '' : ' simvent__cassetto--via'}`}
+            className={`simvent__cassetto${(cassetto ?? cassettoVia) === 'allarmi' ? ' simvent__cassetto--allarmi' : ''}${cassetto ? '' : ' simvent__cassetto--via'}`}
             data-fam={`cassetto-${cassetto ?? cassettoVia}`}
             onAnimationEnd={(e) => {
               // Finita la scivolata d'uscita, il pannello si smonta davvero.
@@ -1010,7 +1118,18 @@ export function Ventilatore({
                 />
               )}
               {(cassetto ?? cassettoVia) === 'allarmi' && (
-                <CassettoAllarmi stato={stato} limiti={limiti} attivi={allarmi} agisci={agisci} t={t} />
+                <RigheAllarmi
+                  stato={stato}
+                  misure={misure}
+                  limiti={limiti}
+                  attivi={allarmi}
+                  escursioni={escursioni()}
+                  operabile={operabile}
+                  volumi={suoniAttivi ? volumi : null}
+                  onVolumi={cambiaVolumi}
+                  agisci={agisci}
+                  t={t}
+                />
               )}
             </div>
           </aside>
@@ -1026,78 +1145,57 @@ export function Ventilatore({
  */
 const SIMBOLI_PERDITA = ['\u25B6', '\u2016 \u25B2', '\u2016 \u25BC']
 
+/** Un'impostazione com'è scritta sulla tessera e sul nastro. */
+function scriviImpostazione(chiave: ChiaveImpostazione, valore: ValoreImpostazione): string {
+  if (chiave === 'perditaEccessiva') return SIMBOLI_PERDITA[Math.round(Number(valore) || 0)] ?? SIMBOLI_PERDITA[0]
+  return scriviValore(chiave, valore)
+}
+
 /**
- * Una tessera della barra: si tocca e cresce di due tasti.
+ * Una tessera della barra: si tocca e apre il nastro **sopra**, senza crescere.
  *
- * Niente tastierino e niente cursore. Un tastierino numerico su un iPad chiede
- * di guardare la tastiera invece del paziente, e un cursore su un valore
- * clinico è il modo più veloce di impostare 47 quando si voleva 50. Due tasti
- * grandi con il passo giusto sono quello che c'è sull'apparecchio, e il passo
- * lo decide `parametri.ts` — in alto flusso cambia da solo sopra i 25 l/min.
+ * Niente tastierino: chiede di guardare la tastiera invece del paziente. E
+ * niente che si applichi da solo: un dito che scivola su un valore clinico resta
+ * una proposta finché non si conferma.
  */
 function Manopola({
   chiave,
-  stato,
+  valore,
+  inAttesa,
   aperta,
   operabile,
-  onApri,
-  onGira,
-  onConferma,
+  onTocca,
   t,
 }: {
   key?: string | number
   chiave: ChiaveImpostazione
-  stato: StatoVentilatore
+  valore: ValoreImpostazione
+  inAttesa: boolean
   aperta: boolean
   operabile: boolean
-  onApri: () => void
-  onGira: (verso: 1 | -1) => void
-  /** Il segno di spunta: «ho finito di regolare», e la tessera si richiude. */
-  onConferma: () => void
+  onTocca: () => void
   t: Translate
 }) {
   const def = PARAMETRI[chiave]
-  const valore = stato.impostazioni[chiave]
+  const scelta = Math.round(Number(valore) || 0)
   return (
     <div
-      className={`simvent__manopola${aperta ? ' simvent__manopola--aperta' : ''}`}
+      className={`simvent__manopola${aperta ? ' simvent__manopola--aperta' : ''}${inAttesa ? ' simvent__manopola--attesa' : ''}`}
       data-fam={`manopola-${chiave}`}
     >
-      <button type="button" className="simvent__manopola-corpo" onClick={onApri} disabled={!operabile}>
+      <button type="button" className="simvent__manopola-corpo" onClick={onTocca} disabled={!operabile} aria-expanded={aperta}>
         <span className="simvent__etichetta" title={t(def.etichetta)}>{etichettaBreve(t, def.etichetta)}</span>
         <span className="simvent__valore simvent__valore--grande">
           {chiave === 'perditaEccessiva' ? (
-            <b title={t(`vent.perdita.scelta${Math.round(Number(valore) || 0)}` as TranslationKey)} data-scelta={Math.round(Number(valore) || 0)}>
-              {SIMBOLI_PERDITA[Math.round(Number(valore) || 0)] ?? SIMBOLI_PERDITA[0]}
+            <b title={t(`vent.perdita.scelta${scelta}` as TranslationKey)} data-scelta={scelta}>
+              {scriviImpostazione(chiave, valore)}
             </b>
           ) : (
-            <b>{scriviValore(chiave, valore)}</b>
+            <b>{scriviImpostazione(chiave, valore)}</b>
           )}
           <em>{t(def.unita)}</em>
         </span>
       </button>
-      {aperta && operabile && (
-        <div className="simvent__passi">
-          <button type="button" onClick={() => onGira(-1)} aria-label="−">
-            −
-          </button>
-          <button type="button" onClick={() => onGira(1)} aria-label="+">
-            +
-          </button>
-          {/* Ogni passo è già applicato — come sulla macchina vera — quindi la
-              spunta non «salva»: dice che hai finito, e richiude la tessera.
-              Senza, non si capiva come uscirne (si esce anche toccando fuori,
-              o aspettando: la tessera si richiude da sola). */}
-          <button
-            type="button"
-            className="simvent__passi-conferma"
-            onClick={onConferma}
-            aria-label={t('vent.manopola.conferma')}
-          >
-            ✓
-          </button>
-        </div>
-      )}
     </div>
   )
 }
@@ -1553,75 +1651,6 @@ function CassettoManovre({
         </section>
       )}
     </>
-  )
-}
-
-/** I limiti, uno per riga, con i due estremi che non si scavalcano. */
-function CassettoAllarmi({
-  stato,
-  limiti,
-  attivi,
-  agisci,
-  t,
-}: {
-  stato: StatoVentilatore
-  limiti: LimitiAllarme
-  attivi: AllarmeAttivo[]
-  agisci: (a: AzioneVentilatore) => void
-  t: Translate
-}) {
-  const ctx: ContestoVista = {
-    ambiente: stato.ambiente,
-    modalita: stato.modalita,
-    respiro: stato.respiro,
-    impostazioni: stato.impostazioni,
-  }
-  const chiavi = (Object.keys(ALLARMI) as ChiaveAllarme[]).filter((k) => ALLARMI[k].visibile(ctx))
-  const suona = new Set(attivi.map((a) => a.chiave))
-  return (
-    <div className="simvent__limiti">
-      {chiavi.map((k) => {
-        const def = ALLARMI[k]
-        const limite = limiti[k]
-        return (
-          <div
-            key={k}
-            className={`simvent__limite${suona.has(k) ? ' simvent__limite--suona' : ''}`}
-            data-fam={`limite-${k}`}
-          >
-            <span className="simvent__etichetta">{t(def.etichetta)}</span>
-            {def.interruttore ? (
-              <button
-                type="button"
-                className={`simvent__interruttore${limite.acceso ? ' acceso' : ''}`}
-                onClick={() => agisci({ tipo: 'allarme', chiave: k, acceso: !limite.acceso })}
-                aria-label={t(def.etichetta)}
-              >
-                <span />
-              </button>
-            ) : (
-              (['basso', 'alto'] as const).map((estremo) =>
-                limite[estremo] === null ? (
-                  <span key={estremo} className="simvent__limite-vuoto">
-                    ––
-                  </span>
-                ) : (
-                  <span key={estremo} className="simvent__limite-coppia">
-                    <button type="button" onClick={() => agisci({ tipo: 'limite', chiave: k, estremo, verso: -1 })}>
-                      −
-                    </button>
-                    <b>{limite[estremo]}</b>
-                    <button type="button" onClick={() => agisci({ tipo: 'limite', chiave: k, estremo, verso: 1 })}>
-                      +
-                    </button>
-                  </span>
-                ),
-              )
-            )}
-          </div>
-        )
-      })}
-    </div>
   )
 }
 

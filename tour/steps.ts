@@ -62,7 +62,8 @@ const CLOSE = '.simvent__cassetto:not(.simvent__cassetto--via) > header > button
 const BAR = '.simvent__barra';
 const handle = (name: string) => `[data-fam="maniglia-${name}"]`;
 const drawer = (name: string) => `[data-fam="cassetto-${name}"]`;
-const knob = (key: string) => `[data-fam="manopola-${key}"]`;
+/** The open tape of that setting (first in the page), or its tile. */
+const knob = (key: string) => `[data-fam="nastro-${key}"], [data-fam="manopola-${key}"]`;
 /** A command inside drawer `name`: it, or the ✕ of another drawer, or its handle. */
 const inside = (name: string, ...commands: string[]) => [...commands, CLOSE, handle(name)];
 /** A command outside the drawers: first close the open one. */
@@ -267,8 +268,8 @@ export const TOUR_STEPS: TourStep[] = [
     when: envNot('alto-flusso'),
     target: outside(knob('peep'), BAR),
     done: { state: onVent((v) => v.impostazioni.peep === 8) },
-    it: { title: 'Cambia la PEEP', body: 'Tocca PEEP e usa − e +: il valore cambia subito. Il segno ✓ chiude la casella.', tryIt: 'porta la PEEP a 8.' },
-    en: { title: 'Change the PEEP', body: 'Tap PEEP and use − and +: the value changes at once. The ✓ closes the box.', tryIt: 'set the PEEP to 8.' },
+    it: { title: 'Cambia la PEEP', body: 'Tocca PEEP e trascina il nastro, o usa − e +. In giallo il valore non è ancora attivo: si conferma con ✓. Dopo 6 secondi senza conferma resta quello di prima.', tryIt: 'porta la PEEP a 8 e conferma con ✓.' },
+    en: { title: 'Change the PEEP', body: 'Tap PEEP and drag the tape, or use − and +. While yellow the value is not active yet: confirm it with ✓. After 6 seconds without confirming, the old one stays.', tryIt: 'set the PEEP to 8 and confirm with ✓.' },
   },
   {
     id: 'flow-pattern',
@@ -290,8 +291,8 @@ export const TOUR_STEPS: TourStep[] = [
     id: 'fio2',
     target: outside(knob('fio2'), BAR),
     done: { state: onVent((v) => v.impostazioni.fio2 === 50) },
-    it: { title: 'Cambia la FiO₂', body: 'È la quota di ossigeno, dal 21 al 100%. Ogni tocco la sposta di 5.', tryIt: 'porta la FiO₂ al 50%.' },
-    en: { title: 'Change the FiO₂', body: 'It is the oxygen fraction, from 21 to 100%. Each tap moves it by 5.', tryIt: 'set the FiO₂ to 50%.' },
+    it: { title: 'Cambia la FiO₂', body: 'È la quota di ossigeno, dal 21 al 100%. Ogni tocco la sposta di 5.', tryIt: 'porta la FiO₂ al 50% e conferma.' },
+    en: { title: 'Change the FiO₂', body: 'It is the oxygen fraction, from 21 to 100%. Each tap moves it by 5.', tryIt: 'set the FiO₂ to 50% and confirm.' },
   },
   {
     id: 'volume',
@@ -458,16 +459,16 @@ export const TOUR_STEPS: TourStep[] = [
     id: 'limits',
     target: inside('allarmi', drawer('allarmi')),
     done: { action: (k) => k.startsWith('vent-limite:') || k.startsWith('vent-allarme:') },
-    it: { title: 'I limiti d’allarme', body: 'Tocca Allarmi, a sinistra. Per ogni misura ci sono un limite basso e uno alto. In PS, CPAP e PAV c’è anche l’apnea: quanti secondi senza un respiro del paziente prima che suoni.', tryIt: 'chiudi il pannello aperto con ✕, poi tocca Allarmi e sposta un limite con − o +.' },
-    en: { title: 'The alarm limits', body: 'Tap Alarms, on the left. Each measurement has a low and a high limit. In PS, CPAP and PAV there is also apnoea: how many seconds without a breath from the patient before it sounds.', tryIt: 'close the open panel with ✕, then tap Alarms and move a limit with − or +.' },
+    it: { title: 'I limiti d’allarme', body: 'Tocca Allarmi, a sinistra. Per ogni misura ci sono le soglie rosse, sopra la barra, e le gialle, sotto: il giallo avvisa prima. Il trattino bianco è la misura di adesso. In PS, CPAP e PAV c’è anche l’apnea: quanti secondi senza un respiro del paziente prima che suoni.', tryIt: 'chiudi il pannello aperto con ✕, poi tocca Allarmi e trascina una linguetta, o toccala e usa − e +.' },
+    en: { title: 'The alarm limits', body: 'Tap Alarms, on the left. Each measurement has red limits, above the bar, and yellow ones, below: yellow warns first. The white mark is the value now. In PS, CPAP and PAV there is also apnoea: how many seconds without a breath from the patient before it sounds.', tryIt: 'close the open panel with ✕, then tap Alarms and drag a tab, or tap it and use − and +.' },
   },
   {
     id: 'alarm',
     when: envNot('alto-flusso'),
     target: inside('allarmi', '[data-fam="limite-pPeak"]'),
     done: { state: onVent(peakAlarm) },
-    it: { title: 'Fai suonare un allarme', body: 'Alza il limite basso della pressione di picco sopra il picco misurato. In alto compare l’allarme.', tryIt: 'premi + finché l’allarme suona.' },
-    en: { title: 'Make an alarm sound', body: 'Raise the low peak pressure limit above the measured peak. The alarm appears at the top.', tryIt: 'press + until the alarm sounds.' },
+    it: { title: 'Fai suonare un allarme', body: 'Alza la soglia rossa bassa della pressione di picco sopra il picco misurato. In alto compare l’allarme.', tryIt: 'trascina a destra la linguetta rossa di sinistra finché l’allarme suona.' },
+    en: { title: 'Make an alarm sound', body: 'Raise the low red peak pressure limit above the measured peak. The alarm appears at the top.', tryIt: 'drag the left red tab to the right until the alarm sounds.' },
   },
   {
     id: 'silence',
@@ -481,8 +482,8 @@ export const TOUR_STEPS: TourStep[] = [
     when: envNot('alto-flusso'),
     target: inside('allarmi', '[data-fam="limite-pPeak"]'),
     done: { state: onVent((v) => (v.limiti.pPeak.basso ?? 0) <= 10 && !peakAlarm(v)) },
-    it: { title: 'Togli la causa', body: 'Riapri Allarmi e riporta il limite basso del picco a 10. L’allarme si spegne da solo quando il problema non c’è più.', tryIt: 'riporta il limite a 10.' },
-    en: { title: 'Remove the cause', body: 'Open Alarms again and set the low peak limit back to 10. The alarm clears by itself once the problem is gone.', tryIt: 'set the limit back to 10.' },
+    it: { title: 'Togli la causa', body: 'Riapri Allarmi e riporta il picco ai valori d’avvio: così tornano anche le gialle, che la rossa aveva spinto. L’allarme si spegne da solo quando il problema non c’è più.', tryIt: 'tocca la freccia circolare in fondo alla riga.' },
+    en: { title: 'Remove the cause', body: 'Open Alarms again and take the peak back to its start-up values: the yellow limits, pushed by the red one, return too. The alarm clears by itself once the problem is gone.', tryIt: 'tap the circular arrow at the end of the row.' },
   },
 
   // -------------------------------------------- manoeuvres, humidifier --

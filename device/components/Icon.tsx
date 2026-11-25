@@ -1,9 +1,10 @@
-/** The two interface icons the ventilator uses — original Open Vent Sim drawings. */
+/** The interface icons the ventilator uses — original Open Vent Sim drawings. */
 import type { SVGProps } from 'react'
 
-type Name = 'close' | 'fullscreen'
+type Name = 'close' | 'fullscreen' | 'reset'
 const PATHS: Record<Name, string> = {
   close: 'M6 6l12 12M18 6L6 18',
+  reset: 'M5 5v5h5M5.6 10a7 7 0 1 1-.4 5',
   fullscreen: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
 }
 
