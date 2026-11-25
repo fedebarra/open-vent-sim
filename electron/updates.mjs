@@ -30,7 +30,8 @@ let updates = null;
 
 function act() {
   const { phase } = updates.state();
-  if (phase === 'ready') setImmediate(() => updater.autoUpdater.quitAndInstall());
+  // Silent, and opened again at the end: no setup wizard to click through.
+  if (phase === 'ready') setImmediate(() => updater.autoUpdater.quitAndInstall(true, true));
   else if (phase === 'available' && isReleaseUrl(updates.url())) shell.openExternal(updates.url());
 }
 
