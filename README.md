@@ -2,7 +2,7 @@
 
 **A free, open-source simulator of ICU ventilator, anaesthesia machine and high-flow oxygen — with an instructor console that runs on your classroom's own network.**
 
-[Versione italiana](README.it.md) · Version 3.9.0 — 25 November 2026 · MIT licence
+[Versione italiana](README.it.md) · Version 3.9.1 — 25 November 2026 · MIT licence
 
 📄 **The paper:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. If you use Open Vent Sim in a course, a thesis or a paper, [please cite it](#11-how-to-cite).
 
@@ -67,15 +67,15 @@ Go to **[Releases](https://github.com/fedebarra/open-vent-sim/releases/latest)**
 
 | Your computer | File |
 |---|---|
-| Windows | `OpenVentSim-3.9.0-win-x64.exe` (installer) — or `OpenVentSim-3.9.0-portable.exe` (no install, just run it) |
-| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.9.0-mac-arm64.dmg` |
-| Mac with Intel processor | `OpenVentSim-3.9.0-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.9.1-win-x64.exe` (installer) — or `OpenVentSim-3.9.1-portable.exe` (no install, just run it) |
+| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.9.1-mac-arm64.dmg` |
+| Mac with Intel processor | `OpenVentSim-3.9.1-mac-x64.dmg` |
 
 > If the `.dmg` won't open, download the `.zip` with the same name: double-click to extract, then drag **Open Vent Sim** into Applications.
 
 > Not sure which Mac? Apple menu  → **About This Mac**. "Chip Apple M…" → `arm64`; "Processor Intel" → `x64`.
 
-**Updates (from 3.3).** At every start the app checks the latest release on GitHub. With the Windows installer it downloads the new version by itself and asks to restart (or installs it when you quit). On Mac and with the portable `.exe` it says a new version is out and opens the right download: install it over the old one. If you have 3.2 or earlier, install 3.3 by hand once.
+**Updates (from 3.3).** At every start the app checks the latest release on GitHub; from 3.9.1 also every few hours and when the network is back. With the Windows installer it downloads the new version by itself and offers to restart (or installs it when you quit). On Mac and with the portable `.exe` it offers the right download: install it over the old one. The first screen shows your version, what's new and **Check for updates** (on Mac also in the app menu); on the console it is only a small badge, so nothing covers a lesson. If you have 3.2 or earlier, install the new version by hand once.
 
 ### Windows
 
@@ -248,6 +248,10 @@ The log survives closing and reopening the console.
 | I want the old (2.x) interface | In the browser, add `?legacy=1` to the address (stand-alone only). |
 
 ## 9. What's new
+
+### 3.9.1 — 25 November 2026
+
+- **Updates you don't miss**: checked at start, every few hours and when the network is back. The first screen shows the installed version, what's new and **Check for updates**; on the console only a small badge, never a dialog over the lesson.
 
 ### 3.9.0 — 25 November 2026
 

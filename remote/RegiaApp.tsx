@@ -7,6 +7,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { createLink, Link, LinkStatus } from './link';
 import type { RemoteCommand, RemoteEvent, ServerMessage, VentInfo, VentSnapshot } from './protocol';
+import { ConsoleUpdates } from './Updates';
 import { rt, RemoteStrings, ventName } from './strings';
 import { MiniWaves } from './MiniWaves';
 import { EVENT_LIBRARY, SequenceStep, parseSequence, EventDef } from './events';
@@ -281,6 +282,7 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
         <span className="text-lg font-bold">Open Vent Sim · {s.regiaTitle}</span>
         <span className="text-slate-400 truncate">{session.name}</span>
         <span className="flex flex-wrap items-center gap-2 ml-auto">
+          <ConsoleUpdates />
           <Dot ok={status === 'online'} />
           {status !== 'online' && <span className="text-slate-400">{status === 'offline' ? s.regiaOffline : s.regiaConnecting}</span>}
           {!recording

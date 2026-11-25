@@ -1,72 +1,77 @@
 /**
- * Updates, straight from the GitHub releases of the repository, checked at every start.
+ * Updates, straight from the GitHub releases of the repository: checked at every
+ * start, again every few hours, and soon after when there was no network.
  *
  *  - Windows installer (NSIS): electron-updater downloads the new version in the
- *    background and offers to restart; otherwise it installs itself on quit.
+ *    background; the page offers to restart, otherwise it installs on quit.
  *  - macOS and the Windows portable .exe: the app is not signed (macOS) or cannot
- *    replace itself (portable), so it only says that a new version exists and
- *    opens the right download (the DMG for this Mac's chip, the portable .exe).
+ *    replace itself (portable), so the page offers the right download.
  *
- * Offline, or with GitHub unreachable, nothing is shown: the check fails silently.
+ * Nothing pops up over a lesson: the first screen and the console show it
+ * (remote/Updates.tsx). Only a check asked from the menu answers with a dialog.
  */
-import { app, dialog, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, powerMonitor, shell } from 'electron';
 import updater from 'electron-updater';
-import { isNewer, pickDownload } from './update-pick.mjs';
+import { isReleaseUrl } from './update-pick.mjs';
+import { createUpdates } from './update-state.mjs';
 
-const OWNER = 'fedebarra';
-const REPO = 'open-vent-sim';
+const LATEST = 'https://api.github.com/repos/fedebarra/open-vent-sim/releases/latest';
 
-const it = () => app.getLocale().toLowerCase().startsWith('it');
-const T = {
-  readyTitle: () => (it() ? 'Aggiornamento pronto' : 'Update ready'),
-  ready: (v) => (it() ? `Open Vent Sim ${v} è stato scaricato.` : `Open Vent Sim ${v} has been downloaded.`),
-  readyDetail: () => (it() ? 'Riavvia per installarlo adesso, oppure verrà installato alla chiusura dell’app.' : 'Restart to install it now, or it will be installed when you quit the app.'),
-  restart: () => (it() ? 'Riavvia ora' : 'Restart now'),
-  later: () => (it() ? 'Più tardi' : 'Later'),
-  newTitle: () => (it() ? 'Nuova versione disponibile' : 'New version available'),
-  available: (v, cur) => (it() ? `È disponibile Open Vent Sim ${v} (hai la ${cur}).` : `Open Vent Sim ${v} is available (you have ${cur}).`),
-  availableDetail: () => (it() ? 'Scaricala dal repository GitHub e installala sopra a questa: impostazioni e scenari salvati restano.' : 'Download it from the GitHub repository and install it over this one: saved settings and scenarios stay.'),
-  download: () => (it() ? 'Scarica' : 'Download'),
-};
-
-async function notifyOnly(getWin) {
-  const r = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/releases/latest`, {
+async function fetchRelease() {
+  const r = await fetch(LATEST, {
     headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'open-vent-sim-updater' },
+    signal: AbortSignal.timeout(15000),
   });
-  if (!r.ok) return;
-  const release = await r.json();
-  const latest = String(release.tag_name || '').replace(/^v/, '');
-  if (!latest || !isNewer(latest, app.getVersion())) return;
-  const win = getWin();
-  const opts = {
-    type: 'info', title: T.newTitle(), message: T.available(latest, app.getVersion()), detail: T.availableDetail(),
-    buttons: [T.download(), T.later()], defaultId: 0, cancelId: 1,
-  };
-  const { response } = win ? await dialog.showMessageBox(win, opts) : await dialog.showMessageBox(opts);
-  if (response === 0) shell.openExternal(pickDownload(release));
+  if (!r.ok) throw new Error(`GitHub ${r.status}`);
+  return r.json();
 }
 
-function autoInstall(getWin) {
-  const { autoUpdater } = updater;
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
-  autoUpdater.on('error', () => { /* offline or no release: nothing to say */ });
-  autoUpdater.on('update-downloaded', async (info) => {
-    const win = getWin();
-    const opts = {
-      type: 'info', title: T.readyTitle(), message: T.ready(info?.version ?? ''), detail: T.readyDetail(),
-      buttons: [T.restart(), T.later()], defaultId: 0, cancelId: 1,
-    };
-    const { response } = win ? await dialog.showMessageBox(win, opts) : await dialog.showMessageBox(opts);
-    if (response === 0) setImmediate(() => autoUpdater.quitAndInstall());
-  });
-  return autoUpdater.checkForUpdates();
+let updates = null;
+
+function act() {
+  const { phase } = updates.state();
+  if (phase === 'ready') setImmediate(() => updater.autoUpdater.quitAndInstall());
+  else if (phase === 'available' && isReleaseUrl(updates.url())) shell.openExternal(updates.url());
 }
 
-export function checkForUpdates(getWin) {
+/** @param fromLocal tells whether an IPC event comes from a page of this app */
+export function setupUpdates(fromLocal) {
+  ipcMain.handle('ovs:update-state', (e) => (fromLocal(e) && updates ? updates.state() : null));
+  ipcMain.handle('ovs:update-check', (e) => (fromLocal(e) && updates ? updates.check() : null));
+  ipcMain.handle('ovs:update-act', (e) => { if (fromLocal(e) && updates) act(); });
+
   if (!app.isPackaged || process.env.OVS_NO_UPDATE_CHECK) return;
   const installer = process.platform === 'win32' && !process.env.PORTABLE_EXECUTABLE_DIR;
-  Promise.resolve()
-    .then(() => (installer ? autoInstall(getWin) : notifyOnly(getWin)))
-    .catch(() => { /* silent */ });
+  updates = createUpdates({
+    current: app.getVersion(),
+    fetchRelease,
+    installer: installer ? updater.autoUpdater : null,
+    onChange: () => {
+      for (const w of BrowserWindow.getAllWindows()) w.webContents.send('ovs:update-changed');
+    },
+  });
+  // A laptop opened again in another place: the network needs a moment.
+  powerMonitor.on('resume', () => setTimeout(() => updates.check(), 15000));
+  updates.check();
+}
+
+/** From the Mac menu: a check asked by the user always gets an answer. */
+export async function checkFromMenu(win) {
+  const it = app.getLocale().toLowerCase().startsWith('it');
+  const show = (message, buttons = ['OK']) => {
+    const opts = { type: 'info', message, buttons, defaultId: 0, cancelId: buttons.length - 1 };
+    return win ? dialog.showMessageBox(win, opts) : dialog.showMessageBox(opts);
+  };
+  const s = updates ? await updates.check() : null;
+  if (s?.phase === 'available' || s?.phase === 'ready') {
+    const ready = s.phase === 'ready';
+    const { response } = await show(
+      it ? `È disponibile Open Vent Sim ${s.version} (hai la ${s.current}).` : `Open Vent Sim ${s.version} is available (you have ${s.current}).`,
+      [ready ? (it ? 'Riavvia ora' : 'Restart now') : (it ? 'Scarica' : 'Download'), it ? 'Più tardi' : 'Later']);
+    if (response === 0) act();
+  } else if (s?.phase === 'none') {
+    await show(it ? `Sei aggiornato: Open Vent Sim ${s.current} è l’ultima versione.` : `You are up to date: Open Vent Sim ${s.current} is the latest version.`);
+  } else {
+    await show(it ? 'Non riesco a controllare: GitHub non risponde. Verifica la connessione a internet.' : 'Could not check: GitHub does not answer. Check the internet connection.');
+  }
 }

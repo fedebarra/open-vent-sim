@@ -14,7 +14,7 @@ import path from 'node:path';
 import dgram from 'node:dgram';
 import { fileURLToPath } from 'node:url';
 import { startServer, BEACON_PORT, DEFAULT_PORT } from '../server/ovs-server.mjs';
-import { checkForUpdates } from './updates.mjs';
+import { setupUpdates, checkFromMenu } from './updates.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(here, '..', 'dist');
@@ -118,12 +118,18 @@ ipcMain.handle('ovs:home', async () => {
 // ------------------------------------------------------------- lifecycle --
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(process.platform === 'darwin' ? Menu.buildFromTemplate([
-    { role: 'appMenu' }, { role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' },
+    { label: app.name, submenu: [
+      { role: 'about' },
+      { label: app.getLocale().toLowerCase().startsWith('it') ? 'Controlla aggiornamenti…' : 'Check for Updates…', click: () => checkFromMenu(win) },
+      { type: 'separator' }, { role: 'services' }, { type: 'separator' },
+      { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' },
+    ] },
+    { role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' },
   ]) : null);
+  // Before the window: its first page already asks for the state of the updates.
+  setupUpdates(fromLocal);
   try { await createWindow(); }
   catch (e) { dialog.showErrorBox('Open Vent Sim', String(e?.stack || e)); app.quit(); return; }
-  // Updates come straight from the GitHub releases of the repository, at every start.
-  checkForUpdates(() => win);
 });
 
 app.on('window-all-closed', async () => {

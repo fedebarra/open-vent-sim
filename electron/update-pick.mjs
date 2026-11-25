@@ -21,3 +21,27 @@ export function pickDownload(release, platform = process.platform, arch = proces
   else if (platform === 'win32') url = portable ? find((n) => /portable\.exe$/i.test(n)) : find((n) => n.endsWith('.exe') && !/portable/i.test(n));
   return url || release?.html_url || RELEASES;
 }
+
+/** The bullet points of "What's new" / "Novità" in the release text, as plain text, in the two languages. */
+export function releaseNotes(body) {
+  const section = (title) => {
+    const lines = String(body || '').split(/\r?\n/);
+    const from = lines.findIndex((l) => /^#+\s/.test(l) && title.test(l));
+    if (from < 0) return [];
+    const out = [];
+    for (const l of lines.slice(from + 1)) {
+      if (/^(#+\s|---)/.test(l)) break;
+      const m = l.match(/^[-*]\s+(.+)/);
+      if (m) out.push(m[1].replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/\*\*|`/g, '').trim());
+    }
+    return out.slice(0, 8);
+  };
+  const en = section(/what['’]s new/i);
+  const it = section(/novit/i);
+  return { it: it.length ? it : en, en: en.length ? en : it };
+}
+
+/** The only pages an update may open. */
+export function isReleaseUrl(url) {
+  return String(url).startsWith('https://github.com/fedebarra/open-vent-sim/releases/');
+}

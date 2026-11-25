@@ -2,7 +2,7 @@
 
 **Simulatore gratuito e open-source di ventilatore, macchina d'anestesia e alti flussi — con la regia dell'istruttore sulla rete della tua aula.**
 
-[English version](README.md) · Versione 3.9.0 — 25 novembre 2026 · Licenza MIT
+[English version](README.md) · Versione 3.9.1 — 25 novembre 2026 · Licenza MIT
 
 📄 **L'articolo:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. Se usi Open Vent Sim in un corso, una tesi o un lavoro, [citalo così](#11-come-citare).
 
@@ -67,15 +67,15 @@ Vai alla pagina **[Releases](https://github.com/fedebarra/open-vent-sim/releases
 
 | Il tuo computer | File da scaricare |
 |---|---|
-| Windows | `OpenVentSim-3.9.0-win-x64.exe` (installazione) — oppure `OpenVentSim-3.9.0-portable.exe` (senza installare, si apre e basta) |
-| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.9.0-mac-arm64.dmg` |
-| Mac con processore Intel | `OpenVentSim-3.9.0-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.9.1-win-x64.exe` (installazione) — oppure `OpenVentSim-3.9.1-portable.exe` (senza installare, si apre e basta) |
+| Mac con chip Apple (M1, M2, M3, M4…) | `OpenVentSim-3.9.1-mac-arm64.dmg` |
+| Mac con processore Intel | `OpenVentSim-3.9.1-mac-x64.dmg` |
 
 > Se il `.dmg` non si apre, scarica il `.zip` con lo stesso nome: doppio clic per estrarlo, poi trascina **Open Vent Sim** in Applicazioni.
 
 > Non sai che Mac hai? Menu  → **Informazioni su questo Mac**. Se vedi «Chip Apple M…» prendi `arm64`; se vedi «Processore Intel» prendi `x64`.
 
-**Aggiornamenti (dalla 3.3).** A ogni avvio l'app controlla l'ultima versione su GitHub. Con l'installazione Windows la scarica da sola e chiede di riavviare (oppure la installa alla chiusura). Su Mac e con l'`.exe` portatile dice che è uscita una versione nuova e apre il download giusto: si installa sopra la vecchia. Chi ha la 3.2 o precedenti installa la 3.3 a mano una volta.
+**Aggiornamenti (dalla 3.3).** A ogni avvio l'app controlla l'ultima versione su GitHub; dalla 3.9.1 anche ogni poche ore e quando torna la rete. Con l'installazione Windows la scarica da sola e propone di riavviare (oppure la installa alla chiusura). Su Mac e con l'`.exe` portatile propone il download giusto: si installa sopra la vecchia. La prima schermata mostra la tua versione, le novità e **Controlla aggiornamenti** (su Mac anche nel menu dell'app); nella regia è solo un piccolo avviso, così niente copre una lezione. Chi ha la 3.2 o precedenti installa la versione nuova a mano una volta.
 
 ### Windows
 
@@ -248,6 +248,10 @@ Il registro resta salvato anche se chiudi e riapri la regia.
 | Voglio l'interfaccia vecchia (2.x) | Nel browser aggiungi `?legacy=1` all'indirizzo, da soli. |
 
 ## 9. Novità
+
+### 3.9.1 — 25 novembre 2026
+
+- **Aggiornamenti che non si perdono**: controllati all'avvio, ogni poche ore e quando torna la rete. La prima schermata mostra la versione installata, le novità e **Controlla aggiornamenti**; nella regia solo un piccolo avviso, mai un dialogo sopra la lezione.
 
 ### 3.9.0 — 25 novembre 2026
 
