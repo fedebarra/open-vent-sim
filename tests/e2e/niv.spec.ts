@@ -59,9 +59,10 @@ test('NIV: PC and NEURO in the list; the mask comes off and the machine pauses, 
   const tessera = vent.locator('[data-fam="manopola-perditaEccessiva"]');
   await expect(tessera.locator('b[title]')).toHaveAttribute('title', 'Continua');
   await tessera.locator('.simvent__manopola-corpo').click();
-  await tessera.getByRole('button', { name: '+' }).click();
+  const nastro = vent.locator('[data-fam="nastro-perditaEccessiva"]');
+  await nastro.getByRole('button', { name: '+' }).click();
   await expect(tessera.locator('b[title]')).toHaveAttribute('title', 'Pausa alto');
-  await tessera.locator('.simvent__passi-conferma').click();
+  await nastro.locator('.simvent__passi-conferma').click();
 
   // the mask comes off
   await regia.getByTestId('tab-events').click();

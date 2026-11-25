@@ -23,7 +23,7 @@
  * esiste per impedire.
  */
 
-import type { ChiaveAllarme } from './allarmi'
+import type { ChiaveAllarme, EstremoLimite } from './allarmi'
 import type { Manovra } from './fisica'
 import type { Agente, Consumabile } from './gas'
 import type { Circuito } from '../../paziente/presidiFigura'
@@ -64,7 +64,11 @@ export type AzioneVentilatore =
    */
   | { tipo: 'riempi'; consumabile: Consumabile }
   /** Un limite d'allarme spostato di un passo. */
-  | { tipo: 'limite'; chiave: ChiaveAllarme; estremo: 'basso' | 'alto'; verso: 1 | -1 }
+  | { tipo: 'limite'; chiave: ChiaveAllarme; estremo: EstremoLimite; verso: 1 | -1 }
+  /** Un limite d'allarme portato a quel valore: la maniglia lasciata. */
+  | { tipo: 'limite-valore'; chiave: ChiaveAllarme; estremo: EstremoLimite; valore: number }
+  /** Un solo allarme riportato ai limiti d'avvio. */
+  | { tipo: 'limite-iniziale'; chiave: ChiaveAllarme }
   /** Un allarme acceso o spento. */
   | { tipo: 'allarme'; chiave: ChiaveAllarme; acceso: boolean }
   /**
@@ -121,9 +125,12 @@ export function nomeAzione(azione: AzioneVentilatore): string {
         ? 'vent-riempi:calce'
         : `vent-riempi:${azione.consumabile.agente}`
     case 'limite':
+    case 'limite-valore':
       return `vent-limite:${azione.chiave}`
     case 'allarme':
       return `vent-allarme:${azione.chiave}`
+    case 'limite-iniziale':
+      return `vent-limite-iniziale:${azione.chiave}`
     case 'limiti-iniziali':
       return 'vent-limiti-iniziali'
     case 'interfaccia':

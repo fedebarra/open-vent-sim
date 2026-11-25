@@ -56,12 +56,25 @@ export type ChiaveAllarme =
   | 'acqua'
   | 'apnea'
 
-/** Un limite: due estremi che possono mancare, e un interruttore. */
+/**
+ * Un limite: due estremi che possono mancare, e un interruttore.
+ *
+ * `basso` e `alto` sono le soglie **rosse** (`pPeak.alto` è anche il tetto di
+ * pressione del motore). `preBasso` e `preAlto` sono le **gialle**, sempre dentro
+ * le rosse; uguali alla rossa vuol dire nessuna fascia gialla da quel lato.
+ * Mancano nelle istantanee salvate prima: vedi `completo()`.
+ */
 export interface LimiteAllarme {
   basso: number | null
   alto: number | null
+  preBasso?: number | null
+  preAlto?: number | null
   acceso: boolean
 }
+
+export type EstremoLimite = 'basso' | 'preBasso' | 'preAlto' | 'alto'
+
+export type GravitaAllarme = 'giallo' | 'rosso'
 
 export type LimitiAllarme = Record<ChiaveAllarme, LimiteAllarme>
 
@@ -75,6 +88,10 @@ export interface DefinizioneAllarme {
   soloAlto?: boolean
   /** Vero se non ha limiti ma solo un interruttore: «controlla l'acqua». */
   interruttore?: boolean
+  /** La gravità di un allarme a interruttore, che fasce non ne ha. Di serie rosso. */
+  gravita?: GravitaAllarme
+  /** Vero se la fascia gialla non esiste: l'apnea è rossa e basta. */
+  soloRosso?: boolean
   visibile: (ctx: ContestoVista) => boolean
   /** Da quale misura si guarda. Manca per gli allarmi a interruttore. */
   misura?: keyof Misure
@@ -173,6 +190,7 @@ export const ALLARMI: Record<ChiaveAllarme, DefinizioneAllarme> = {
     minimo: 0,
     massimo: 0,
     interruttore: true,
+    gravita: 'giallo',
     visibile: (c) => c.modalita === 'NEURO',
   },
   ostruzioneAF: {
@@ -227,6 +245,7 @@ export const ALLARMI: Record<ChiaveAllarme, DefinizioneAllarme> = {
     minimo: 0,
     massimo: 0,
     interruttore: true,
+    gravita: 'giallo',
     // **Ovunque ci sia un umidificatore**, non solo in alto flusso: la camera
     // si svuota anche in terapia intensiva, e un allarme che esiste solo su un
     // apparecchio dei tre è un allarme che non si impara.
@@ -247,26 +266,31 @@ export const ALLARMI: Record<ChiaveAllarme, DefinizioneAllarme> = {
     minimo: 10,
     massimo: 60,
     soloAlto: true,
+    soloRosso: true,
     visibile: (c) => MODALITA_CON_APNEA.includes(c.modalita),
   },
 }
 
-/** I limiti con cui la macchina si accende: larghi, ma non spenti. */
+/**
+ * I limiti con cui la macchina si accende: larghi, ma non spenti. Il giallo è
+ * una fascia stretta sotto al rosso; dove un valore normale ci cadrebbe dentro
+ * (picco basso in PS, FiO₂, flusso) parte chiusa, e si apre trascinandola.
+ */
 export const LIMITI_INIZIALI: LimitiAllarme = {
-  pPeak: { basso: 10, alto: 40, acceso: true },
-  volumeMinute: { basso: 2, alto: 15, acceso: true },
-  etco2: { basso: 25, alto: 50, acceso: true },
-  fio2: { basso: 21, alto: 99, acceso: true },
-  peep: { basso: 0, alto: 20, acceso: true },
-  measuredFrequency: { basso: 5, alto: 35, acceso: true },
-  leakPercentage: { basso: null, alto: 30, acceso: true },
+  pPeak: { basso: 10, alto: 40, preBasso: 10, preAlto: 35, acceso: true },
+  volumeMinute: { basso: 2, alto: 15, preBasso: 3, preAlto: 13, acceso: true },
+  etco2: { basso: 25, alto: 50, preBasso: 30, preAlto: 47, acceso: true },
+  fio2: { basso: 21, alto: 99, preBasso: 21, preAlto: 99, acceso: true },
+  peep: { basso: 0, alto: 20, preBasso: 0, preAlto: 18, acceso: true },
+  measuredFrequency: { basso: 5, alto: 35, preBasso: 7, preAlto: 30, acceso: true },
+  leakPercentage: { basso: null, alto: 30, preBasso: null, preAlto: 25, acceso: true },
   perditaEccessiva: { basso: null, alto: null, acceso: true },
   ostruzioneAF: { basso: null, alto: null, acceso: true },
   segnaleEAdi: { basso: null, alto: null, acceso: true },
   perditaAF: { basso: null, alto: null, acceso: true },
-  inspiratoryCo2: { basso: null, alto: 5, acceso: true },
-  etAgentConcentration: { basso: 0.1, alto: 5, acceso: true },
-  flussoErogato: { basso: 5, alto: 70, acceso: true },
+  inspiratoryCo2: { basso: null, alto: 5, preBasso: null, preAlto: 4, acceso: true },
+  etAgentConcentration: { basso: 0.1, alto: 5, preBasso: 0.1, preAlto: 4, acceso: true },
+  flussoErogato: { basso: 5, alto: 70, preBasso: 5, preAlto: 70, acceso: true },
   acqua: { basso: null, alto: null, acceso: true },
   apnea: { basso: null, alto: 20, acceso: true },
 }
@@ -283,6 +307,11 @@ export function etAgenteAltoDiFabbrica(agente: string | undefined): number {
   if (agente !== 'desflurano' && agente !== 'isoflurano') return alto
   const scala = ALLARMI.etAgentConcentration.massimo
   return Math.min(scala, Number(((alto * MAC40[agente]) / MAC40.sevoflurano).toFixed(1)))
+}
+
+/** La soglia gialla dell'Et agente: quattro quinti della rossa, come di fabbrica. */
+function preAltoAgente(alto: number): number {
+  return Number((alto * 0.8).toFixed(1))
 }
 
 const ALTI_DI_FABBRICA = new Set(
@@ -302,7 +331,10 @@ export function conLimiteDellAgente(
   if (!attuale || attuale.alto === null || !ALTI_DI_FABBRICA.has(attuale.alto)) return limiti
   const alto = etAgenteAltoDiFabbrica(agente)
   if (alto === attuale.alto) return limiti
-  return { ...limiti, etAgentConcentration: { ...attuale, alto } }
+  // Il giallo segue solo se sta ancora alla distanza di fabbrica.
+  const diFabbrica = attuale.preAlto === undefined || attuale.preAlto === preAltoAgente(attuale.alto)
+  const preAlto = diFabbrica ? preAltoAgente(alto) : Math.min(attuale.preAlto ?? alto, alto)
+  return { ...limiti, etAgentConcentration: { ...attuale, alto, preAlto } }
 }
 
 /** Per quanti secondi il tasto del silenzio tiene zitto l'apparecchio. */
@@ -316,6 +348,8 @@ export interface AllarmeAttivo {
   chiave: ChiaveAllarme
   /** Da che parte è stato sfondato il limite. Nullo per gli interruttori. */
   verso: 'alto' | 'basso' | null
+  /** Assente nelle istantanee salvate prima delle fasce gialle: vale rosso. */
+  gravita?: GravitaAllarme
   valore: number | null
 }
 
@@ -348,7 +382,7 @@ export function valuta(
   for (const chiave of Object.keys(ALLARMI) as ChiaveAllarme[]) {
     const def = ALLARMI[chiave]
     // Un'istantanea salvata prima che l'allarme esistesse non ha il suo limite: vale quello di fabbrica.
-    const limite = limiti[chiave] ?? LIMITI_INIZIALI[chiave]
+    const limite = completo(chiave, limiti[chiave])
     if (!limite?.acceso || !def.visibile(ctx)) continue
 
     if (chiave === 'segnaleEAdi') {
@@ -397,19 +431,31 @@ export function valuta(
     const saltaBasso =
       (stato.modalita === 'CPAP' && chiave === 'pPeak') ||
       (chiave === 'etAgentConcentration' && !stato.gas?.erogazione)
-    if (limite.basso !== null && valore < limite.basso && !saltaBasso) {
-      attivi.push({ chiave, verso: 'basso', valore })
-      continue
-    }
     // Cento per cento di ossigeno è una scelta, non un guasto: durante il
     // flush e in preossigenazione l'allarme alto non serve a nessuno.
     const saltaAlto = chiave === 'fio2' && valore >= 100
-    if (limite.alto !== null && valore > limite.alto && !saltaAlto) {
-      attivi.push({ chiave, verso: 'alto', valore })
-    }
+    const sotto = (soglia: number | null) => soglia !== null && valore < soglia && !saltaBasso
+    const sopra = (soglia: number | null) => soglia !== null && valore > soglia && !saltaAlto
+    // Prima i due rossi, poi i gialli: il giallo non può nascondere un rosso.
+    if (sotto(limite.basso)) attivi.push({ chiave, verso: 'basso', valore, gravita: 'rosso' })
+    else if (sopra(limite.alto)) attivi.push({ chiave, verso: 'alto', valore, gravita: 'rosso' })
+    else if (sotto(limite.preBasso)) attivi.push({ chiave, verso: 'basso', valore, gravita: 'giallo' })
+    else if (sopra(limite.preAlto)) attivi.push({ chiave, verso: 'alto', valore, gravita: 'giallo' })
   }
 
-  return attivi
+  // Interruttori e apnea non hanno fasce: la gravità sta nella tabella.
+  return attivi.map((a) => ({ ...a, gravita: a.gravita ?? ALLARMI[a.chiave].gravita ?? 'rosso' }))
+}
+
+/** La gravità di un allarme acceso, anche se viene da un'istantanea vecchia. */
+export function gravitaDi(a: AllarmeAttivo): GravitaAllarme {
+  return a.gravita ?? ALLARMI[a.chiave]?.gravita ?? 'rosso'
+}
+
+/** La gravità più alta fra quelle accese: decide il suono e il colore in testata. */
+export function gravitaMassima(attivi: AllarmeAttivo[]): GravitaAllarme | null {
+  if (attivi.length === 0) return null
+  return attivi.some((a) => gravitaDi(a) === 'rosso') ? 'rosso' : 'giallo'
 }
 
 /**
@@ -420,7 +466,7 @@ export function valuta(
  * miscelatore, e il limite serve a impedire di regolare male, non a scoprire un
  * guasto. Gli altri guardano quello che l'apparecchio misura.
  */
-function valoreDa(chiave: ChiaveAllarme, stato: StatoVentilatore, misure: Misure): number | null {
+export function valoreDa(chiave: ChiaveAllarme, stato: StatoVentilatore, misure: Misure): number | null {
   if (chiave === 'fio2') return stato.impostazioni.fio2
   if (chiave === 'peep') return stato.impostazioni.peep
   if (chiave === 'flussoErogato') return stato.impostazioni.fgf
@@ -442,10 +488,15 @@ export function cambiamenti(
   prima: AllarmeAttivo[],
   dopo: AllarmeAttivo[],
 ): { accesi: AllarmeAttivo[]; spenti: AllarmeAttivo[] } {
-  const eranoAccesi = new Set(prima.map((a) => a.chiave))
+  const eranoAccesi = new Map(prima.map((a) => [a.chiave, gravitaDi(a)]))
   const sonoAccesi = new Set(dopo.map((a) => a.chiave))
   return {
-    accesi: dopo.filter((a) => !eranoAccesi.has(a.chiave)),
+    accesi: dopo.filter(
+      (a) =>
+        !eranoAccesi.has(a.chiave) ||
+        // da giallo a rosso è un fatto nuovo; il ritorno al giallo no
+        (gravitaDi(a) === 'rosso' && eranoAccesi.get(a.chiave) === 'giallo'),
+    ),
     spenti: prima.filter((a) => !sonoAccesi.has(a.chiave)),
   }
 }
@@ -461,29 +512,78 @@ export function silenzioRimasto(silenziatoFinoA: number, adessoSec: number): num
 }
 
 /**
- * Un limite spostato di un passo, dentro i suoi estremi.
+ * Il limite con le quattro soglie, per chi lo legge.
  *
- * I due estremi non si scavalcano, come sul monitor: un limite basso sopra
- * quello alto farebbe suonare l'allarme per qualunque valore, che è il modo più
- * veloce di rendere inutile un apparecchio senza spegnere niente.
+ * Un'istantanea vecchia non ha le gialle: valgono quelle di fabbrica, strette
+ * dentro le rosse che quella istantanea ha davvero.
  */
-export function spostaLimite(
+export function completo(chiave: ChiaveAllarme, salvato: LimiteAllarme | undefined): Required<LimiteAllarme> {
+  const fabbrica = LIMITI_INIZIALI[chiave]
+  const { basso, alto, acceso, preBasso = fabbrica.preBasso, preAlto = fabbrica.preAlto } = salvato ?? fabbrica
+  const dentro = (v: number) => Math.min(alto ?? Infinity, Math.max(basso ?? -Infinity, v))
+  const soloRosso = ALLARMI[chiave].soloRosso
+  let pb = soloRosso || basso === null ? null : dentro(preBasso ?? basso)
+  const pa = soloRosso || alto === null ? null : dentro(preAlto ?? alto)
+  if (pb !== null && pa !== null && pb >= pa) pb = basso
+  return { basso, alto, preBasso: pb, preAlto: pa, acceso }
+}
+
+/**
+ * Un limite portato a un valore: il trascinamento, e anche il passo.
+ *
+ * Il valore si arrotonda al passo e resta dentro la scala. Le rosse **spingono**
+ * le gialle davanti a sé; le gialle si fermano contro le rosse. Le due rosse non
+ * si scavalcano, e nemmeno le due gialle: un limite basso sopra quello alto
+ * farebbe suonare l'allarme per qualunque valore.
+ */
+export function portaLimite(
   chiave: ChiaveAllarme,
-  limite: LimiteAllarme,
-  estremo: 'basso' | 'alto',
-  verso: 1 | -1,
+  salvato: LimiteAllarme | undefined,
+  estremo: EstremoLimite,
+  valore: number,
 ): LimiteAllarme {
   const def = ALLARMI[chiave]
-  if (def.interruttore || def.passo <= 0) return limite
-  const attuale = limite[estremo]
-  if (attuale === null) return limite
-  const prossimo = Math.min(
-    def.massimo,
-    Math.max(def.minimo, parseFloat((attuale + verso * def.passo).toFixed(4))),
-  )
-  const candidato = { ...limite, [estremo]: prossimo }
-  if (candidato.basso !== null && candidato.alto !== null && candidato.basso >= candidato.alto) {
-    return limite
+  const l = completo(chiave, salvato)
+  if (def.interruttore || def.passo <= 0 || l[estremo] === null || !Number.isFinite(valore)) return salvato ?? l
+  const tondo = parseFloat((Math.round(valore / def.passo) * def.passo).toFixed(4))
+  let v = Math.min(def.massimo, Math.max(def.minimo, tondo))
+  const passo = (x: number, verso: 1 | -1) => parseFloat((x + verso * def.passo).toFixed(4))
+
+  if (estremo === 'basso') {
+    if (l.alto !== null) v = Math.min(v, passo(l.alto, -1))
+    const pb = l.preBasso === null ? null : Math.max(l.preBasso, v)
+    const pa = l.preAlto === null || pb === null ? l.preAlto : Math.max(l.preAlto, passo(pb, 1))
+    return { ...l, basso: v, preBasso: pb, preAlto: pa }
   }
-  return candidato
+  if (estremo === 'alto') {
+    if (l.basso !== null) v = Math.max(v, passo(l.basso, 1))
+    const pa = l.preAlto === null ? null : Math.min(l.preAlto, v)
+    const pb = l.preBasso === null || pa === null ? l.preBasso : Math.min(l.preBasso, passo(pa, -1))
+    return { ...l, alto: v, preBasso: pb, preAlto: pa }
+  }
+  if (estremo === 'preBasso') {
+    if (l.preAlto !== null) v = Math.min(v, passo(l.preAlto, -1))
+    return { ...l, preBasso: Math.max(v, l.basso ?? v) }
+  }
+  if (l.preBasso !== null) v = Math.max(v, passo(l.preBasso, 1))
+  return { ...l, preAlto: Math.min(v, l.alto ?? v) }
+}
+
+/** Un limite spostato di un passo, dentro i suoi estremi. */
+export function spostaLimite(
+  chiave: ChiaveAllarme,
+  salvato: LimiteAllarme | undefined,
+  estremo: EstremoLimite,
+  verso: 1 | -1,
+): LimiteAllarme {
+  const attuale = completo(chiave, salvato)[estremo]
+  return portaLimite(chiave, salvato, estremo, attuale === null ? NaN : attuale + verso * ALLARMI[chiave].passo)
+}
+
+/**
+ * Un allarme solo riportato a com'era all'accensione, acceso compreso. L'Et
+ * agente torna al limite dell'agente montato, non a quello del sevoflurano.
+ */
+export function limiteDiFabbrica(chiave: ChiaveAllarme, agente: string | undefined): LimiteAllarme {
+  return { ...conLimiteDellAgente(LIMITI_INIZIALI, agente)[chiave] }
 }

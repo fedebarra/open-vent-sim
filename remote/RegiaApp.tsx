@@ -24,7 +24,7 @@ import type { ComandoPaziente, VentIstantanea, AzioneVentilatore } from '../devi
 import { PEEP_MINIMA_RI, PRESET_FISIOLOGIA, RECLUTAMENTO_SECONDI, sovradistensioneDi, trasmissioneToracica } from '../device/screens/scenario/ventilatore/fisica';
 import { PRESET_ASINCRONIA, TIPI_ASINCRONIA, elencoAsincronie, type TipoAsincronia } from '../device/screens/scenario/ventilatore/asincronie';
 import { MODALITA_PER_AMBIENTE, PARAMETRI, impostazioniVisibili, type ChiaveImpostazione } from '../device/screens/scenario/ventilatore/parametri';
-import { ALLARMI, LIMITI_INIZIALI, type ChiaveAllarme } from '../device/screens/scenario/ventilatore/allarmi';
+import { ALLARMI, completo, gravitaDi, type ChiaveAllarme, type EstremoLimite } from '../device/screens/scenario/ventilatore/allarmi';
 import { NOME_AMBIENTE, NOME_ASINCRONIA, NOME_MODALITA, NOME_PRESET, NOME_MANOVRA, NOME_QUADRO } from '../device/screens/scenario/ventilatore/nomi';
 import { QUADRI_MECCANICA, conQuadro, quadroAcceso, senzaQuadro, type QuadroMeccanica } from '../device/screens/scenario/ventilatore/quadri';
 import { isteresiDi } from '../device/screens/scenario/ventilatore/scambio';
@@ -132,8 +132,12 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
             const prev = snapsRef.current[m.from];
             const a = prev?.ventilatore?.allarmi.map((x) => x.chiave) ?? [];
             const b = m.state.ventilatore?.allarmi.map((x) => x.chiave) ?? [];
-            if (recRef.current && prev && (a.join() !== b.join())) {
-              vociAllarmi(a, b, Date.now(), m.from, (k) => tr((ALLARMI as any)[k]?.etichetta ?? k), s.alarmOn, s.alarmOff)
+            const prima = new Map((prev?.ventilatore?.allarmi ?? []).map((x) => [x.chiave as string, gravitaDi(x)]));
+            const dopo = new Map((m.state.ventilatore?.allarmi ?? []).map((x) => [x.chiave as string, gravitaDi(x)]));
+            const saliti = b.filter((k) => prima.get(k) === 'giallo' && dopo.get(k) === 'rosso');
+            if (recRef.current && prev && (a.join() !== b.join() || saliti.length > 0)) {
+              const nome = (k: string) => `${tr((ALLARMI as any)[k]?.etichetta ?? k)}${dopo.has(k) ? ` (${dopo.get(k) === 'rosso' ? s.alarmRed : s.alarmYellow})` : ''}`;
+              vociAllarmi(a, b, Date.now(), m.from, nome, s.alarmOn, s.alarmOff, saliti)
                 .forEach((v) => addVoce(v.at, v.vent, v.cat, v.who, v.text));
             }
             setSnaps((p) => ({ ...p, [m.from]: m.state }));
@@ -316,7 +320,7 @@ export const RegiaApp: React.FC<Props> = ({ wsUrl, regiaKey }) => {
                   <div className="mt-2 flex flex-wrap gap-1 items-center">
                     <span className="text-slate-400 mr-1">{s.alarms}:</span>
                     {ist.allarmi.length === 0 ? <span className="text-slate-500">{s.noAlarms}</span> :
-                      ist.allarmi.map((a) => <span key={a.chiave} className="px-2 py-0.5 rounded bg-red-900/70 border border-red-600 text-red-100 text-xs">{tr((ALLARMI as any)[a.chiave]?.etichetta ?? a.chiave)}{a.verso ? (a.verso === 'alto' ? ' ↑' : ' ↓') : ''}</span>)}
+                      ist.allarmi.map((a) => <span key={a.chiave} className={`px-2 py-0.5 rounded border text-xs ${gravitaDi(a) === 'rosso' ? 'bg-red-900/70 border-red-600 text-red-100' : 'bg-amber-900/60 border-amber-500 text-amber-100'}`}>{gravitaDi(a) === 'rosso' ? '!! ' : '! '}{tr((ALLARMI as any)[a.chiave]?.etichetta ?? a.chiave)}{a.verso ? (a.verso === 'alto' ? ' ↑' : ' ↓') : ''}</span>)}
                   </div>
                 </div>
               )}
@@ -449,7 +453,7 @@ const VentRow: React.FC<{ v: VentInfo; snap?: VentSnapshot; s: RemoteStrings; tr
         {!v.connected ? s.offlineSince : !snap ? s.waitingData : ist
           ? `${tr(NOME_AMBIENTE[ist.ambiente])} · ${ist.modalita} · ${ist.ventilando ? s.ventilating : s.standby}`
           : (s as any)['screen_' + snap.screen] || snap.screen}
-        {ist && ist.allarmi.length > 0 && <span className="ml-1 text-red-400">● {ist.allarmi.length}</span>}
+        {ist && ist.allarmi.length > 0 && <span className={`ml-1 ${ist.allarmi.some((a) => gravitaDi(a) === 'rosso') ? 'text-red-400' : 'text-amber-400'}`}>● {ist.allarmi.length}</span>}
       </div>
     </li>
   );
@@ -854,30 +858,33 @@ const Info: React.FC<{ k: string; v: string }> = ({ k, v }) => <div className="b
 const AlarmsTab: React.FC<{ s: RemoteStrings; tr: Tr; ist: VentIstantanea; azione: (a: AzioneVentilatore, label: string) => void }> = ({ s, tr, ist, azione }) => {
   const ctx = { ambiente: ist.ambiente, modalita: ist.modalita, respiro: ist.respiro, impostazioni: ist.impostazioni };
   const keys = (Object.keys(ALLARMI) as ChiaveAllarme[]).filter((k) => ALLARMI[k].visibile(ctx));
-  const suona = new Set(ist.allarmi.map((a) => a.chiave));
+  const suona = new Map(ist.allarmi.map((a) => [a.chiave, gravitaDi(a)]));
+  const estremi: EstremoLimite[] = ['basso', 'preBasso', 'preAlto', 'alto'];
+  const nomeEstremo = (e: EstremoLimite) => tr(`vent.soglia.${e}` as any);
   return (
     <div className="space-y-2" data-testid="alarms-tab">
       <p className="text-slate-400">{s.alarmsIntro}</p>
       <div className="grid gap-1">
         {keys.map((k) => {
           const def = ALLARMI[k];
-          const lim = ist.limiti[k] ?? LIMITI_INIZIALI[k];
+          const lim = completo(k, ist.limiti[k]);
           const nome = tr(def.etichetta);
           const unita = tr(def.unita);
           return (
-            <div key={k} data-testid={`alarm-${k}`} className={`flex flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 ${suona.has(k) ? 'bg-red-900/50 border border-red-700' : 'bg-slate-800/60'}`}>
+            <div key={k} data-testid={`alarm-${k}`} className={`flex flex-wrap items-center gap-2 rounded-lg px-2 py-1.5 ${suona.get(k) === 'rosso' ? 'bg-red-900/50 border border-red-700' : suona.has(k) ? 'bg-amber-900/40 border border-amber-600' : 'bg-slate-800/60'}`}>
               <span className="w-48 font-semibold">{nome}{unita ? <span className="text-slate-400 font-normal"> ({unita})</span> : null}</span>
-              {!def.interruttore && (['basso', 'alto'] as const).map((estremo) => (
+              {!def.interruttore && <div className="order-last w-full grid grid-cols-2 md:grid-cols-4 gap-1">{estremi.map((estremo) => (
                 <span key={estremo} className="flex items-center gap-1">
-                  <span className="text-slate-400 text-xs w-8">{estremo === 'basso' ? s.alarmLow : s.alarmHigh}</span>
+                  <span title={nomeEstremo(estremo)} aria-label={nomeEstremo(estremo)} className={`text-xs w-11 ${estremo === 'basso' || estremo === 'alto' ? 'text-red-400' : 'text-amber-300'}`}>● {estremo === 'basso' || estremo === 'preBasso' ? s.alarmLow : s.alarmHigh}</span>
                   {lim[estremo] === null ? <span className="w-24 text-center text-slate-500">––</span> : <>
-                    <button data-testid={`alarm-${k}-${estremo}-minus`} onClick={() => azione({ tipo: 'limite', chiave: k, estremo, verso: -1 }, `${nome} ${estremo === 'basso' ? s.alarmLow : s.alarmHigh} −`)} className="w-7 h-7 rounded bg-slate-700">−</button>
+                    <button data-testid={`alarm-${k}-${estremo}-minus`} onClick={() => azione({ tipo: 'limite', chiave: k, estremo, verso: -1 }, `${nome} ${nomeEstremo(estremo)} −`)} className="w-7 h-7 rounded bg-slate-700">−</button>
                     <b className="w-10 text-center font-mono">{lim[estremo]}</b>
-                    <button data-testid={`alarm-${k}-${estremo}-plus`} onClick={() => azione({ tipo: 'limite', chiave: k, estremo, verso: 1 }, `${nome} ${estremo === 'basso' ? s.alarmLow : s.alarmHigh} +`)} className="w-7 h-7 rounded bg-slate-700">+</button>
+                    <button data-testid={`alarm-${k}-${estremo}-plus`} onClick={() => azione({ tipo: 'limite', chiave: k, estremo, verso: 1 }, `${nome} ${nomeEstremo(estremo)} +`)} className="w-7 h-7 rounded bg-slate-700">+</button>
                   </>}
                 </span>
-              ))}
-              <label className="ml-auto flex items-center gap-2 text-slate-300">
+              ))}</div>}
+              {!def.interruttore && <button data-testid={`alarm-${k}-reset`} title={tr('vent.soglia.ripristina')} aria-label={`${tr('vent.soglia.ripristina')}: ${nome}`} onClick={() => azione({ tipo: 'limite-iniziale', chiave: k }, `${nome} ↺`)} className="ml-auto w-7 h-7 rounded bg-slate-700">↺</button>}
+              <label className={`${def.interruttore ? 'ml-auto ' : ''}flex items-center gap-2 text-slate-300`}>
                 <input type="checkbox" data-testid={`alarm-${k}-on`} checked={lim.acceso} onChange={(e) => azione({ tipo: 'allarme', chiave: k, acceso: e.target.checked }, `${nome} ${e.target.checked ? 'ON' : 'OFF'}`)} className="w-4 h-4 accent-sky-500" />
                 {s.alarmOnLabel}
               </label>

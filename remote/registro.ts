@@ -117,10 +117,12 @@ export function esportaCsv(r: Registro, labels: { learner: string; director: str
 }
 
 /** Alarm on/off lines from two consecutive snapshots' alarm lists. */
-export function vociAllarmi(prima: string[], dopo: string[], at: number, vent: string, nome: (k: string) => string, on: string, off: string): VoceRegistro[] {
+export function vociAllarmi(prima: string[], dopo: string[], at: number, vent: string, nome: (k: string) => string, on: string, off: string, saliti: string[] = []): VoceRegistro[] {
   const a = new Set(prima), b = new Set(dopo);
   const out: VoceRegistro[] = [];
   for (const k of b) if (!a.has(k)) out.push({ at, vent, cat: 'allarmi', who: 'system', text: `${on}: ${nome(k)}` });
+  // from yellow to red: a new fact, though the alarm was already on
+  for (const k of saliti) if (a.has(k) && b.has(k)) out.push({ at, vent, cat: 'allarmi', who: 'system', text: `${on}: ${nome(k)}` });
   for (const k of a) if (!b.has(k)) out.push({ at, vent, cat: 'allarmi', who: 'system', text: `${off}: ${nome(k)}` });
   return out;
 }

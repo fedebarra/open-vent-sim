@@ -27,7 +27,7 @@ import {
 } from './screens/scenario/ventilatore/istantanea'
 import { nomeAzione, type AzioneVentilatore } from './screens/scenario/ventilatore/azioni'
 import { voceRegistro, NOME_PRESET, NOME_AMBIENTE } from './screens/scenario/ventilatore/nomi'
-import { cambiamenti } from './screens/scenario/ventilatore/allarmi'
+import { cambiamenti, gravitaDi } from './screens/scenario/ventilatore/allarmi'
 import { PRESET_FISIOLOGIA, type PresetFisiologia } from './screens/scenario/ventilatore/fisica'
 import { DRIVE_ASSENTE, valoreRampa, type Rampa } from './screens/scenario/ventilatore/asincronie'
 import type { Ambiente } from './screens/scenario/ventilatore/parametri'
@@ -171,9 +171,9 @@ export const DeviceApp: React.FC<DeviceAppProps> = ({
     if (!vent) { allarmiVisti.current = []; return }
     const { accesi, spenti } = cambiamenti(allarmiVisti.current, vent.allarmi)
     allarmiVisti.current = vent.allarmi
-    accesi.forEach((a) => say(`allarme:${a.chiave}${a.verso ? `:${a.verso}` : ''}`, 'device', a.valore !== null ? String(a.valore) : undefined))
+    accesi.forEach((a) => say(`allarme:${a.chiave}${a.verso ? `:${a.verso}` : ''}`, 'device', [translate(lang, gravitaDi(a) === 'rosso' ? 'vent.gravita.rosso' : 'vent.gravita.giallo'), a.valore !== null ? String(a.valore) : ''].filter(Boolean).join(' · ')))
     spenti.forEach((a) => say(`allarme-fine:${a.chiave}`, 'device'))
-  }, [vent, say])
+  }, [vent, say, lang])
 
   // The 2-second heartbeat (catch-up included if the tab was hidden).
   const acceso = vent !== null

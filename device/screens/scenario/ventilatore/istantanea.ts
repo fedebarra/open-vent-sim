@@ -34,7 +34,7 @@
  * chiamanti diversi.
  */
 
-import { valuta, MODALITA_CON_APNEA, LIMITI_INIZIALI, SILENZIO_SECONDI, conLimiteDellAgente, type AllarmeAttivo, type LimitiAllarme, spostaLimite } from './allarmi'
+import { valuta, MODALITA_CON_APNEA, LIMITI_INIZIALI, SILENZIO_SECONDI, conLimiteDellAgente, type AllarmeAttivo, type LimitiAllarme, spostaLimite, portaLimite, limiteDiFabbrica } from './allarmi'
 import type { AzioneVentilatore } from './azioni'
 import { regolaPrvc, PRVC_PROVA } from './prvc'
 import { catetereA } from './catetere'
@@ -869,6 +869,16 @@ export function applica(
 
     case 'limite': {
       const prossimo = spostaLimite(azione.chiave, istantanea.limiti[azione.chiave], azione.estremo, azione.verso)
+      return { istantanea: { ...istantanea, limiti: { ...istantanea.limiti, [azione.chiave]: prossimo } } }
+    }
+
+    case 'limite-valore': {
+      const prossimo = portaLimite(azione.chiave, istantanea.limiti[azione.chiave], azione.estremo, azione.valore)
+      return { istantanea: { ...istantanea, limiti: { ...istantanea.limiti, [azione.chiave]: prossimo } } }
+    }
+
+    case 'limite-iniziale': {
+      const prossimo = limiteDiFabbrica(azione.chiave, istantanea.gas?.agenti[0])
       return { istantanea: { ...istantanea, limiti: { ...istantanea.limiti, [azione.chiave]: prossimo } } }
     }
 

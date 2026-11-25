@@ -143,8 +143,8 @@ export const REGIA_STEPS: TourStep[] = [
   {
     id: 'regia-alarms',
     ...tab('alarms'),
-    it: { title: 'Gli allarmi', body: 'I limiti d’allarme del ventilatore, da qui: alzi, abbassi, spegni, come dal suo pannello Allarmi. «Ripristina i limiti d’avvio» rimette quelli con cui la macchina si accende, se un gruppo li ha spostati tutti.', tryIt: 'apri la scheda Allarmi.' },
-    en: { title: 'Alarms', body: 'The ventilator’s alarm limits, from here: raise, lower, switch off, as from its own Alarms panel. “Reset to the start-up limits” puts back the ones the machine starts with, if a group has moved them all.', tryIt: 'open the Alarms tab.' },
+    it: { title: 'Gli allarmi', body: 'I limiti d’allarme del ventilatore, da qui: rossi e gialli, alzi, abbassi, spegni, come dal suo pannello Allarmi. «Ripristina i limiti d’avvio» rimette quelli con cui la macchina si accende, se un gruppo li ha spostati tutti.', tryIt: 'apri la scheda Allarmi.' },
+    en: { title: 'Alarms', body: 'The ventilator’s alarm limits, from here, red and yellow: raise, lower, switch off, as from its own Alarms panel. “Reset to the start-up limits” puts back the ones the machine starts with, if a group has moved them all.', tryIt: 'open the Alarms tab.' },
   },
   {
     id: 'regia-diaphragm',

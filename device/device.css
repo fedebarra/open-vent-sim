@@ -407,8 +407,6 @@
   position: relative;
   flex: 1;
   min-width: 0;
-  
-  transition: flex-grow 0.18s ease;
 }
 .simvent__manopola-corpo {
   display: flex;
@@ -429,45 +427,27 @@
 .simvent__manopola--aperta .simvent__manopola-corpo {
   border-color: var(--simvent-accento);
 }
-.simvent__passi {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0 0.5rem;
-  pointer-events: none;
-}
-.simvent__manopola--aperta {
-  
-  flex-grow: 3;
-}
-.simvent__manopola--aperta .simvent__manopola-corpo {
-  
-  padding-right: 9.75rem;
-}
-.simvent__passi button {
-  width: 44px;
-  height: 44px;
-  border: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  color: #e9eef6;
-  font-size: 1.35rem;
-  line-height: 1;
-  cursor: pointer;
-  pointer-events: auto;
-}
-.simvent__passi button:hover {
-  background: var(--simvent-accento-fioco);
-  color: var(--simvent-accento);
-}
-.simvent__passi .simvent__passi-conferma {
-  background: var(--simvent-accento-fioco);
-  color: var(--simvent-accento);
-  font-size: 1.1rem;
-}
+.simvent__manopola--attesa .simvent__manopola-corpo { border-color: #f5b942; background: #2a2312; }
+.simvent__manopola--attesa .simvent__valore b { color: #f5b942; }
+.simvent__barra-cornice { position: relative; flex: 0 0 auto; z-index: 6; }
+.simvent__nastro { position: absolute; bottom: calc(100% + 8px); width: min(480px, calc(100% - 16px)); display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px 48px; align-items: center; gap: 0.35rem 0.5rem; padding: 0.5rem 0.6rem 0.65rem; border: 1px solid var(--simvent-accento); border-radius: 14px; background: #172033; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); overflow: hidden; }
+.simvent__nastro--attesa { border-color: #f5b942; }
+.simvent__nastro-testo { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.1rem 0.9rem; font-size: 0.8rem; color: #93a1b5; }
+.simvent__nastro-testo b { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1.2rem; color: #e9eef6; }
+.simvent__nastro-testo i { margin-left: auto; font-style: normal; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.simvent__nastro--attesa .simvent__nastro-testo b { color: #f5b942; }
+.simvent__nastro button { width: 44px; height: 44px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.1); color: #e9eef6; font-size: 1.35rem; line-height: 1; cursor: pointer; }
+.simvent__nastro .simvent__passi-conferma { width: 48px; height: 48px; background: var(--simvent-accento-fioco); color: var(--simvent-accento); font-size: 1.2rem; }
+.simvent__nastro--attesa .simvent__passi-conferma { background: #f5b942; color: #1b1404; }
+.simvent__nastro-pista { position: relative; height: 54px; overflow: hidden; touch-action: none; cursor: ew-resize; user-select: none; -webkit-user-select: none; }
+.simvent__nastro-pista::before { content: ''; position: absolute; z-index: 1; left: calc(50% - 6px); top: 0; border: 6px solid transparent; border-top: 9px solid var(--simvent-accento); border-bottom: 0; }
+.simvent__nastro--attesa .simvent__nastro-pista::before { border-top-color: #f5b942; }
+.simvent__nastro-tacca { position: absolute; top: 18px; width: 2px; height: 10px; margin-left: -1px; background: #5f6d84; pointer-events: none; }
+.simvent__nastro-tacca--lunga { top: 11px; height: 18px; background: #e9eef6; }
+.simvent__nastro-tacca--attuale { top: 9px; height: 24px; width: 3px; background: var(--simvent-accento); }
+.simvent__nastro-tacca em { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); padding-top: 4px; font: normal 0.72rem ui-monospace, SFMono-Regular, Menlo, monospace; color: #93a1b5; white-space: nowrap; }
+.simvent__miccia { position: absolute; left: 0; bottom: 0; width: 100%; height: 3px; background: #f5b942; transform-origin: left; animation: simvent-miccia linear forwards; }
+@keyframes simvent-miccia { to { transform: scaleX(0); } }
 .simvent__progresso {
   height: 8px;
   border-radius: 4px;
@@ -892,53 +872,59 @@
   font-size: 1.05rem;
   color: #e9eef6;
 }
-.simvent__limiti {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.simvent__limite {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid transparent;
-  border-radius: 11px;
-  background: #121a28;
-}
-.simvent__limite .simvent__etichetta {
-  flex: 1;
-  min-width: 0;
-}
-.simvent__limite--suona {
-  border-color: rgba(239, 68, 68, 0.65);
-}
-.simvent__limite-coppia {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-.simvent__limite-coppia b {
-  min-width: 2.4rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.9rem;
-  text-align: center;
-}
-.simvent__limite-coppia button {
-  width: 30px;
-  height: 30px;
-  border: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  color: #e9eef6;
-  font-size: 1rem;
-  line-height: 1;
-  cursor: pointer;
-}
-.simvent__limite-vuoto {
-  min-width: 3.9rem;
-  text-align: center;
-  color: #55627a;
+/* I limiti d'allarme: rosse sopra la barra, gialle sotto. */
+.simvent__cassetto--allarmi { width: min(580px, 96%); }
+.simvent__righe { display: flex; flex-direction: column; gap: 0.4rem; container-type: inline-size; }
+.simvent__righe-testa { position: sticky; top: -1.125rem; z-index: 5; display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0; background: #0e1521; }
+.simvent__righe-testa > span { flex: 1; min-width: 0; font-size: 0.75rem; color: #93a1b5; text-align: center; }
+.simvent__righe-testa b { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #e9eef6; }
+.simvent__righe-testa button,
+.simvent__ripristina { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 0.35rem; min-width: 44px; height: 44px; border: 0; border-radius: 11px; background: rgba(255, 255, 255, 0.08); color: #e9eef6; font-size: 1.2rem; cursor: pointer; }
+.simvent__righe-testa .simvent__ripristina-tutti { padding: 0 0.7rem; font-size: 0.75rem; }
+.simvent__righe-testa button:disabled,
+.simvent__ripristina:disabled { opacity: 0.4; cursor: default; }
+.simvent__ripristina { background: none; color: #93a1b5; }
+.simvent__riga-allarme { display: flex; align-items: center; gap: 0.5rem 1.4rem; min-height: 52px; padding: 0 0.3rem 0 0.75rem; border: 1px solid transparent; border-radius: 11px; background: #121a28; }
+.simvent__riga-allarme > .simvent__etichetta { flex: 1; }
+.simvent__riga-allarme > .simvent__interruttore { margin-right: 0.5rem; }
+.simvent__riga-allarme--giallo { border-color: rgba(245, 185, 66, 0.75); }
+.simvent__riga-allarme--rosso { border-color: rgba(239, 68, 68, 0.75); }
+.simvent__riga-allarme--spento .simvent__pista { opacity: 0.35; }
+.simvent__riga-nome { flex: 0 0 6.6rem; min-width: 0; display: flex; flex-direction: column; gap: 0.2rem; }
+.simvent__riga-nome em { font-style: normal; color: #6f7c90; white-space: nowrap; }
+.simvent__riga-nome b { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1.15rem; line-height: 1; }
+.simvent__riga-allarme--giallo b { color: #f5b942; }
+.simvent__riga-allarme--rosso b { color: #f87171; }
+.simvent__pista { position: relative; flex: 1; min-width: 0; height: 92px; }
+.simvent__pista > i { position: absolute; pointer-events: none; }
+.simvent__fascia { top: 40px; height: 12px; }
+.simvent__fascia--rosso { background: #ef4444; }
+.simvent__fascia--giallo { background: #f5b942; }
+.simvent__fascia--buono { background: #2f8f74; }
+.simvent__escursione { top: 43px; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.38); }
+.simvent__adesso { top: 34px; width: 3px; height: 24px; margin-left: -1.5px; border-radius: 2px; background: #fff; z-index: 2; }
+.simvent__linguetta { position: absolute; width: 44px; height: 46px; margin-left: -22px; padding: 0; display: flex; justify-content: center; border: 0; background: none; touch-action: none; cursor: ew-resize; }
+.simvent__linguetta:disabled { cursor: default; }
+.simvent__linguetta--rosso { top: -6px; align-items: flex-end; }
+.simvent__linguetta--giallo { top: 52px; align-items: flex-start; }
+.simvent__linguetta span { min-width: 36px; font: 700 0.8rem ui-monospace, SFMono-Regular, Menlo, monospace; text-align: center; }
+.simvent__linguetta--rosso span { padding: 2px 5px 8px; background: #ef4444; color: #fff; clip-path: polygon(0 0, 100% 0, 100% 74%, 62% 74%, 50% 100%, 38% 74%, 0 74%); }
+.simvent__linguetta--giallo span { padding: 8px 5px 2px; background: #f5b942; color: #1b1404; clip-path: polygon(0 26%, 38% 26%, 50% 0, 62% 26%, 100% 26%, 100% 100%, 0 100%); }
+.simvent__linguetta--scelta { z-index: 3; }
+.simvent__linguetta--scelta span { filter: brightness(1.25); }
+.simvent__linguetta:focus-visible { outline: 2px solid #fff; outline-offset: -2px; border-radius: 8px; }
+.simvent__tessera--giallo { box-shadow: inset 0 0 0 1px #f5b942; }
+.simvent__tessera--giallo .simvent__valore b { color: #f5b942; }
+.simvent__tessera--rosso { box-shadow: inset 0 0 0 1px #ef4444; }
+.simvent__tessera--rosso .simvent__valore b { color: #f87171; }
+.simvent__allarme--giallo { background: rgba(245, 185, 66, 0.18); color: #f9d48a; }
+.simvent__volumi { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem 1rem; padding: 0.6rem 0.75rem; border-radius: 11px; background: #121a28; }
+.simvent__volumi label { display: flex; flex-direction: column; gap: 0.2rem; }
+.simvent__volumi input { width: 100%; height: 32px; accent-color: var(--simvent-accento); }
+@container (max-width: 440px) {
+  .simvent__riga-allarme:has(.simvent__pista) { flex-wrap: wrap; padding-top: 0.5rem; }
+  .simvent__riga-nome { flex: 1 0 100%; flex-direction: row; justify-content: space-between; padding-right: 0.6rem; }
+  .simvent__pista { margin-left: 0.6rem; }
 }
 .simvent__altoflusso {
   flex: 1;
@@ -1460,3 +1446,5 @@
 .simvent__catetere-azione:disabled {
   opacity: 0.45;
 }
+.simvent__tessera--giallo .simvent__valore b,
+.simvent__tessera--rosso .simvent__valore b { white-space: nowrap; }

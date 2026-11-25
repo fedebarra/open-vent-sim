@@ -65,6 +65,11 @@ test('director drives a learner ventilator end to end, and records the session',
   await expect(regia.getByTestId('alarm-pPeak')).toContainText('10');
   await regia.getByTestId('alarm-pPeak-basso-plus').click();
   await expect(regia.getByTestId('alarm-pPeak')).toContainText('11', { timeout: 10_000 });
+  // the yellow limit from the console: down to the peak and below, a yellow alarm; one row back
+  for (let i = 0; i < 30; i++) await regia.getByTestId('alarm-pPeak-preAlto-minus').click();
+  await expect(regia.getByTestId('alarm-pPeak')).toHaveClass(/amber/, { timeout: 10_000 });
+  await regia.getByTestId('alarm-pPeak-reset').click();
+  await expect(regia.getByTestId('alarm-pPeak')).toContainText('35', { timeout: 10_000 });
   await regia.getByTestId('alarms-reset').click();
   await expect(regia.getByTestId('alarm-pPeak')).not.toContainText('11', { timeout: 10_000 });
   await expect(regia.getByTestId('regia-log')).toContainText(/Limiti d’allarme riportati/);
