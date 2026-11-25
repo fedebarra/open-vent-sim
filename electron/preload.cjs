@@ -12,6 +12,14 @@ contextBridge.exposeInMainWorld('ovsDesktop', {
   stopDiscovery: () => ipcRenderer.invoke('ovs:stop-discovery'),
   home: () => ipcRenderer.invoke('ovs:home'),
   openSecondScreen: () => ipcRenderer.invoke('ovs:open-second-screen'),
+  updateState: () => ipcRenderer.invoke('ovs:update-state'),
+  checkUpdates: () => ipcRenderer.invoke('ovs:update-check'),
+  actUpdate: () => ipcRenderer.invoke('ovs:update-act'),
+  onUpdateChanged: (fn) => {
+    const h = () => fn();
+    ipcRenderer.on('ovs:update-changed', h);
+    return () => ipcRenderer.removeListener('ovs:update-changed', h);
+  },
   onDiscovered: (fn) => {
     const h = (_e, found) => fn(found);
     ipcRenderer.on('ovs:discovered', h);

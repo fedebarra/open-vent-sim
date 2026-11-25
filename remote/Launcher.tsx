@@ -7,6 +7,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createLink } from './link';
 import { rt } from './strings';
 import { useLanguage } from '../src/contexts/LanguageContext';
+import { LauncherUpdates } from './Updates';
 import { BrandMark, DirectorIcon, LearnerDeviceIcon, SoloIcon } from '../components/icons';
 
 const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -180,6 +181,7 @@ export const DesktopLauncher: React.FC<{ onSolo: () => void }> = ({ onSolo }) =>
         <Choice testId="choose-vent" icon={<LearnerDeviceIcon size={80} />} title={l.vent} desc={l.ventDesc} onClick={() => setStep('find')} />
         <Choice testId="choose-solo" icon={<SoloIcon size={80} />} title={l.solo} desc={l.soloDesc} onClick={onSolo} />
       </div>
+      <LauncherUpdates />
     </Shell>
   );
 };

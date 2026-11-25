@@ -1,6 +1,6 @@
 {
   "name": "open-vent-sim",
-  "version": "3.9.0",
+  "version": "3.9.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,7 @@
     "desktop": "npm run build && electron .",
     "dist:mac": "npm run build && electron-builder --mac",
     "dist:win": "npm run build && electron-builder --win",
-    "test": "vitest run && node --test tests/server.test.mjs tests/update-pick.test.mjs",
+    "test": "vitest run && node --test tests/server.test.mjs tests/update-pick.test.mjs tests/update-state.test.mjs",
     "test:e2e": "npm run build && playwright test",
     "typecheck": "tsc --noEmit -p .",
     "screenshots": "npm run build && node scripts/screenshots.mjs && LANG_SHOTS=en node scripts/screenshots.mjs",
