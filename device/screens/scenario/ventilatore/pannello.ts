@@ -247,6 +247,48 @@ export function assestaScala(corrente: number, voluta: number): number {
 }
 
 /**
+ * La scala di una corsia per la spazzata che comincia, guardando quella appena
+ * finita.
+ *
+ * `suggerita` è quello che ci si aspetta dalle regolazioni e dal paziente
+ * (`scaleOnde`), `visto` il minimo e il massimo che la curva ha **davvero**
+ * toccato nel giro: una tosse, un doppio ciclo, un'espirazione forzata o un
+ * flusso che non torna a zero entrano nella scala anche se nessuna formula li
+ * aveva previsti. Poi la stessa isteresi di sempre (`assestaScala`): si cresce
+ * quando la curva uscirebbe, si scende solo quando è rimpicciolita parecchio —
+ * o la PS che sale non si vedrebbe salire.
+ */
+export function scalaDaVisto(
+  suggerita: [number, number],
+  visto: [number, number] | null,
+  prima: [number, number],
+): [number, number] {
+  const alto = fondoScala(Math.max(suggerita[1], (visto?.[1] ?? 0) * 1.1))
+  const sotto = visto && visto[0] < 0 ? -fondoScala(-visto[0] * 1.1) : 0
+  const basso = Math.min(suggerita[0], sotto)
+  return [-assestaScala(-prima[0], -basso), assestaScala(prima[1], alto)]
+}
+
+/**
+ * Le tacche della scala, come sui ventilatori: i due estremi, lo zero, e in
+ * mezzo pochi valori tondi (passo 1‑2‑5) che non si pestino con quelli.
+ */
+export function tacche([basso, alto]: [number, number]): number[] {
+  const span = alto - basso
+  if (!(span > 0)) return []
+  const tonde = (x: number) => Math.round(x * 100) / 100
+  const scelte = [tonde(basso), tonde(alto)]
+  if (basso < 0 && alto > 0) scelte.push(0)
+  const grezzo = span / 4
+  const decade = Math.pow(10, Math.floor(Math.log10(grezzo)))
+  const passo = ([1, 2, 5, 10].find((m) => m * decade >= grezzo) ?? 10) * decade
+  for (let x = Math.ceil(basso / passo) * passo; x < alto; x += passo) {
+    if (scelte.every((y) => Math.abs(y - x) >= span * 0.14)) scelte.push(tonde(x))
+  }
+  return scelte.sort((a, b) => a - b)
+}
+
+/**
  * Il peso su cui si tara la corsia del volume, in chili.
  *
  * Quello del paziente se c'è; settanta se il ventilatore non lo sa ancora —
