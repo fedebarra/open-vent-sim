@@ -20,21 +20,27 @@ type Punto = { paw: number; flusso: number; volume: number }
 const COLORE_PV = '#ffb300'
 const COLORE_FV = '#4caf50'
 
-function campiona(stato: StatoVentilatore, tFine: number, durata: number, passi = 160): Punto[] {
+function campiona(stato: (t: number) => StatoVentilatore, tFine: number, durata: number, passi = 160): Punto[] {
   const out: Punto[] = []
   for (let i = 0; i <= passi; i++) {
     const t = tFine - durata + (durata * i) / passi
     if (t < 0) continue
-    out.push(puntoOnda(t, stato))
+    out.push(puntoOnda(t, stato(t)))
   }
   return out
 }
 
-export function Loop({ stato, clock, t }: { stato: StatoVentilatore; clock: () => number; t: Translate }) {
+/**
+ * `statoAl` dice lo stato di un istante: dopo una regolazione, fino all'atto dopo, quello di prima (`seguiRegolazione`
+ * in `onde.ts`). Senza, il loop si disegna con lo stato di adesso.
+ */
+export function Loop({ stato, statoAl, clock, t }: { stato: StatoVentilatore; statoAl?: (t: number) => StatoVentilatore; clock: () => number; t: Translate }) {
   const pvRef = useRef<HTMLCanvasElement>(null)
   const fvRef = useRef<HTMLCanvasElement>(null)
   const statoRef = useRef(stato)
   statoRef.current = stato
+  const statoAlRef = useRef(statoAl)
+  statoAlRef.current = statoAl
   const [riferimento, setRiferimento] = useState<Punto[] | null>(null)
   const riferimentoRef = useRef(riferimento)
   riferimentoRef.current = riferimento
@@ -44,14 +50,17 @@ export function Loop({ stato, clock, t }: { stato: StatoVentilatore; clock: () =
     let raf = 0
     const disegna = () => {
       raf = requestAnimationFrame(disegna)
-      const s = statoRef.current
       const ora = clock()
+      const al = statoAlRef.current ?? (() => statoRef.current)
+      const s = al(ora)
       const Ttot = Math.max(0.5, tempiRespiro(s).Ttot)
-      // L'atto che si sta chiudendo adesso, e i due prima.
-      const inizio = Math.floor(ora / Ttot) * Ttot
-      const atti = [0, 1, 2].map((k) => campiona(s, inizio - k * Ttot, Ttot))
+      // L'atto che si sta chiudendo adesso, e i due prima, sulla griglia degli atti della macchina: dopo una regolazione
+      // parte da `origineMacchina` (da t = 0 il loop si spezzava a metà atto)
+      const o = s.origineMacchina ?? 0
+      const inizio = o + Math.floor((ora - o) / Ttot) * Ttot
+      const atti = [0, 1, 2].map((k) => campiona(al, inizio - k * Ttot, Ttot))
       ultimoRef.current = atti[0]
-      const corrente = campiona(s, ora, Math.max(0.05, ora - inizio), 80)
+      const corrente = campiona(al, ora, Math.max(0.05, ora - inizio), 80)
       const tutti = [...atti.flat(), ...corrente, ...(riferimentoRef.current ?? [])]
       const vMax = Math.max(100, ...tutti.map((p) => p.volume)) * 1.1
       const pMax = Math.max(10, ...tutti.map((p) => p.paw)) * 1.1

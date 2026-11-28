@@ -40,12 +40,15 @@ const SOGLIA_EVIDENZA = 1.5
 
 export function PosizionamentoCatetere({
   stato,
+  statoAl: statoAlDato,
   misure,
   clock,
   t,
   agisci,
 }: {
   stato: StatoVentilatore
+  /** Lo stato di un istante: fino all'atto dopo una regolazione, quello di prima (`seguiRegolazione` in `onde.ts`). */
+  statoAl?: (t: number) => StatoVentilatore
   misure: Misure
   clock: () => number
   t: Translate
@@ -67,7 +70,8 @@ export function PosizionamentoCatetere({
   useEffect(() => ecg.current.aggiorna(dv, fc), [dv, fc])
 
   const minimo = misure.eadiMin ?? 0
-  const fasica = (tt: number) => Math.max(0, (attivitaDiaframma(tt, stato) ?? 0) - minimo)
+  const statoAl = statoAlDato ?? (() => stato)
+  const fasica = (tt: number) => Math.max(0, (attivitaDiaframma(tt, statoAl(tt)) ?? 0) - minimo)
 
   const canali: SweepChannel[] = useMemo(() => {
     const derivazione = (k: number): SweepChannel => ({
@@ -86,7 +90,7 @@ export function PosizionamentoCatetere({
       ? [{
           key: 'paw',
           color: COLORE_PAW,
-          at: (tt: number) => puntoOnda(tt, stato).paw,
+          at: (tt: number) => puntoOnda(tt, statoAl(tt)).paw,
           range: (): [number, number] => [Math.min(-5, stato.impostazioni.peep - 15), Math.max(25, stato.impostazioni.peep + 20)],
           label: 'Paw',
           scale: t('vent.unit.cmH2O'),
@@ -99,14 +103,14 @@ export function PosizionamentoCatetere({
       {
         key: 'eadi',
         color: COLORE_DIAFRAMMA,
-        at: (tt: number) => attivitaDiaframma(tt, stato) ?? 0,
+        at: (tt: number) => attivitaDiaframma(tt, statoAl(tt)) ?? 0,
         range: (): [number, number] => [0, Math.max(12, (misure.eadiPicco ?? 10) * 1.2)],
         label: 'EAdi',
         scale: t('vent.unit.microV'),
         weight: 1.2,
       },
     ]
-  }, [dv, forti, stato, misure.eadiPicco, minimo, t])
+  }, [dv, forti, stato, statoAlDato, misure.eadiPicco, minimo, t])
 
   const passo = calibro.ied
   const sposta = (verso: 1 | -1) => agisci({ tipo: 'catetere', cm: Math.round((cm + verso * passo) * 10) / 10 })

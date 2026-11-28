@@ -970,9 +970,9 @@ export function Ventilatore({
           {inAltoFlusso ? (
             <PannelloAltoFlusso stato={stato} misure={misure} t={t} />
           ) : vista === 'catetere' && conCatetere ? (
-            <PosizionamentoCatetere stato={stato} misure={misure} clock={clockQuadro} t={t} agisci={agisci} />
+            <PosizionamentoCatetere stato={stato} statoAl={statoAl} misure={misure} clock={clockQuadro} t={t} agisci={agisci} />
           ) : stato.ventilando && vista === 'loop' && !inManuale ? (
-            <Loop stato={stato} clock={clockQuadro} t={t} />
+            <Loop stato={stato} statoAl={statoAl} clock={clockQuadro} t={t} />
           ) : stato.ventilando && vista === 'eit' && stato.ambiente === 'invasiva' ? (
             <Eit stato={stato} clock={clockQuadro} t={t} />
           ) : stato.ventilando ? (

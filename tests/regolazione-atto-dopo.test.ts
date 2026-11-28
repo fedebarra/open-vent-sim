@@ -62,3 +62,22 @@ describe('seguiRegolazione: chi disegna tiene lo stato di prima fino all\'atto d
     expect(seguiRegolazione(s2, s2, t2, t1.fino + 1)).toBeNull();
   });
 });
+
+describe('i loop tagliano gli atti sulla griglia della macchina', () => {
+  // La stessa griglia di `Loop.tsx`: dopo una regolazione parte da `origineMacchina`.
+  const inizioAtto = (ora: number, Ttot: number, o: number) => o + Math.floor((ora - o) / Ttot) * Ttot;
+
+  it('dopo 12 → 14 l\'atto del loop comincia dove comincia quello della macchina', () => {
+    const prima = partito();
+    const dopo = applica(prima, { tipo: 'parametro', chiave: 'frequency', valore: 14 }, 101.7).istantanea;
+    const s = statoDa(dopo);
+    const o = dopo.origineMacchina!;
+    const Ttot = 60 / 14;
+    const ora = o + 3.5 * Ttot;
+    // attiRecenti dà gli atti finiti: quello in corso si legge a fine atto
+    const vero = attiRecenti(ora + Ttot, s, 20).map((a) => a.inizio).filter((t) => t <= ora).pop()!;
+    expect(inizioAtto(ora, Ttot, o)).toBeCloseTo(vero, 2);
+    // contando da t = 0, come prima, l'atto si spezzava a metà
+    expect(Math.abs(Math.floor(ora / Ttot) * Ttot - vero)).toBeGreaterThan(0.1);
+  });
+});
