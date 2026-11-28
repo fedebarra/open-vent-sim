@@ -44,7 +44,7 @@ const PLAN = [
   { id: 'async-learner', beats: 12, tag: '02 · The console', caption: '…learners see the asynchrony, never its name', z: 1.12, fx: 0.3, fy: 0.35 },
   { id: 'alarm', beats: 11, tag: '02 · The console', caption: 'A cough hits the limit: the alarm sounds', z: 1.15, fx: 0.62, fy: 0.08, sound: true },
   { id: 'eit', beats: 10, tag: '02 · The console', caption: 'EIT, loops, oesophageal pressure', z: 1.1, fx: 0.4, fy: 0.45 },
-  S('03', 'Neural assist', 'new in 3.8 · NEURO and the EAdi'),
+  S('03', 'Neural assist', 'NEURO and the EAdi'),
   { id: 'catheter-console', beats: 9, tag: '03 · Neural assist', caption: 'The console mounts the EAdi catheter… too deep', z: 1.22, fx: 0.62, fy: 0.48, accent: true },
   { id: 'catheter-deep', beats: 10, tag: '03 · Neural assist', caption: 'Four oesophageal ECG leads tell where it sits', z: 1.25, fx: 0.25, fy: 0.3, accent: true },
   { id: 'catheter-pull', beats: 14, tag: '03 · Neural assist', caption: 'Pull it into place, one electrode step at a time', z: 1.25, fx: 0.4, fy: 0.3, accent: true },
@@ -138,7 +138,7 @@ function html(s, d) {
   const theme = s.accent || s.n === '03' ? 'acc' : 'def';
   if (s.card === 'intro') {
     return `<div class="card def" style="--d:${d}s"><div class="grid"></div><div class="blob" style="left:520px;top:-200px"></div>${WAVE}
-      <div class="center leave"><img class="logo" src="${ICON}"><div class="brand">${chars('Open Vent Sim', 0.35, 0.04)}<span class="badge">3.8</span></div>
+      <div class="center leave"><img class="logo" src="${ICON}"><div class="brand">${chars('Open Vent Sim', 0.35, 0.04)}</div>
       <div class="sub" style="animation-delay:1.2s">Realistic, Interactive Ventilator Simulator for VEMS and High-Fidelity Simulation</div></div></div>`;
   }
   if (s.card === 'outro') {
