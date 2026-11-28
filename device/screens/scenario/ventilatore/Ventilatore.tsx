@@ -43,6 +43,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { oraDellAula } from '../monitor/orologio'
 import { Sweep, type SweepChannel } from '../monitor/Sweep'
+
 import { createCapnoWaveform, VITALS_VUOTI } from '../monitor/sources'
 import { Icon } from '../../../components/Icon'
 import { useT, type Translate } from '../../../i18n'
@@ -57,6 +58,8 @@ import {
   impostazioniDaMostrare,
   maniglie,
   scaleOnde,
+  scalaDaVisto,
+  tacche,
   tempoDalTocco,
   type Cassetto,
 } from './pannello'
@@ -90,7 +93,7 @@ import {
   type Agente,
   type Consumabile,
 } from './gas'
-import { creaOnde, nelTrigger, puntoOnda } from './onde'
+import { creaOnde, nelTrigger, puntoOnda, seguiRegolazione, statoAllIstante, type Transizione } from './onde'
 // OVS 3.1: loop e pressioni alveolare/muscolare
 import { Loop } from './Loop'
 import { Eit } from './VistaEit'
@@ -126,6 +129,44 @@ const COLORI = { paw: '#ffb300', flusso: '#4caf50', volume: '#00b0ff', co2: '#e5
 
 /** Il padding orizzontale della corsia più il bordo, in pixel: serve al cursore. */
 const CORNICE_CORSIA = 15
+
+/**
+ * La colonna della scala, a sinistra della curva, in pixel: i numeri delle
+ * tacche ci stanno dentro invece che sopra la traccia. Deve valere quanto il
+ * margine di `.simvent__onde .simmon__lane-tela` in `device.css`.
+ */
+const COLONNA_SCALA = 30
+
+/** Il grigio della griglia e dei suoi numeri: neutro, come sulle macchine vere. */
+const COLORE_SCALA = '#7d8896'
+
+/** Le corsie la cui scala si ricalcola a ogni giro della spazzata. */
+const SCALA_AL_GIRO = new Set(['paw', 'flusso', 'volume', 'palv', 'pl'])
+
+/**
+ * ## Le righe di riferimento, come sui Servo e sugli Hamilton
+ *
+ * Senza, la curva galleggia: non si vede se il flusso torna a zero prima
+ * dell'atto dopo — l'intrappolamento si riconosce proprio da lì — né a che
+ * altezza sta la pressione. Su ogni corsia: lo zero continuo, gli estremi e
+ * pochi valori tondi punteggiati, i numeri in una colonna a sinistra, tutto in
+ * grigio neutro perché non si confonda con la traccia.
+ *
+ * La scala di pressione, flusso e volume si ricalcola **al giro** della
+ * spazzata, su quello che il paziente ha fatto nel giro appena finito
+ * (`scalaDaVisto`): sta ferma mentre il pennello scrive, e griglia e traccia
+ * sono sempre sulla stessa scala.
+ */
+function conScala(c: SweepChannel): SweepChannel {
+  return {
+    ...c,
+    griglia: tacche,
+    coloreGriglia: COLORE_SCALA,
+    ...(SCALA_AL_GIRO.has(c.key)
+      ? { scalaAlGiro: (visto: [number, number] | null, prima: [number, number]) => scalaDaVisto(c.range(), visto, prima) }
+      : {}),
+  }
+}
 
 export interface VentilatoreProps {
   /** Gli atti dati col pallone; null quando il respiro non passa dalle mani di nessuno. */
@@ -309,7 +350,7 @@ export function Ventilatore({
   const toccaQuadro = (e: { currentTarget: HTMLDivElement; clientX: number; clientY: number }) => {
     if (congelato === null) return
     const rect = e.currentTarget.getBoundingClientRect()
-    const f = (e.clientX - rect.left - CORNICE_CORSIA) / (rect.width - CORNICE_CORSIA * 2)
+    const f = (e.clientX - rect.left - CORNICE_CORSIA - COLONNA_SCALA) / (rect.width - CORNICE_CORSIA * 2 - COLONNA_SCALA)
     if (f < 0 || f > 1) return
     setCursore(tempoDalTocco(f, congelato, velocita))
   }
@@ -401,7 +442,27 @@ export function Ventilatore({
   // Le curve si rifanno solo quando cambia qualcosa che le riguarda: `creaOnde`
   // chiude sopra lo stato, e ricrearla ad ogni render azzererebbe la memoria di
   // un istante che le tiene allineate fra loro.
-  const onde = useMemo(() => creaOnde(stato), [stato])
+  // ## Fino all'atto dopo, le curve di prima (`seguiRegolazione` in `onde.ts`)
+  const ultimoStato = useRef<StatoVentilatore | null>(null)
+  const transizioneRef = useRef<Transizione | null>(null)
+  const transizione = useMemo(() => {
+    const prima = ultimoStato.current
+    ultimoStato.current = stato
+    return seguiRegolazione(prima, stato, transizioneRef.current, clockRef.current())
+  }, [stato])
+  transizioneRef.current = transizione
+  const statoAl = useCallback((tt: number) => statoAllIstante(tt, stato, transizione), [transizione, stato])
+  const ondeNuove = useMemo(() => creaOnde(stato), [stato])
+  const ondeVecchie = useMemo(() => (transizione ? creaOnde(transizione.vecchio) : null), [transizione])
+  const onde = useMemo(() => {
+    if (!transizione || !ondeVecchie) return ondeNuove
+    const quale = (tt: number) => (tt < transizione.fino ? ondeVecchie : ondeNuove)
+    return {
+      paw: (tt: number) => quale(tt).paw(tt),
+      flusso: (tt: number) => quale(tt).flusso(tt),
+      volume: (tt: number) => quale(tt).volume(tt),
+    }
+  }, [transizione, ondeVecchie, ondeNuove])
   // La sorgente resta la stessa e legge da un riferimento: rifarla a ogni misura
   // dimenticherebbe l'atto a mano in corso e troncherebbe la gobba a metà.
   const misureOra = useRef(misure)
@@ -516,7 +577,7 @@ export function Ventilatore({
   // cui si congela: leggere un valore preciso su una curva che scorre non si
   // può, e su una macchina vera si fa esattamente così.
   const alCursore = useMemo(
-    () => (cursore !== null && congelato !== null ? puntoOnda(cursore, stato) : null),
+    () => (cursore !== null && congelato !== null ? puntoOnda(cursore, statoAl(cursore)) : null),
     [cursore, congelato, stato],
   )
 
@@ -533,7 +594,7 @@ export function Ventilatore({
     return {
       key: 'eadi',
       color: COLORE_EADI,
-      at: (tt: number) => attivitaDiaframma(tt, stato) ?? 0,
+      at: (tt: number) => attivitaDiaframma(tt, statoAl(tt)) ?? 0,
       range: (): [number, number] => [0, fondo],
       label: 'EAdi',
       scale: t('vent.unit.microV'),
@@ -546,7 +607,7 @@ export function Ventilatore({
           : [],
       value:
         alCursore && cursore !== null
-          ? (attivitaDiaframma(cursore, stato) ?? 0).toFixed(1)
+          ? (attivitaDiaframma(cursore, statoAl(cursore)) ?? 0).toFixed(1)
           : scriviValore('eadiPicco', misure.eadiPicco),
     }
   }, [conCatetere, misure, stato, t, alCursore, cursore])
@@ -614,7 +675,7 @@ export function Ventilatore({
         // sensibile la regolazione, ed è quello che si guarda dopo averla
         // toccata. In volume e pressione controllata non c'è niente da
         // marcare — l'atto lo decide l'orologio — e `nelTrigger` torna falso.
-        evidenzia: (istante: number) => nelTrigger(istante, stato),
+        evidenzia: (istante: number) => nelTrigger(istante, statoAl(istante)),
         value: alCursore ? alCursore.flusso.toFixed(1) : scriviValore('volumeMinute', misure.volumeMinute),
       },
       {
@@ -632,20 +693,20 @@ export function Ventilatore({
             {
               key: 'palv',
               color: '#f472b6',
-              at: (tt: number) => pressioneAlveolare(tt, stato),
+              at: (tt: number) => pressioneAlveolare(tt, statoAl(tt)),
               range: () => scale.paw,
               label: 'Palv',
               scale: t('vent.unit.cmH2O'),
-              value: alCursore && cursore !== null ? pressioneAlveolare(cursore, stato).toFixed(1) : '',
+              value: alCursore && cursore !== null ? pressioneAlveolare(cursore, statoAl(cursore)).toFixed(1) : '',
             },
             {
               key: 'pmus',
               color: '#a78bfa',
-              at: (tt: number) => pressioneMuscolare(tt, stato),
+              at: (tt: number) => pressioneMuscolare(tt, statoAl(tt)),
               range: (): [number, number] => [0, 12],
               label: 'Pmus',
               scale: t('vent.unit.cmH2O'),
-              value: alCursore && cursore !== null ? pressioneMuscolare(cursore, stato).toFixed(1) : '',
+              value: alCursore && cursore !== null ? pressioneMuscolare(cursore, statoAl(cursore)).toFixed(1) : '',
             },
           ]
         : []),
@@ -656,26 +717,28 @@ export function Ventilatore({
             {
               key: 'pes',
               color: '#fb923c',
-              at: (tt: number) => pressioneEsofagea(tt, stato) ?? 0,
+              at: (tt: number) => pressioneEsofagea(tt, statoAl(tt)) ?? 0,
               range: (): [number, number] => [-10, 20],
               label: 'Pes',
               scale: t('vent.unit.cmH2O'),
-              value: alCursore && cursore !== null ? (pressioneEsofagea(cursore, stato) ?? 0).toFixed(1) : '',
+              value: alCursore && cursore !== null ? (pressioneEsofagea(cursore, statoAl(cursore)) ?? 0).toFixed(1) : '',
             },
             {
               key: 'pl',
               color: '#22d3ee',
-              at: (tt: number) => pressioneTranspolmonare(tt, stato) ?? 0,
+              at: (tt: number) => pressioneTranspolmonare(tt, statoAl(tt)) ?? 0,
               range: (): [number, number] => [-10, Math.max(20, scale.paw[1] - 5)],
               label: 'PL',
               scale: t('vent.unit.cmH2O'),
-              value: alCursore && cursore !== null ? (pressioneTranspolmonare(cursore, stato) ?? 0).toFixed(1) : '',
+              value: alCursore && cursore !== null ? (pressioneTranspolmonare(cursore, statoAl(cursore)) ?? 0).toFixed(1) : '',
             },
           ]
         : []),
       ...(corsiaEAdi ? [corsiaEAdi] : []),
     ]
   }, [onde, pawAMano, flussoAMano, capno, inManuale, inAltoFlusso, misure, scale, alCursore, t, pressioniExtra, esofagea, stato, cursore, corsiaEAdi])
+  const corsieConScala = useMemo(() => corsie.map(conScala), [corsie])
+  const eadiConScala = useMemo(() => (corsiaEAdi ? conScala(corsiaEAdi) : null), [corsiaEAdi])
 
   // NEURO: su che cosa sta andando la macchina adesso — il supporto su cui ha
   // ripiegato, o il backup. Dall'ultimo atto.
@@ -922,7 +985,7 @@ export function Ventilatore({
                   la cerca — invece di continuare da dove il pennello stava. */}
               <Sweep
                 key={stato.ventilando ? 'in-moto' : 'ferma'}
-                channels={corsie}
+                channels={corsieConScala}
                 clock={clockQuadro}
                 seconds={velocita}
               />
@@ -931,8 +994,8 @@ export function Ventilatore({
                   className="simvent__cursore"
                   style={{
                     left: `calc(${((cursore % velocita) / velocita).toFixed(4)} * (100% - ${
-                      CORNICE_CORSIA * 2
-                    }px) + ${CORNICE_CORSIA}px)`,
+                      CORNICE_CORSIA * 2 + COLONNA_SCALA
+                    }px) + ${CORNICE_CORSIA + COLONNA_SCALA}px)`,
                   }}
                   aria-hidden="true"
                 />
@@ -942,7 +1005,7 @@ export function Ventilatore({
             // In standby in NEURO il paziente respira lo stesso: col catetere si vede.
             <div className="simvent__quadro simvent__quadro--eadi" data-testid="eadi-sola">
               <div className="simvent__spento simvent__spento--sopra">{t('vent.state.standby')}</div>
-              <Sweep key="eadi-standby" channels={[corsiaEAdi]} clock={clockQuadro} seconds={velocita} />
+              <Sweep key="eadi-standby" channels={eadiConScala ? [eadiConScala] : []} clock={clockQuadro} seconds={velocita} />
             </div>
           ) : (
             <div className="simvent__spento">{t('vent.state.standby')}</div>

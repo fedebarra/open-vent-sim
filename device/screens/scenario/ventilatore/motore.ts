@@ -346,6 +346,8 @@ interface Parametri {
   /** Pressione critica di chiusura delle vie aeree (cmH₂O assoluti), 0 se non c'è. */
   pCrit: number
   Ttot: number
+  /** L'origine della griglia degli atti della macchina (`StatoVentilatore.origineMacchina`). */
+  origine: number
   Ti: number
   Tif: number
   Tip: number
@@ -652,7 +654,8 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
       return dellaMacchina(v.tipo) === !paziente ? v : null
     }
     const posti: { indice: number; t: number; paziente: boolean }[] = []
-    for (let i = Math.floor((da - 3) / Ttot); i <= Math.ceil((a + 1) / Ttot); i++) posti.push({ indice: i, t: i * Ttot, paziente: false })
+    const o = stato.origineMacchina ?? 0
+    for (let i = Math.floor((da - 3 - o) / Ttot); i <= Math.ceil((a + 1 - o) / Ttot); i++) posti.push({ indice: i, t: o + i * Ttot, paziente: false })
     if (sulPaziente) for (const x of ancoreTreno) posti.push({ ...x, paziente: true })
     for (const { indice: i, t: tAncora, paziente } of posti) {
       // Dopo un doppio ciclo in pressione il ciclo dopo è occupato dal secondo
@@ -846,6 +849,7 @@ function parametri(stato: StatoVentilatore, da: number, a: number): Parametri {
     peep: imp.peep,
     pCrit,
     Ttot,
+    origine: stato.origineMacchina ?? 0,
     Ti: tempi.Ti,
     Tif: tempi.Tif,
     Tip: tempi.Tip,
@@ -1090,7 +1094,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
   let flussoPicco = 0
   let volumeErogato = 0
   let vDisplay = 0
-  let prossimoMandatorio = controllata ? Math.ceil(t0 / p.Ttot) * p.Ttot : t0 + p.Ttot
+  let prossimoMandatorio = controllata ? p.origine + Math.ceil((t0 - p.origine) / p.Ttot) * p.Ttot : t0 + p.Ttot
   let ultimoAtto = Number.NEGATIVE_INFINITY
   let attoCorrente: AttoMotore | null = null
   let atTi = p.Ti
@@ -1209,7 +1213,7 @@ function integra(stato: StatoVentilatore, inizio: number): Blocco {
         }
         // Il sigh: un atto alto e lungo, sull'indice del ciclo.
         if (controllata && p.sighOgni > 0 && tipoAtto !== 'supporto') {
-          const indice = Math.round(t / p.Ttot)
+          const indice = Math.round((t - p.origine) / p.Ttot)
           if (indice % p.sighOgni === 0) {
             atVt = p.sighMotrice * C
             atMotrice = p.sighMotrice
@@ -1693,6 +1697,7 @@ function chiave(stato: StatoVentilatore, inizio: number): string {
     elencoAsincronie(a).map((x) => `${x.tipo}:${x.quota}:${x.grado ?? 1}`).join(',') || '-',
     stato.seme,
     stato.sfasamentoSpontaneo ?? 0,
+    stato.origineMacchina ?? 0,
     stato.paziente.heartRate ?? 80,
     stato.pressioneMassima ?? '-',
     // solo i colpi che cadono nel blocco o nel suo riscaldamento

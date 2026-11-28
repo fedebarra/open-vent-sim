@@ -561,6 +561,19 @@ export interface StatoVentilatore {
    */
   sfasamentoSpontaneo: number
   /**
+   * L'origine della griglia degli atti della macchina, nel tempo del
+   * ventilatore (facoltativo, zero se manca).
+   *
+   * Gli atti mandatori cadono su `origine + k·Ttot`. Con l'origine fissa a zero
+   * cambiare la frequenza spostava **tutta** la griglia, anche all'indietro:
+   * l'atto in corso si ritrovava di colpo in un altro punto del ciclo e la
+   * curva si spezzava. Quando si conferma una regolazione l'origine diventa
+   * l'inizio dell'atto dopo (`applica()`): da lì la griglia nuova, prima quella
+   * vecchia — come sulle macchine vere, dove la regolazione vale dall'atto
+   * successivo. Viaggia nell'istantanea perché tutti gli schermi la vedano uguale.
+   */
+  origineMacchina?: number
+  /**
    * Quando è cominciata la manovra tenuta, nel tempo del ventilatore
    * (facoltativo). La pausa ferma l'ultimo atto **prima** di questo istante, e
    * lo sforzo del paziente che cade dentro la pausa è il test di occlusione.

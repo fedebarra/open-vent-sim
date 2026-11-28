@@ -24,7 +24,7 @@
  * perché l'onda di polso sembri arrivare prima del battito che la causa.
  */
 
-import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 export interface SweepChannel {
   key: string
@@ -107,7 +107,27 @@ export interface SweepChannel {
    * scritto a sinistra. Sulle pressioni il manuale mette il fondo scala in alto
    * e lo zero in basso (p. 211); sulla CO₂ le due righe intermedie.
    */
-  griglia?: number[]
+  griglia?: number[] | ((scala: [number, number]) => number[])
+  /**
+   * La scala che si **ricalcola al giro**, invece di seguire `range()` istante
+   * per istante.
+   *
+   * È quello che fanno i ventilatori: la scala sta ferma per tutta la
+   * spazzata, e quando il pennello riparte da sinistra si sceglie quella nuova
+   * guardando **quello che la curva ha fatto davvero** nel giro appena finito
+   * — il minimo e il massimo disegnati, `visto` — oltre a quello che si
+   * aspetta chi la chiede. Così la griglia e la traccia sono sempre sulla
+   * stessa scala: con una scala che cambia a metà schermo, a destra resta il
+   * giro vecchio disegnato con l'altra e i numeri a sinistra mentono su metà
+   * della corsia.
+   *
+   * Se la scala cambia, la tela si pulisce tutta: il giro vecchio era
+   * disegnato con l'altra scala, e lasciarlo sarebbe leggerlo sbagliato.
+   * `range()` dà solo la scala della prima spazzata.
+   */
+  scalaAlGiro?: (visto: [number, number] | null, prima: [number, number]) => [number, number]
+  /** Il colore della griglia, se non è quello della curva. */
+  coloreGriglia?: string
   /** Se le righe della griglia si scrivono con il loro numero. */
   grigliaSenzaNumeri?: boolean
   /** La curva **riempita** fino allo zero, come la CO₂ dell'IntelliVue. */
@@ -201,6 +221,22 @@ export function Sweep({
    */
   const origine = useRef<number | null>(null)
 
+  /** La scala di ogni corsia per la spazzata in corso (`scalaAlGiro`). */
+  const tenute = useRef(new Map<string, [number, number]>())
+  /** Il minimo e il massimo disegnati finora in questa spazzata. */
+  const visti = useRef(new Map<string, [number, number]>())
+  /** Solo per ridisegnare la griglia quando una scala cambia al giro. */
+  const [, setGiri] = useState(0)
+  const scalaDi = (channel: SweepChannel): [number, number] => {
+    if (!channel.scalaAlGiro) return channel.range()
+    let tenuta = tenute.current.get(channel.key)
+    if (!tenuta) {
+      tenuta = channel.range()
+      tenute.current.set(channel.key, tenuta)
+    }
+    return tenuta
+  }
+
   /**
    * L'aggancio del canvas, **stabile**.
    *
@@ -251,6 +287,8 @@ export function Sweep({
       if (!vive.has(chiave)) {
         canvases.current.delete(chiave)
         drawn.current.delete(chiave)
+        tenute.current.delete(chiave)
+        visti.current.delete(chiave)
       }
     }
     return () => observer.disconnect()
@@ -269,12 +307,14 @@ export function Sweep({
      * i pezzi di tracciato scollegati e i tratti piatti che si vedevano fra un
      * respiro e l'altro.
      */
-    const paint = (channel: SweepChannel, from: number, to: number, pulisciDa: number) => {
+    const paint = (channel: SweepChannel, from: number, to: number, pulisciDa: number): boolean => {
       const canvas = canvases.current.get(channel.key)
       const ctx = canvas?.getContext('2d')
-      if (!canvas || !ctx) return
+      if (!canvas || !ctx) return false
+      // Se la curva è uscita dalla scala in questo tratto (`scalaAlGiro`).
+      let fuori = false
       const { width: w, height: h } = canvas
-      const [low, high] = channel.range()
+      const [low, high] = scalaDi(channel)
       const span = high - low || 1
       const dpr = window.devicePixelRatio || 1
       // La corsia può andare a una velocità sua: vedi `SweepChannel.seconds`.
@@ -410,7 +450,17 @@ export function Sweep({
         const ultimo = t >= to
         const istante = ultimo ? to : t
         const px = x(istante)
-        const py = y(channel.at(istante))
+        const valore = channel.at(istante)
+        const py = y(valore)
+        if (channel.scalaAlGiro) {
+          if (valore > high || valore < low) fuori = true
+          const v = visti.current.get(channel.key)
+          if (!v) visti.current.set(channel.key, [valore, valore])
+          else {
+            if (valore < v[0]) v[0] = valore
+            if (valore > v[1]) v[1] = valore
+          }
+        }
         const vuole = evidenzia ? evidenzia(istante) : false
         if (vuole !== inEvidenza) {
           ctx.stroke()
@@ -451,6 +501,28 @@ export function Sweep({
           ctx.fill()
         }
       }
+      return fuori
+    }
+
+    /**
+     * ## Se la curva esce, la scala si allarga **subito**
+     *
+     * Aspettare il giro vorrebbe dire una curva tagliata in cima per tutta la
+     * spazzata — fino a un minuto a 60 s — e una Paw tagliata piatta si legge
+     * come un limite di pressione, cioè come un'altra cosa. Allargare subito
+     * costa una tela pulita a metà giro; restringere invece si fa solo al giro,
+     * dove non toglie niente a nessuno. Qui solo allargare: la scala nuova è
+     * quella del giro, ma non più stretta di quella che c'era su nessun lato.
+     */
+    const allarga = (channel: SweepChannel): boolean => {
+      const prima = scalaDi(channel)
+      const voluta = channel.scalaAlGiro!(visti.current.get(channel.key) ?? null, prima)
+      const nuova: [number, number] = [Math.min(prima[0], voluta[0]), Math.max(prima[1], voluta[1])]
+      if (nuova[0] === prima[0] && nuova[1] === prima[1]) return false
+      tenute.current.set(channel.key, nuova)
+      const tela = canvases.current.get(channel.key)
+      tela?.getContext('2d')?.clearRect(0, 0, tela.width, tela.height)
+      return true
     }
 
     const frame = () => {
@@ -458,6 +530,7 @@ export function Sweep({
       // La prima passata di sempre fissa l'origine: da qui in poi il bordo
       // sinistro è «quando questo schermo ha cominciato a guardare».
       if (origine.current === null) origine.current = now
+      let cambiata = false
       for (const channel of latest.current) {
         const last = drawn.current.get(channel.key)
         // Alla prima passata, e dopo un salto **lungo** (`SALTO_ABBANDONO`:
@@ -475,9 +548,33 @@ export function Sweep({
         // Da dove pulire: **l'ultima posizione del pennello**, non da dove si
         // ricomincia a disegnare. Dopo un salto le due cose sono diverse, ed è
         // quella differenza che lasciava i residui.
-        paint(channel, from, now, last ?? from)
+        // ## Il giro: qui si ricalcola la scala
+        //
+        // Solo per le corsie che lo chiedono (`scalaAlGiro`). Il tratto che
+        // scavalca il bordo destro si spezza: si finisce il giro vecchio con la
+        // scala vecchia, si decide quella nuova su quello che si è visto, e si
+        // comincia il giro nuovo con lei.
+        const sec = channel.seconds ?? secondiComuni
+        const giro = (t: number) => Math.floor((t - (origine.current ?? 0)) / sec)
+        if (channel.scalaAlGiro && last !== undefined && giro(now) > giro(from)) {
+          const tGiro = (origine.current ?? 0) + giro(now) * sec
+          paint(channel, from, tGiro, last)
+          const prima = scalaDi(channel)
+          const nuova = channel.scalaAlGiro(visti.current.get(channel.key) ?? null, prima)
+          visti.current.delete(channel.key)
+          if (nuova[0] !== prima[0] || nuova[1] !== prima[1]) {
+            tenute.current.set(channel.key, nuova)
+            const tela = canvases.current.get(channel.key)
+            tela?.getContext('2d')?.clearRect(0, 0, tela.width, tela.height)
+            cambiata = true
+          }
+          if (paint(channel, tGiro, now, tGiro)) cambiata = allarga(channel) || cambiata
+        } else if (paint(channel, from, now, last ?? from) && channel.scalaAlGiro) {
+          cambiata = allarga(channel) || cambiata
+        }
         drawn.current.set(channel.key, now)
       }
+      if (cambiata) setGiri((g) => g + 1)
       raf = requestAnimationFrame(frame)
     }
 
@@ -493,6 +590,7 @@ export function Sweep({
       canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height)
     }
     drawn.current.clear()
+    visti.current.clear()
   }, [secondiComuni])
 
   /**
@@ -502,7 +600,7 @@ export function Sweep({
    * che scavalca, e una griglia sulla tela sparirebbe a ogni giro.
    */
   const percentoDallAlto = (channel: SweepChannel, value: number) => {
-    const [low, high] = channel.range()
+    const [low, high] = scalaDi(channel)
     const k = (value - low) / (high - low || 1)
     return (1 - (0.06 + 0.88 * Math.max(0, Math.min(1, k)))) * 100
   }
@@ -556,11 +654,19 @@ export function Sweep({
               {channel.value}
             </span>
           )}
-          {channel.griglia?.map((valore) => (
+          {/* La tela e quello che si legge **sulla sua scala** — griglia e
+              barra di calibrazione — stanno in un contenitore loro: le
+              posizioni in percento devono essere dell'area del pennello, non
+              della corsia. Sul ventilatore la corsia ha un margine interno
+              (l'etichetta sta sopra la curva) e in percento della corsia le
+              righe alte cadevano qualche pixel fuori posto. */}
+          <div className="simmon__lane-tela">
+          {(typeof channel.griglia === 'function' ? channel.griglia(scalaDi(channel)) : channel.griglia)?.map((valore) => (
             <span
               key={valore}
               className="simmon__lane-griglia"
-              style={{ top: `${percentoDallAlto(channel, valore)}%`, color: channel.color }}
+              data-valore={valore}
+              style={{ top: `${percentoDallAlto(channel, valore)}%`, color: channel.coloreGriglia ?? channel.color }}
             >
               {!channel.grigliaSenzaNumeri && <em>{valore}</em>}
             </span>
@@ -578,6 +684,7 @@ export function Sweep({
             </span>
           )}
           <canvas data-channel={channel.key} ref={attacca} />
+          </div>
         </div>
       ))}
     </div>

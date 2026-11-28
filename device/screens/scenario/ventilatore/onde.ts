@@ -166,6 +166,44 @@ export function oscillazioneToracica(stato: StatoVentilatore, tSec: number): num
   return sopraLaBase * trasmissioneToracica(ora.fisiologia) - daPaziente
 }
 
+/**
+ * ## Chi disegna dal ventilatore: le curve di prima fino all'atto dopo
+ *
+ * Una regolazione confermata vale dall'atto successivo: l'istantanea porta
+ * `origineMacchina`, l'inizio di quell'atto (`dallAttoDopo` in
+ * `istantanea.ts`). Il motore però ricalcola le curve dalle impostazioni, e
+ * con lo stato nuovo l'atto in corso cambierebbe forma e fase di colpo. Chi
+ * disegna in funzione del tempo — le corsie del ventilatore, l'oscillazione
+ * respiratoria sulle pressioni del monitor — tiene lo stato di prima fino a
+ * `fino` e da lì passa al nuovo.
+ *
+ * Si chiama a ogni stato nuovo con quello di prima e la transizione in corso;
+ * `statoAllIstante` dice quale stato usare per un istante. Una seconda
+ * regolazione prima che la prima parta tiene lo stato di prima di tutt'e
+ * due: è quello che sta sullo schermo.
+ */
+export interface Transizione {
+  vecchio: StatoVentilatore
+  fino: number
+}
+
+export function seguiRegolazione(
+  prima: StatoVentilatore | null,
+  ora: StatoVentilatore,
+  inCorso: Transizione | null,
+  adesso: number,
+): Transizione | null {
+  const o = ora.origineMacchina ?? 0
+  if (prima && prima !== ora && o !== (prima.origineMacchina ?? 0) && o > adesso) {
+    return { vecchio: inCorso && inCorso.fino > adesso ? inCorso.vecchio : prima, fino: o }
+  }
+  return inCorso && inCorso.fino > adesso && inCorso.fino === o ? inCorso : null
+}
+
+export function statoAllIstante(t: number, ora: StatoVentilatore, transizione: Transizione | null): StatoVentilatore {
+  return transizione && t < transizione.fino ? transizione.vecchio : ora
+}
+
 export function creaOnde(stato: StatoVentilatore): {
   paw: (t: number) => number
   flusso: (t: number) => number

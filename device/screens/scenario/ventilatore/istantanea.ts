@@ -206,6 +206,19 @@ export interface VentIstantanea {
    */
   sfasamentoSpontaneo: number
   /**
+   * L'origine della griglia degli atti della macchina, nel tempo del
+   * ventilatore (facoltativo, zero se manca).
+   *
+   * Gli atti mandatori cadono su `origine + k·Ttot`. Con l'origine fissa a zero
+   * cambiare la frequenza spostava **tutta** la griglia, anche all'indietro:
+   * l'atto in corso si ritrovava di colpo in un altro punto del ciclo e la
+   * curva si spezzava. Quando si conferma una regolazione l'origine diventa
+   * l'inizio dell'atto dopo (qui sotto, `dallAttoDopo`): da lì la griglia nuova, prima quella
+   * vecchia — come sulle macchine vere, dove la regolazione vale dall'atto
+   * successivo. Viaggia nell'istantanea perché tutti gli schermi la vedano uguale.
+   */
+  origineMacchina?: number
+  /**
    * La frequenza per cui lo sfasamento qui sopra è stato calcolato.
    *
    * Serve solo a `batti()` per accorgersi che la frequenza è cambiata: senza,
@@ -311,6 +324,7 @@ export function statoDa(istantanea: VentIstantanea): StatoVentilatore {
     paziente: istantanea.paziente,
     seme: istantanea.seme,
     sfasamentoSpontaneo: istantanea.sfasamentoSpontaneo ?? 0,
+    origineMacchina: istantanea.origineMacchina ?? 0,
     manovraDa: istantanea.manovraDa ?? null,
     tossi: istantanea.tossi ?? [],
     pressioneMassima: istantanea.limiti?.pPeak?.alto ?? null,
@@ -423,7 +437,9 @@ function riallineaFase(istantanea: VentIstantanea, tSec: number): VentIstantanea
   // sforzo cade a metà espirazione.
   if (nuova > 0 && vecchia <= 0 && istantanea.ventilando) {
     const ciclo = 60 / Math.max(1, Number(istantanea.impostazioni.frequency) || 12)
-    return { ...istantanea, sfasamentoSpontaneo: tSec - (tSec % ciclo) + ciclo * 0.6, frequenzaFase: nuova }
+    const o = istantanea.origineMacchina ?? 0
+    const dentroCiclo = (((tSec - o) % ciclo) + ciclo) % ciclo
+    return { ...istantanea, sfasamentoSpontaneo: tSec - dentroCiclo + ciclo * 0.6, frequenzaFase: nuova }
   }
   if (nuova <= 0 || vecchia <= 0) return { ...istantanea, frequenzaFase: nuova }
   const periodoVecchio = 60 / vecchia
@@ -716,6 +732,35 @@ export interface BaseManovra {
  * come un errore vorrebbe dire far comparire un avviso per una corsa fra due
  * messaggi.
  */
+/**
+ * ## La regolazione nuova vale dall'atto dopo
+ *
+ * Sulle macchine vere l'atto che sta passando finisce com'era cominciato, e le
+ * impostazioni nuove partono dal successivo. Qui il motore ricalcola le curve
+ * dalle impostazioni: senza un punto di partenza, cambiare la frequenza
+ * spostava la griglia degli atti anche all'indietro e la curva si spezzava a
+ * metà atto — il «si rompe e poi si ridisegna» visto in aula alla conferma.
+ *
+ * Si cerca quando comincia il prossimo atto **con le impostazioni di prima**, e
+ * la griglia nuova parte da lì (`origineMacchina`). Fino a quell'istante lo
+ * schermo continua a disegnare con le vecchie (`Ventilatore.tsx`); da lì le
+ * due curve si incontrano sul fronte dell'atto, dove la traccia ha già uno
+ * spigolo suo.
+ *
+ * Una seconda regolazione prima che la prima sia partita non sposta l'origine:
+ * sullo schermo c'è ancora la curva di prima di entrambe, e il suo prossimo
+ * atto è sempre quello.
+ */
+function dallAttoDopo(prima: VentIstantanea, dopo: VentIstantanea, tSec: number): VentIstantanea {
+  if (dopo === prima || !prima.ventilando) return dopo
+  const pendente = prima.origineMacchina ?? 0
+  if (pendente > tSec) return { ...dopo, origineMacchina: pendente }
+  const vecchio = statoDa(prima)
+  if (!motoreCopre(vecchio)) return dopo
+  const prossimo = attiRecenti(tSec + 15, vecchio, 15).find((a) => a.inizio > tSec)
+  return { ...dopo, origineMacchina: prossimo ? prossimo.inizio : tSec }
+}
+
 export function applica(
   istantanea: VentIstantanea,
   azione: AzioneVentilatore,
@@ -735,9 +780,9 @@ export function applica(
       if (!modalitaDisponibile(azione.modalita, istantanea.fisiologia)) return { istantanea }
       // PRVC parte dall'atto di prova e da lì si regola da sé (prvc.ts).
       if (azione.modalita === 'PRVC' && istantanea.modalita !== 'PRVC') {
-        return { istantanea: { ...istantanea, modalita: 'PRVC', prvcAtti: 0, impostazioni: { ...istantanea.impostazioni, pressureTarget: PRVC_PROVA } } }
+        return { istantanea: dallAttoDopo(istantanea, { ...istantanea, modalita: 'PRVC', prvcAtti: 0, impostazioni: { ...istantanea.impostazioni, pressureTarget: PRVC_PROVA } }, tSec) }
       }
-      return { istantanea: { ...istantanea, modalita: azione.modalita } }
+      return { istantanea: dallAttoDopo(istantanea, { ...istantanea, modalita: azione.modalita }, tSec) }
     }
 
     case 'respiro': {
@@ -775,14 +820,18 @@ export function applica(
       // — è un messaggio malformato, e si butta invece di scriverlo dentro.
       if (typeof attuale !== typeof azione.valore) return { istantanea }
       return {
-        istantanea: {
-          ...istantanea,
-          impostazioni: macEdEtInsieme(
-            { ...istantanea.impostazioni, [azione.chiave]: azione.valore },
-            azione.chiave,
-            istantanea.gas,
-          ),
-        },
+        istantanea: dallAttoDopo(
+          istantanea,
+          {
+            ...istantanea,
+            impostazioni: macEdEtInsieme(
+              { ...istantanea.impostazioni, [azione.chiave]: azione.valore },
+              azione.chiave,
+              istantanea.gas,
+            ),
+          },
+          tSec,
+        ),
       }
     }
 
