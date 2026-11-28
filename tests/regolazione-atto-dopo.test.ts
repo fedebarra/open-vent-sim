@@ -44,3 +44,21 @@ describe('la frequenza nuova parte dall\'atto dopo', () => {
     expect(dopo.origineMacchina ?? 0).toBe(0);
   });
 });
+
+describe('seguiRegolazione: chi disegna tiene lo stato di prima fino all\'atto dopo', () => {
+  it('fino all\'origine lo stato vecchio, poi il nuovo; una seconda regolazione tiene il primo', async () => {
+    const { seguiRegolazione, statoAllIstante } = await import('../device/screens/scenario/ventilatore/onde');
+    const ist0 = partito();
+    const ist1 = applica(ist0, { tipo: 'parametro', chiave: 'frequency', valore: 14 }, 101.7).istantanea;
+    const ist2 = applica(ist1, { tipo: 'parametro', chiave: 'volume', valore: 450 }, 102.5).istantanea;
+    const [s0, s1, s2] = [ist0, ist1, ist2].map(statoDa);
+    const t1 = seguiRegolazione(s0, s1, null, 101.8)!;
+    expect(t1.vecchio).toBe(s0);
+    expect(statoAllIstante(104, s1, t1)).toBe(s0);
+    expect(statoAllIstante(t1.fino + 0.01, s1, t1)).toBe(s1);
+    const t2 = seguiRegolazione(s1, s2, t1, 102.6);
+    expect(t2?.vecchio).toBe(s0);
+    // passata l'origine, nessuna transizione
+    expect(seguiRegolazione(s2, s2, t2, t1.fino + 1)).toBeNull();
+  });
+});

@@ -93,7 +93,7 @@ import {
   type Agente,
   type Consumabile,
 } from './gas'
-import { creaOnde, nelTrigger, puntoOnda } from './onde'
+import { creaOnde, nelTrigger, puntoOnda, seguiRegolazione, statoAllIstante, type Transizione } from './onde'
 // OVS 3.1: loop e pressioni alveolare/muscolare
 import { Loop } from './Loop'
 import { Eit } from './VistaEit'
@@ -442,31 +442,16 @@ export function Ventilatore({
   // Le curve si rifanno solo quando cambia qualcosa che le riguarda: `creaOnde`
   // chiude sopra lo stato, e ricrearla ad ogni render azzererebbe la memoria di
   // un istante che le tiene allineate fra loro.
-  // ## Fino all'atto dopo, le curve di prima
-  //
-  // Una regolazione confermata vale dall'atto successivo (`origineMacchina`,
-  // vedi `dallAttoDopo` in `istantanea.ts`): fino a quell'istante si continua a
-  // disegnare con lo stato di prima, o l'atto in corso si spezzerebbe a metà.
-  // Una seconda regolazione prima che la prima parta tiene lo stato di prima di
-  // tutt'e due: è quello che sta sullo schermo.
+  // ## Fino all'atto dopo, le curve di prima (`seguiRegolazione` in `onde.ts`)
   const ultimoStato = useRef<StatoVentilatore | null>(null)
-  const transizioneRef = useRef<{ vecchio: StatoVentilatore; fino: number } | null>(null)
+  const transizioneRef = useRef<Transizione | null>(null)
   const transizione = useMemo(() => {
     const prima = ultimoStato.current
     ultimoStato.current = stato
-    const ora = clockRef.current()
-    const corrente = transizioneRef.current
-    const o = stato.origineMacchina ?? 0
-    if (prima && prima !== stato && o !== (prima.origineMacchina ?? 0) && o > ora) {
-      return { vecchio: corrente && corrente.fino > ora ? corrente.vecchio : prima, fino: o }
-    }
-    return corrente && corrente.fino > ora && corrente.fino === o ? corrente : null
+    return seguiRegolazione(prima, stato, transizioneRef.current, clockRef.current())
   }, [stato])
   transizioneRef.current = transizione
-  const statoAl = useCallback(
-    (tt: number) => (transizione && tt < transizione.fino ? transizione.vecchio : stato),
-    [transizione, stato],
-  )
+  const statoAl = useCallback((tt: number) => statoAllIstante(tt, stato, transizione), [transizione, stato])
   const ondeNuove = useMemo(() => creaOnde(stato), [stato])
   const ondeVecchie = useMemo(() => (transizione ? creaOnde(transizione.vecchio) : null), [transizione])
   const onde = useMemo(() => {
