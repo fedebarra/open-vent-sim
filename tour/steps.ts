@@ -268,8 +268,8 @@ export const TOUR_STEPS: TourStep[] = [
     when: envNot('alto-flusso'),
     target: outside(knob('peep'), BAR),
     done: { state: onVent((v) => v.impostazioni.peep === 8) },
-    it: { title: 'Cambia la PEEP', body: 'Tocca PEEP e trascina il nastro, o usa − e +. In giallo il valore non è ancora attivo: si conferma con ✓. Dopo 6 secondi senza conferma resta quello di prima.', tryIt: 'porta la PEEP a 8 e conferma con ✓.' },
-    en: { title: 'Change the PEEP', body: 'Tap PEEP and drag the tape, or use − and +. While yellow the value is not active yet: confirm it with ✓. After 6 seconds without confirming, the old one stays.', tryIt: 'set the PEEP to 8 and confirm with ✓.' },
+    it: { title: 'Cambia la PEEP', body: 'Tocca PEEP e trascina il nastro, o usa − e +. In giallo il valore non è ancora attivo: si conferma con ✓. Dopo 6 secondi senza conferma resta quello di prima. Il valore confermato parte dall’atto successivo.', tryIt: 'porta la PEEP a 8 e conferma con ✓.' },
+    en: { title: 'Change the PEEP', body: 'Tap PEEP and drag the tape, or use − and +. While yellow the value is not active yet: confirm it with ✓. After 6 seconds without confirming, the old one stays. The confirmed value starts from the next breath.', tryIt: 'set the PEEP to 8 and confirm with ✓.' },
   },
   {
     id: 'flow-pattern',
@@ -338,8 +338,8 @@ export const TOUR_STEPS: TourStep[] = [
     id: 'waves',
     when: envNot('alto-flusso'),
     target: outside('.simvent__onde'),
-    it: { title: 'Le tre curve', body: 'Dall’alto: pressione delle vie aeree (Paw), flusso (sopra lo zero entra, sotto esce) e volume. Scorrono atto per atto: la forma dice più dei numeri.' },
-    en: { title: 'The three waveforms', body: 'From the top: airway pressure (Paw), flow (above zero goes in, below comes out) and volume. They scroll breath by breath: the shape tells more than the numbers.' },
+    it: { title: 'Le tre curve', body: 'Dall’alto: pressione delle vie aeree (Paw), flusso (sopra lo zero entra, sotto esce) e volume. Scorrono atto per atto: la forma dice più dei numeri. La riga continua è lo zero, i numeri a sinistra la scala, che si adatta al paziente a ogni giro dello schermo: se il flusso non torna a zero prima dell’atto dopo, l’aria resta dentro.' },
+    en: { title: 'The three waveforms', body: 'From the top: airway pressure (Paw), flow (above zero goes in, below comes out) and volume. They scroll breath by breath: the shape tells more than the numbers. The solid line is zero and the numbers on the left are the scale, which adapts to the patient at each sweep: if flow does not get back to zero before the next breath, air is staying in.' },
   },
   {
     id: 'sweep',
