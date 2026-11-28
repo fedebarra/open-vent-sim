@@ -2,7 +2,7 @@
 
 **A free, open-source simulator of ICU ventilator, anaesthesia machine and high-flow oxygen — with an instructor console that runs on your classroom's own network.**
 
-[Versione italiana](README.it.md) · Version 3.9.1 — 25 November 2026 · MIT licence
+[Versione italiana](README.it.md) · Version 3.10.0 — 28 November 2026 · MIT licence
 
 📄 **The paper:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. If you use Open Vent Sim in a course, a thesis or a paper, [please cite it](#11-how-to-cite).
 
@@ -67,9 +67,9 @@ Go to **[Releases](https://github.com/fedebarra/open-vent-sim/releases/latest)**
 
 | Your computer | File |
 |---|---|
-| Windows | `OpenVentSim-3.9.1-win-x64.exe` (installer) — or `OpenVentSim-3.9.1-portable.exe` (no install, just run it) |
-| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.9.1-mac-arm64.dmg` |
-| Mac with Intel processor | `OpenVentSim-3.9.1-mac-x64.dmg` |
+| Windows | `OpenVentSim-3.10.0-win-x64.exe` (installer) — or `OpenVentSim-3.10.0-portable.exe` (no install, just run it) |
+| Mac with Apple chip (M1, M2, M3, M4…) | `OpenVentSim-3.10.0-mac-arm64.dmg` |
+| Mac with Intel processor | `OpenVentSim-3.10.0-mac-x64.dmg` |
 
 > If the `.dmg` won't open, download the `.zip` with the same name: double-click to extract, then drag **Open Vent Sim** into Applications.
 
@@ -248,6 +248,12 @@ The log survives closing and reopening the console.
 | I want the old (2.x) interface | In the browser, add `?legacy=1` to the address (stand-alone only). |
 
 ## 9. What's new
+
+### 3.10.0 — 28 November 2026
+
+- **Reference lines on the waveforms**, as on ICU ventilators: zero as a solid line, the scale numbered on the left, a few round values dotted, in neutral grey. You can see whether flow gets back to zero before the next breath.
+- **The scale follows the patient**: it stays still while the trace is drawn and is recalculated at each sweep on what the curve actually did. If the curve goes off scale it widens at once instead of being clipped flat.
+- **A confirmed setting starts from the next breath**: the breath in progress ends as it began, so the trace no longer breaks when you change the rate, the volume or the mode.
 
 ### 3.9.1 — 25 November 2026
 
