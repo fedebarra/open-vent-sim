@@ -1182,22 +1182,6 @@
   white-space: nowrap;
 }
 .simmon__lane-griglia em {
-  left: auto;
-  right: calc(100% + 0.35rem);
-  top: -0.42rem;
-  font-size: 0.62rem;
-  font-weight: 500;
-  color: #7d8896;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.griglia-destra .simmon__lane-griglia em {
-  left: auto;
-  right: 0.6rem;
-  top: -0.85rem;
-  font-size: 0.7rem;
-}
-.simmon__lane-griglia em {
   position: absolute;
   left: 0.5rem;
   top: -0.65rem;
