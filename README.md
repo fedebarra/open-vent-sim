@@ -6,7 +6,7 @@
 
 📄 **The paper:** [*Simulator development using natural language: clinician-led innovation through artificial intelligence*](https://doi.org/10.1186/s41077-026-00467-2), Advances in Simulation 2026. If you use Open Vent Sim in a course, a thesis or a paper, [please cite it](#11-how-to-cite).
 
-<p align="center"><a href="https://fedebarra.github.io/open-vent-sim/video.html"><img src="docs/media/teaser-preview.gif" width="760" alt="Open Vent Sim in 90 seconds: the three machines, the instructor console, neural assist, NIV, high flow, the guided tour"></a><br><b><a href="https://fedebarra.github.io/open-vent-sim/video.html">▶ Watch the 90-second video</a></b></p>
+<p align="center"><a href="https://fedebarra.github.io/open-vent-sim/video.html"><img src="docs/media/readme-preview.gif" width="760" alt="Open Vent Sim in 90 seconds: the three machines, the instructor console, neural assist, NIV, high flow, the guided tour"></a><br><b><a href="https://fedebarra.github.io/open-vent-sim/video.html">▶ Watch the 90-second video</a></b></p>
 
 > ⚠️ **For education only.** Not a medical device. Never use it for clinical decisions.
 
